@@ -6,432 +6,753 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CW Time">
-<meta name="theme-color" content="#1a1a1a">
+<meta name="theme-color" content="#0f0f0f">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <title>Corpworks Timesheet</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #111111;
-  --surface: #1c1c1c;
-  --surface2: #242424;
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --surface2: #222222;
+  --surface3: #2a2a2a;
   --border: #2e2e2e;
-  --border2: #3a3a3a;
-  --text: #f0ece4;
-  --text2: #8a8680;
+  --border2: #3d3d3d;
+  --text: #f2ede6;
+  --text2: #999690;
   --text3: #555250;
   --accent: #E07B3C;
-  --accent2: #c96a2a;
-  --success: #4caf82;
-  --danger: #e05c5c;
-  --warn: #d4a843;
-  --font-head: 'Syne', sans-serif;
-  --font-mono: 'DM Mono', monospace;
+  --accent-dim: rgba(224,123,60,0.15);
+  --green: #4caf82;
+  --green-dim: rgba(76,175,130,0.15);
+  --red: #e05c5c;
+  --red-dim: rgba(224,92,92,0.15);
+  --yellow: #d4a843;
+  --yellow-dim: rgba(212,168,67,0.15);
+  --blue: #5b9bd5;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --font: 'Barlow', sans-serif;
+  --font-cond: 'Barlow Condensed', sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-mono);overscroll-behavior:none}
-body{display:flex;flex-direction:column;max-width:640px;margin:0 auto;position:relative}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overscroll-behavior:none;-webkit-font-smoothing:antialiased}
+body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
 
-/* Header */
-.app-header{
+/* ── HEADER ── */
+.app-bar{
   background:var(--bg);
-  padding:calc(var(--safe-top) + 12px) 20px 0;
   border-bottom:1px solid var(--border);
+  padding:calc(var(--safe-top) + 10px) 18px 0;
   position:sticky;top:0;z-index:100;
 }
-.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.brand{display:flex;align-items:center;gap:10px}
-.brand-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:700;font-size:14px;color:#fff;letter-spacing:.02em;flex-shrink:0}
-.brand-name{font-family:var(--font-head);font-weight:700;font-size:16px;color:var(--text);letter-spacing:.01em}
-.brand-sub{font-size:10px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
-.header-date{font-size:11px;color:var(--text3);font-family:var(--font-mono);text-align:right}
+.bar-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-badge{width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--font-cond);font-weight:800;font-size:16px;color:#fff;letter-spacing:.03em;flex-shrink:0}
+.logo-text{line-height:1}
+.logo-name{font-family:var(--font-cond);font-weight:800;font-size:18px;color:var(--text);letter-spacing:.04em;text-transform:uppercase}
+.logo-sub{font-size:11px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
+.live-clock{font-family:var(--font-cond);font-size:22px;font-weight:700;color:var(--text);letter-spacing:.04em}
+.live-date{font-size:11px;color:var(--text3);text-align:right;margin-top:1px;letter-spacing:.04em}
 
 /* Tab nav */
-.tab-nav{display:flex;gap:0;border-top:1px solid var(--border)}
-.tab-btn{flex:1;padding:10px 8px;font-family:var(--font-head);font-size:12px;font-weight:500;color:var(--text3);background:none;border:none;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;position:relative;top:1px}
-.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
-.tab-btn:hover:not(.active){color:var(--text2)}
+.tabs{display:flex;border-top:1px solid var(--border);margin-top:2px}
+.tab{flex:1;padding:11px 6px;font-family:var(--font-cond);font-size:13px;font-weight:700;color:var(--text3);background:none;border:none;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;border-bottom:2px solid transparent;transition:all .15s;position:relative;top:1px}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 
-/* Pages */
-.page{display:none;flex:1;overflow-y:auto;padding-bottom:calc(var(--safe-bottom) + 80px)}
+/* ── PAGES ── */
+.page{display:none;overflow-y:auto;padding-bottom:calc(var(--safe-bottom) + 20px)}
 .page.active{display:block}
 
-/* Section */
-.section{padding:20px}
-.section+.section{border-top:1px solid var(--border)}
+/* ── CLOCK PAGE ── */
+.clock-hero{padding:24px 18px 0;text-align:center}
+.status-ring{width:180px;height:180px;margin:0 auto 20px;position:relative;cursor:pointer}
+.ring-svg{width:100%;height:100%}
+.ring-bg{fill:none;stroke:var(--surface2);stroke-width:10}
+.ring-prog{fill:none;stroke:var(--accent);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .5s ease,stroke .3s;transform-origin:center;transform:rotate(-90deg)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.ring-hours{font-family:var(--font-cond);font-size:42px;font-weight:800;color:var(--text);line-height:1;letter-spacing:.02em}
+.ring-label{font-size:12px;color:var(--text2);letter-spacing:.1em;text-transform:uppercase;font-weight:600}
 
-/* Tech selector */
-.tech-select-wrap{margin-bottom:20px}
-.field-label{font-size:10px;color:var(--text2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
-.field-row{display:flex;gap:10px;flex-wrap:wrap}
-select,input[type=text],input[type=date],input[type=number]{
-  background:var(--surface2);
-  border:1px solid var(--border2);
-  color:var(--text);
-  font-family:var(--font-mono);
-  font-size:14px;
-  padding:10px 12px;
-  border-radius:8px;
-  outline:none;
-  width:100%;
-  -webkit-appearance:none;
-  appearance:none;
+.status-pill-big{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:30px;font-family:var(--font-cond);font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:20px}
+.pill-clocked-in{background:var(--green-dim);color:var(--green);border:1px solid rgba(76,175,130,0.3)}
+.pill-clocked-out{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
+.pill-dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.pill-clocked-in .pill-dot{animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Big action button */
+.clock-btn{width:100%;padding:22px;border-radius:16px;border:none;font-family:var(--font-cond);font-size:24px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .15s;margin-bottom:14px}
+.clock-btn:active{transform:scale(.97)}
+.btn-clockin{background:var(--green);color:#fff}
+.btn-clockin:hover{background:#3d9e6e}
+.btn-clockout{background:var(--red);color:#fff}
+.btn-clockout:hover{background:#c94f4f}
+
+/* Time info row */
+.time-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.time-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+.time-card-val{font-family:var(--font-cond);font-size:28px;font-weight:800;color:var(--text);letter-spacing:.03em}
+.time-card-label{font-size:12px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-top:3px;font-weight:600}
+
+/* Break section */
+.break-section{padding:0 18px 18px}
+.section-title{font-family:var(--font-cond);font-size:13px;font-weight:700;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
+.break-cards{display:flex;flex-direction:column;gap:10px}
+.break-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.break-info{flex:1}
+.break-name{font-family:var(--font-cond);font-size:20px;font-weight:800;color:var(--text);letter-spacing:.03em}
+.break-dur{font-size:13px;color:var(--text2);margin-top:2px;font-weight:500}
+.break-timer{font-family:var(--font-cond);font-size:28px;font-weight:800;color:var(--accent);letter-spacing:.04em;min-width:70px;text-align:center}
+.break-btn{padding:12px 20px;border-radius:10px;border:none;font-family:var(--font-cond);font-size:16px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:all .15s;white-space:nowrap}
+.break-btn:active{transform:scale(.95)}
+.btn-start-break{background:var(--yellow-dim);color:var(--yellow);border:1px solid rgba(212,168,67,0.3)}
+.btn-stop-break{background:var(--yellow);color:#fff}
+.btn-taken{background:var(--surface2);color:var(--text3);border:1px solid var(--border);cursor:default}
+
+/* Job entry section */
+.jobs-section{padding:0 18px}
+.job-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.job-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+.job-line-label{font-family:var(--font-cond);font-size:14px;font-weight:700;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+.job-del{background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;padding:0;line-height:1}
+.job-del:hover{color:var(--red)}
+.job-body{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.job-desc input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px;font-family:var(--font);font-size:17px;color:var(--text);outline:none}
+.job-desc input:focus{border-color:var(--accent)}
+.job-desc input::placeholder{color:var(--text3)}
+.hours-row{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.day-col{display:flex;flex-direction:column;align-items:center;gap:5px}
+.day-lbl{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.05em;text-transform:uppercase}
+.day-lbl-num{font-size:11px;color:var(--text2);font-weight:600}
+.hr-input{width:100%;text-align:center;padding:10px 2px;font-size:16px;font-weight:700;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:var(--font)}
+.hr-input:focus{border-color:var(--accent);background:var(--surface3)}
+.hr-input::-webkit-inner-spin-button,.hr-input::-webkit-outer-spin-button{-webkit-appearance:none}
+.job-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:6px;border-top:1px solid var(--border)}
+.rate-wrap{display:flex;align-items:center;gap:8px}
+.rate-wrap label{font-size:13px;color:var(--text2);font-weight:600;white-space:nowrap}
+.rate-wrap input{width:80px;text-align:center;padding:10px;font-size:16px;font-weight:700;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:var(--font)}
+.rate-wrap input:focus{border-color:var(--accent)}
+.rate-wrap input::-webkit-inner-spin-button,.rate-wrap input::-webkit-outer-spin-button{-webkit-appearance:none}
+.job-amt{font-family:var(--font-cond);font-size:24px;font-weight:800;color:var(--accent)}
+
+.add-job-btn{width:100%;padding:16px;border-radius:14px;border:2px dashed var(--border2);background:none;color:var(--text2);font-family:var(--font-cond);font-size:18px;font-weight:700;letter-spacing:.04em;cursor:pointer;margin-bottom:14px;transition:all .15s}
+.add-job-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Tech select */
+.tech-section{padding:18px 18px 0}
+.field-label{font-size:13px;font-weight:700;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+select,input[type=text],input[type=date]{
+  width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);
+  font-family:var(--font);font-size:18px;font-weight:600;padding:14px 16px;border-radius:12px;
+  outline:none;-webkit-appearance:none;appearance:none;
 }
-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%238a8680'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
-input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(224,123,60,.12)}
-.field-half{width:calc(50% - 5px)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%23999690'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:40px}
+select:focus,input:focus{border-color:var(--accent)}
+.week-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.week-field{display:flex;flex-direction:column;gap:6px}
 
-/* Summary cards */
-.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
-.scard{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px}
-.scard-val{font-family:var(--font-head);font-size:26px;font-weight:700;color:var(--text)}
-.scard-val.accent{color:var(--accent)}
-.scard-label{font-size:10px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
+/* Submit bar */
+.submit-bar{padding:14px 18px calc(var(--safe-bottom) + 14px);border-top:1px solid var(--border);background:var(--bg)}
+.submit-btn{width:100%;padding:20px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-family:var(--font-cond);font-size:22px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.submit-btn:hover{background:#c96a2a}
+.submit-btn:active{transform:scale(.98)}
 
-/* Job rows */
-.job-list{display:flex;flex-direction:column;gap:10px}
-.job-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
-.job-card-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border)}
-.job-num{font-size:10px;color:var(--accent);font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;font-weight:500}
-.job-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:0 0 0 8px;line-height:1}
-.job-del:hover{color:var(--danger)}
-.job-card-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
-.job-desc input{font-size:15px;background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:6px 0;color:var(--text)}
-.job-desc input:focus{border-bottom-color:var(--accent);box-shadow:none}
-.hours-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
-.day-cell{display:flex;flex-direction:column;align-items:center;gap:4px}
-.day-label{font-size:9px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
-.day-input{width:100%;text-align:center;padding:8px 4px;font-size:14px;border-radius:6px}
-.day-input::-webkit-inner-spin-button,.day-input::-webkit-outer-spin-button{-webkit-appearance:none}
-.job-footer{display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px solid var(--border);gap:10px}
-.job-footer-rate{display:flex;align-items:center;gap:8px;flex:1}
-.job-footer-rate label{font-size:10px;color:var(--text2);white-space:nowrap;letter-spacing:.06em;text-transform:uppercase}
-.job-footer-rate input{width:90px;flex-shrink:0}
-.job-total{font-family:var(--font-head);font-size:18px;font-weight:700;color:var(--accent);text-align:right;white-space:nowrap}
+/* Summary bar above submit */
+.summary-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden}
+.strip-item{padding:12px 8px;text-align:center;border-right:1px solid var(--border)}
+.strip-item:last-child{border-right:none}
+.strip-val{font-family:var(--font-cond);font-size:22px;font-weight:800;color:var(--text)}
+.strip-val.accent{color:var(--accent)}
+.strip-lbl{font-size:10px;color:var(--text2);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
 
-/* Add job button */
-.add-job-btn{width:100%;margin-top:10px;padding:14px;background:var(--surface);border:1px dashed var(--border2);border-radius:10px;color:var(--text2);font-family:var(--font-head);font-size:14px;font-weight:500;cursor:pointer;letter-spacing:.03em;transition:all .15s}
-.add-job-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(224,123,60,.06)}
+/* ── SUBMISSIONS ── */
+.subs-section{padding:18px}
+.sub-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden}
+.sub-head{padding:16px;border-bottom:1px solid var(--border)}
+.sub-tech-name{font-family:var(--font-cond);font-size:22px;font-weight:800;color:var(--text);letter-spacing:.02em}
+.sub-meta{font-size:13px;color:var(--text2);margin-top:4px;font-weight:500}
+.sub-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);padding:14px 16px;gap:10px}
+.sub-stat{text-align:center}
+.sub-stat-val{font-family:var(--font-cond);font-size:20px;font-weight:800;color:var(--text)}
+.sub-stat-lbl{font-size:11px;color:var(--text3);font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-top:2px}
+.sub-clock-info{padding:0 16px 12px;display:flex;gap:16px}
+.sub-clock-item{font-size:13px;color:var(--text2);font-weight:500}
+.sub-clock-item span{color:var(--text);font-weight:700}
+.sub-actions{display:flex;border-top:1px solid var(--border)}
+.sub-action-btn{flex:1;padding:14px;background:none;border:none;border-right:1px solid var(--border);font-family:var(--font-cond);font-size:15px;font-weight:700;letter-spacing:.04em;color:var(--text2);cursor:pointer;text-transform:uppercase}
+.sub-action-btn:last-child{border-right:none}
+.sub-action-btn:hover{background:var(--surface2);color:var(--text)}
+.sub-action-btn.export{color:var(--accent)}
+.sub-action-btn.danger{color:var(--red)}
+.empty{padding:60px 20px;text-align:center;color:var(--text3)}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.25}
+.empty-text{font-family:var(--font-cond);font-size:18px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
 
-/* Submit / export bar */
-.action-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:640px;background:var(--bg);border-top:1px solid var(--border);padding:12px 20px calc(var(--safe-bottom) + 12px);display:flex;gap:10px;z-index:200}
-.btn-primary{flex:1;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:var(--font-head);font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.02em;transition:background .15s}
-.btn-primary:hover{background:var(--accent2)}
-.btn-primary:active{transform:scale(.98)}
-.btn-secondary{padding:14px 16px;background:var(--surface2);color:var(--text2);border:1px solid var(--border2);border-radius:10px;font-family:var(--font-head);font-size:14px;font-weight:500;cursor:pointer;letter-spacing:.02em;white-space:nowrap}
-.btn-secondary:hover{border-color:var(--border2);color:var(--text);background:var(--surface)}
-.btn-secondary:active{transform:scale(.98)}
+/* ── SETTINGS ── */
+.settings-section{padding:18px}
+.settings-section .field-label{margin-bottom:8px}
+.setting-block{margin-bottom:20px}
+.tech-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:30px;padding:8px 16px;font-size:15px;font-weight:600;color:var(--text2)}
+.chip button{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:0;line-height:1}
+.chip button:hover{color:var(--red)}
+.add-row{display:flex;gap:10px;margin-top:8px}
+.add-row input{flex:1;font-size:16px;padding:12px 14px}
+.add-row button{padding:12px 20px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-family:var(--font-cond);font-size:16px;font-weight:800;cursor:pointer;letter-spacing:.04em;white-space:nowrap}
+.danger-btn{width:100%;padding:16px;border-radius:12px;border:1px solid var(--red);background:none;color:var(--red);font-family:var(--font-cond);font-size:18px;font-weight:700;cursor:pointer;letter-spacing:.04em;text-transform:uppercase}
 
-/* Submissions log */
-.sub-list{display:flex;flex-direction:column;gap:10px}
-.sub-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px}
-.sub-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
-.sub-tech{font-family:var(--font-head);font-size:15px;font-weight:700;color:var(--text)}
-.sub-date{font-size:11px;color:var(--text3)}
-.sub-week{font-size:11px;color:var(--text2);margin-bottom:8px}
-.sub-stats{display:flex;gap:16px}
-.sub-stat{font-size:12px;color:var(--text2)}
-.sub-stat span{color:var(--text);font-weight:500}
-.sub-actions{display:flex;gap:8px;margin-top:12px;border-top:1px solid var(--border);padding-top:12px}
-.sub-btn{flex:1;padding:9px;border-radius:8px;font-family:var(--font-head);font-size:12px;font-weight:500;cursor:pointer;letter-spacing:.03em;border:1px solid var(--border2);background:var(--surface2);color:var(--text2)}
-.sub-btn:hover{background:var(--surface);color:var(--text)}
-.sub-btn.export{border-color:var(--accent);color:var(--accent)}
-.sub-btn.export:hover{background:rgba(224,123,60,.1)}
-.sub-btn.danger{border-color:var(--danger);color:var(--danger)}
-.sub-btn.danger:hover{background:rgba(224,92,92,.1)}
-.empty-state{padding:40px 20px;text-align:center;color:var(--text3);font-size:13px;line-height:1.8}
-.empty-icon{font-size:40px;margin-bottom:12px;opacity:.3}
-.status-badge{font-size:10px;padding:3px 8px;border-radius:20px;font-family:var(--font-mono);font-weight:500;letter-spacing:.04em;text-transform:uppercase}
-.badge-pending{background:rgba(212,168,67,.15);color:var(--warn)}
-.badge-exported{background:rgba(76,175,130,.15);color:var(--success)}
+/* ── INSTALL BANNER ── */
+.install-banner{
+  display:none;
+  background:linear-gradient(135deg,#1a1a1a 0%,#222 100%);
+  border-bottom:2px solid var(--accent);
+  padding:14px 18px;
+  align-items:center;
+  gap:12px;
+  position:sticky;top:0;z-index:200;
+}
+.install-banner.visible{display:flex}
+.install-icon{width:44px;height:44px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--font-cond);font-weight:800;font-size:16px;color:#fff;flex-shrink:0}
+.install-text{flex:1;min-width:0}
+.install-title{font-family:var(--font-cond);font-size:16px;font-weight:800;color:var(--text);letter-spacing:.03em}
+.install-sub{font-size:12px;color:var(--text2);margin-top:2px;font-weight:500}
+.install-btn{padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:var(--font-cond);font-size:15px;font-weight:800;letter-spacing:.04em;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.install-btn:active{transform:scale(.96)}
+.install-dismiss{background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;padding:0 0 0 4px;line-height:1;flex-shrink:0}
+
+/* iOS manual install prompt */
+.ios-prompt{
+  display:none;
+  position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,0.75);
+  align-items:flex-end;
+  padding:20px;
+}
+.ios-prompt.visible{display:flex}
+.ios-card{
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:20px;
+  padding:24px;
+  width:100%;
+  text-align:center;
+}
+.ios-title{font-family:var(--font-cond);font-size:22px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:.03em}
+.ios-steps{text-align:left;margin:16px 0;display:flex;flex-direction:column;gap:12px}
+.ios-step{display:flex;align-items:center;gap:12px;font-size:16px;color:var(--text);font-weight:500}
+.ios-step-num{width:32px;height:32px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-cond);font-size:16px;font-weight:800;color:#fff;flex-shrink:0}
+.ios-close{width:100%;padding:14px;border-radius:12px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-family:var(--font-cond);font-size:17px;font-weight:700;cursor:pointer;margin-top:8px;letter-spacing:.03em}
 
 /* Toast */
-.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:12px 20px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:90vw}
+.toast{position:fixed;bottom:120px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:14px 24px;border-radius:12px;font-size:15px;font-weight:600;z-index:9999;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;max-width:92vw}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast.success{border-color:var(--success);color:var(--success)}
-.toast.error{border-color:var(--danger);color:var(--danger)}
-
-/* Settings */
-.setting-row{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
-.tech-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.tech-tag{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--text2)}
-.tech-tag button{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0;line-height:1}
-.tech-tag button:hover{color:var(--danger)}
-.add-tech-row{display:flex;gap:8px}
-.add-tech-row input{flex:1}
-.add-tech-row button{padding:10px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:var(--font-head);font-size:13px;font-weight:600;cursor:pointer}
-.divider{border:none;border-top:1px solid var(--border);margin:4px 0 16px}
+.toast.ok{border-color:var(--green);color:var(--green)}
+.toast.err{border-color:var(--red);color:var(--red)}
 </style>
 </head>
 <body>
 
-<header class="app-header">
-  <div class="header-top">
-    <div class="brand">
-      <div class="brand-icon">CW</div>
-      <div>
-        <div class="brand-name">Corpworks</div>
-        <div class="brand-sub">Timesheet</div>
+<!-- ══ INSTALL BANNER ══ -->
+<div class="install-banner" id="installBanner">
+  <div class="install-icon">CW</div>
+  <div class="install-text">
+    <div class="install-title">Install CW Time</div>
+    <div class="install-sub">Add to your home screen as an app</div>
+  </div>
+  <button class="install-btn" id="installBtn" onclick="triggerInstall()">Install App</button>
+  <button class="install-dismiss" onclick="dismissInstall()" aria-label="Dismiss">×</button>
+</div>
+
+<!-- ══ iOS MANUAL PROMPT ══ -->
+<div class="ios-prompt" id="iosPrompt" onclick="closeIosPrompt(event)">
+  <div class="ios-card">
+    <div class="ios-title">📲 Install CW Time</div>
+    <div class="ios-steps">
+      <div class="ios-step">
+        <div class="ios-step-num">1</div>
+        <span>Tap the <strong>Share</strong> button at the bottom of Safari (box with arrow pointing up)</span>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">2</div>
+        <span>Scroll down and tap <strong>"Add to Home Screen"</strong></span>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">3</div>
+        <span>Tap <strong>Add</strong> — the CW icon appears on your home screen</span>
       </div>
     </div>
-    <div class="header-date" id="headerDate"></div>
+    <button class="ios-close" onclick="closeIosPrompt()">Got it ✓</button>
   </div>
-  <nav class="tab-nav">
-    <button class="tab-btn active" onclick="showPage('entry')">Entry</button>
-    <button class="tab-btn" onclick="showPage('submissions')">Submitted</button>
-    <button class="tab-btn" onclick="showPage('settings')">Settings</button>
+</div>
+
+<header class="app-bar">
+  <div class="bar-top">
+    <div class="logo">
+      <div class="logo-badge">CW</div>
+      <div class="logo-text">
+        <div class="logo-name">Corpworks</div>
+        <div class="logo-sub">Timesheet</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div class="live-clock" id="liveClock">--:--</div>
+      <div class="live-date" id="liveDate"></div>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" onclick="showPage('clock',this)">Clock</button>
+    <button class="tab" onclick="showPage('jobs',this)">Jobs</button>
+    <button class="tab" onclick="showPage('subs',this)">Submitted</button>
+    <button class="tab" onclick="showPage('settings',this)">Settings</button>
   </nav>
 </header>
 
-<!-- ENTRY PAGE -->
-<div class="page active" id="page-entry">
-  <div class="section">
-    <div class="tech-select-wrap">
-      <div class="field-label">Technician</div>
-      <select id="techSelect" onchange="saveDraft()">
+<!-- ══ CLOCK PAGE ══ -->
+<div class="page active" id="page-clock">
+  <div class="clock-hero">
+
+    <!-- Ring -->
+    <div class="status-ring" onclick="toggleClock()">
+      <svg class="ring-svg" viewBox="0 0 180 180">
+        <circle class="ring-bg" cx="90" cy="90" r="80"/>
+        <circle class="ring-prog" id="ringProg" cx="90" cy="90" r="80"
+          stroke-dasharray="502" stroke-dashoffset="502"/>
+      </svg>
+      <div class="ring-center">
+        <div class="ring-hours" id="ringHours">0:00</div>
+        <div class="ring-label">Worked</div>
+      </div>
+    </div>
+
+    <div class="status-pill-big pill-clocked-out" id="statusPill">
+      <span class="pill-dot"></span>
+      <span id="statusText">Not clocked in</span>
+    </div>
+
+    <div style="padding:0 18px 16px">
+      <!-- Tech selector on clock page -->
+      <div class="field-label" style="margin-bottom:8px">Who are you?</div>
+      <select id="clockTechSelect" onchange="syncTech()">
         <option value="">— Select your name —</option>
       </select>
+
+      <div style="height:14px"></div>
+
+      <button class="clock-btn btn-clockin" id="mainClockBtn" onclick="toggleClock()">
+        Clock In
+      </button>
+
+      <div class="time-row">
+        <div class="time-card">
+          <div class="time-card-val" id="timeIn">--:--</div>
+          <div class="time-card-label">Clocked in</div>
+        </div>
+        <div class="time-card">
+          <div class="time-card-val" id="timeOut">--:--</div>
+          <div class="time-card-label">Clocked out</div>
+        </div>
+      </div>
+      <div class="time-row">
+        <div class="time-card">
+          <div class="time-card-val" id="breakTotal" style="color:var(--yellow)">0 min</div>
+          <div class="time-card-label">Break time</div>
+        </div>
+        <div class="time-card">
+          <div class="time-card-val" id="netHours" style="color:var(--green)">0:00</div>
+          <div class="time-card-label">Net hours</div>
+        </div>
+      </div>
     </div>
-    <div class="field-row">
-      <div class="field-half">
+  </div>
+
+  <!-- Break buttons -->
+  <div class="break-section">
+    <div class="section-title">Breaks</div>
+    <div class="break-cards">
+      <div class="break-card" id="breakCard0">
+        <div class="break-info">
+          <div class="break-name">☕ Smoko</div>
+          <div class="break-dur">15 min break</div>
+        </div>
+        <div class="break-timer" id="breakTimer0">15:00</div>
+        <button class="break-btn btn-start-break" id="breakBtn0" onclick="toggleBreak(0)">Start</button>
+      </div>
+      <div class="break-card" id="breakCard1">
+        <div class="break-info">
+          <div class="break-name">🥪 Lunch</div>
+          <div class="break-dur">30 min break</div>
+        </div>
+        <div class="break-timer" id="breakTimer1">30:00</div>
+        <button class="break-btn btn-start-break" id="breakBtn1" onclick="toggleBreak(1)">Start</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ JOBS PAGE ══ -->
+<div class="page" id="page-jobs">
+  <div class="tech-section">
+    <div class="field-label">Technician</div>
+    <select id="jobTechSelect" onchange="syncTech()">
+      <option value="">— Select your name —</option>
+    </select>
+    <div class="week-row">
+      <div class="week-field">
         <div class="field-label">Week starting</div>
-        <input type="date" id="weekStart" onchange="saveDraft(); updateDayLabels()">
+        <input type="date" id="weekStart" onchange="updateWeekEnd();saveDraft()">
       </div>
-      <div class="field-half">
+      <div class="week-field">
         <div class="field-label">Week ending</div>
-        <input type="date" id="weekEnd" readonly style="opacity:.6">
+        <input type="date" id="weekEnd" readonly style="opacity:.5">
       </div>
     </div>
   </div>
-
-  <div class="section">
-    <div class="summary-grid">
-      <div class="scard">
-        <div class="scard-val" id="sumHours">0.0</div>
-        <div class="scard-label">Total hours</div>
+  <div style="height:16px"></div>
+  <div class="jobs-section">
+    <div id="jobList"></div>
+    <button class="add-job-btn" onclick="addJob()">+ Add Job / Line Item</button>
+  </div>
+  <div class="submit-bar">
+    <div class="summary-strip">
+      <div class="strip-item">
+        <div class="strip-val" id="sumH">0.0</div>
+        <div class="strip-lbl">Hours</div>
       </div>
-      <div class="scard">
-        <div class="scard-val accent" id="sumAmount">$0</div>
-        <div class="scard-label">Total (excl GST)</div>
+      <div class="strip-item">
+        <div class="strip-val accent" id="sumAmt">$0</div>
+        <div class="strip-lbl">Amount</div>
+      </div>
+      <div class="strip-item">
+        <div class="strip-val" id="sumJobs">0</div>
+        <div class="strip-lbl">Jobs</div>
       </div>
     </div>
-
-    <div class="job-list" id="jobList"></div>
-    <button class="add-job-btn" onclick="addJob()">+ Add job / line item</button>
-  </div>
-
-  <div class="action-bar">
-    <button class="btn-secondary" onclick="clearDraft()">Clear</button>
-    <button class="btn-primary" onclick="submitTimesheet()">Submit timesheet →</button>
+    <button class="submit-btn" onclick="submitSheet()">Submit Timesheet →</button>
   </div>
 </div>
 
-<!-- SUBMISSIONS PAGE -->
-<div class="page" id="page-submissions">
-  <div class="section">
-    <div id="subList"></div>
-  </div>
-  <div class="action-bar">
-    <button class="btn-primary" onclick="exportAllCSV()">Export all to CSV →</button>
+<!-- ══ SUBMISSIONS ══ -->
+<div class="page" id="page-subs">
+  <div class="subs-section" id="subsList"></div>
+  <div class="submit-bar">
+    <button class="submit-btn" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border2)" onclick="exportAll()">
+      Export All to CSV →
+    </button>
   </div>
 </div>
 
-<!-- SETTINGS PAGE -->
+<!-- ══ SETTINGS ══ -->
 <div class="page" id="page-settings">
-  <div class="section">
-    <div class="setting-row">
-      <div class="field-label">Company name</div>
-      <input type="text" id="settingCompany" placeholder="Corpworks Ltd" oninput="saveSettings()">
+  <div class="settings-section">
+    <div class="setting-block">
+      <div class="field-label">Company</div>
+      <input type="text" id="setCompany" placeholder="Corpworks Ltd" oninput="saveSettings()">
     </div>
-    <div class="setting-row">
-      <div class="field-label">Default hourly rate (NZD)</div>
-      <input type="number" id="settingRate" placeholder="35" oninput="saveSettings()">
+    <div class="setting-block">
+      <div class="field-label">Default hourly rate ($)</div>
+      <input type="number" id="setRate" placeholder="35" oninput="saveSettings()" style="font-size:20px;padding:14px">
     </div>
-  </div>
-  <hr class="divider" style="margin:0 20px">
-  <div class="section">
-    <div class="field-label" style="margin-bottom:10px">Technicians</div>
-    <div class="tech-tags" id="techTags"></div>
-    <div class="add-tech-row" style="margin-top:12px">
-      <input type="text" id="newTechInput" placeholder="Add name..." onkeydown="if(event.key==='Enter')addTech()">
-      <button onclick="addTech()">Add</button>
+    <div class="setting-block">
+      <div class="field-label">Technicians</div>
+      <div class="tech-chips" id="techChips"></div>
+      <div class="add-row">
+        <input type="text" id="newTech" placeholder="Add name..." onkeydown="if(event.key==='Enter')addTech()">
+        <button onclick="addTech()">Add</button>
+      </div>
     </div>
-  </div>
-  <hr class="divider" style="margin:0 20px">
-  <div class="section">
-    <div class="field-label" style="margin-bottom:10px">Data</div>
-    <button class="btn-secondary" onclick="clearAllData()" style="width:100%;color:var(--danger);border-color:var(--danger)">Clear all submissions</button>
+    <div class="setting-block" style="margin-top:30px">
+      <button class="danger-btn" onclick="clearAllData()">Clear All Submissions</button>
+    </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat'];
-let jobs = [];
-let nextJobId = 1;
-let settings = { company: 'Corpworks Ltd', rate: 35, techs: ['Glenn','Monique'] };
-let submissions = [];
+// ══ STATE ══
+let settings = { company:'Corpworks Ltd', rate:35, techs:['Glenn','Monique'] };
+let clockState = {
+  clocked: false,
+  clockInTime: null,
+  clockOutTime: null,
+  breaks: [
+    { name:'Smoko', mins:15, started:null, elapsed:0, done:false },
+    { name:'Lunch',  mins:30, started:null, elapsed:0, done:false }
+  ]
+};
+let jobs = [], nextId = 1, submissions = [];
+let tickInterval = null;
+let breakIntervals = [null, null];
 
-function loadData() {
+// ══ INIT ══
+function init() {
   try {
-    const s = localStorage.getItem('cw_settings');
-    if (s) settings = {...settings, ...JSON.parse(s)};
-    const sub = localStorage.getItem('cw_submissions');
-    if (sub) submissions = JSON.parse(sub);
-    const draft = localStorage.getItem('cw_draft');
-    if (draft) {
-      const d = JSON.parse(draft);
-      jobs = d.jobs || [];
-      nextJobId = d.nextJobId || 1;
-      if (d.techName) setTimeout(() => { document.getElementById('techSelect').value = d.techName; }, 50);
-      if (d.weekStart) document.getElementById('weekStart').value = d.weekStart;
-    }
+    const s = localStorage.getItem('cw2_settings'); if(s) settings = {...settings,...JSON.parse(s)};
+    const sub = localStorage.getItem('cw2_subs'); if(sub) submissions = JSON.parse(sub);
+    const cs = localStorage.getItem('cw2_clock'); if(cs) { clockState = JSON.parse(cs); restoreClock(); }
+    const dr = localStorage.getItem('cw2_draft');
+    if(dr) { const d=JSON.parse(dr); jobs=d.jobs||[]; nextId=d.nextId||1; }
   } catch(e) {}
-}
-
-function saveSettings() {
-  settings.company = document.getElementById('settingCompany').value || 'Corpworks Ltd';
-  settings.rate = parseFloat(document.getElementById('settingRate').value) || 35;
-  localStorage.setItem('cw_settings', JSON.stringify(settings));
-}
-
-function saveDraft() {
-  const draft = {
-    techName: document.getElementById('techSelect').value,
-    weekStart: document.getElementById('weekStart').value,
-    jobs, nextJobId
-  };
-  localStorage.setItem('cw_draft', JSON.stringify(draft));
-  updateSummary();
-}
-
-function saveSubmissions() {
-  localStorage.setItem('cw_submissions', JSON.stringify(submissions));
-}
-
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  event.target.classList.add('active');
-  if (name === 'submissions') renderSubmissions();
-  if (name === 'settings') renderSettings();
-}
-
-function getMondayOfWeek(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  return d;
-}
-
-function toDateStr(d) {
-  return d.toISOString().split('T')[0];
-}
-
-function initWeek() {
-  const ws = document.getElementById('weekStart');
-  if (!ws.value) {
-    const monday = getMondayOfWeek(new Date());
-    ws.value = toDateStr(monday);
-  }
-  updateDayLabels();
-}
-
-function updateDayLabels() {
-  const ws = document.getElementById('weekStart').value;
-  if (!ws) return;
-  const monday = new Date(ws + 'T00:00:00');
-  const friday = new Date(monday);
-  friday.setDate(monday.getDate() + 4);
-  const saturday = new Date(monday);
-  saturday.setDate(monday.getDate() + 5);
-  document.getElementById('weekEnd').value = toDateStr(saturday);
+  renderTechSelects();
+  renderSettings();
+  initWeek();
   renderJobs();
-  saveDraft();
+  updateClockUI();
+  startTick();
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  if(jobs.length===0) addJob();
 }
 
-function getDayLabels() {
-  const ws = document.getElementById('weekStart').value;
-  if (!ws) return DAYS;
-  const monday = new Date(ws + 'T00:00:00');
-  return DAYS.map((d, i) => {
-    const day = new Date(monday);
-    day.setDate(monday.getDate() + i);
-    return day.getDate().toString();
+// ══ CLOCK ══
+function toggleClock() {
+  const tech = document.getElementById('clockTechSelect').value;
+  if(!tech) { showToast('Select your name first','err'); return; }
+  if(!clockState.clocked) {
+    clockState.clocked = true;
+    clockState.clockInTime = Date.now();
+    clockState.clockOutTime = null;
+    clockState.breaks = [
+      {name:'Smoko',mins:15,started:null,elapsed:0,done:false},
+      {name:'Lunch',mins:30,started:null,elapsed:0,done:false}
+    ];
+    showToast('Clocked in ✓','ok');
+  } else {
+    clockState.clocked = false;
+    clockState.clockOutTime = Date.now();
+    // Stop any running breaks
+    clockState.breaks.forEach((b,i)=>{ if(b.started){ b.elapsed+=Date.now()-b.started; b.started=null; } });
+    showToast('Clocked out','ok');
+  }
+  saveClock();
+  updateClockUI();
+}
+
+function toggleBreak(i) {
+  if(!clockState.clocked) { showToast('Clock in first','err'); return; }
+  const b = clockState.breaks[i];
+  if(b.done) return;
+  if(!b.started) {
+    b.started = Date.now();
+    showToast(b.name+' break started');
+  } else {
+    b.elapsed += Date.now() - b.started;
+    b.started = null;
+    const maxMs = b.mins * 60000;
+    if(b.elapsed >= maxMs) { b.elapsed = maxMs; b.done = true; showToast(b.name+' break done ✓','ok'); }
+    else { showToast(b.name+' stopped'); }
+  }
+  saveClock();
+  updateClockUI();
+}
+
+function restoreClock() {
+  // Re-attach live timers if clocked in
+}
+
+function getWorkedMs() {
+  if(!clockState.clockInTime) return 0;
+  const end = clockState.clockOutTime || Date.now();
+  return end - clockState.clockInTime;
+}
+
+function getBreakMs() {
+  return clockState.breaks.reduce((s,b) => {
+    let e = b.elapsed;
+    if(b.started) e += Date.now() - b.started;
+    return s + Math.min(e, b.mins*60000);
+  }, 0);
+}
+
+function fmtTime(ts) {
+  if(!ts) return '--:--';
+  const d = new Date(ts);
+  return d.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit',hour12:true});
+}
+
+function fmtMs(ms) {
+  const totalSec = Math.max(0, Math.floor(ms/1000));
+  const h = Math.floor(totalSec/3600);
+  const m = Math.floor((totalSec%3600)/60);
+  return h+':'+(m<10?'0':'')+m;
+}
+
+function fmtBreakTimer(b) {
+  const maxMs = b.mins * 60000;
+  let elapsed = b.elapsed;
+  if(b.started) elapsed += Date.now() - b.started;
+  elapsed = Math.min(elapsed, maxMs);
+  const remaining = maxMs - elapsed;
+  const m = Math.floor(remaining/60000);
+  const s = Math.floor((remaining%60000)/1000);
+  return m+':'+(s<10?'0':'')+s;
+}
+
+function updateClockUI() {
+  const workedMs = getWorkedMs();
+  const breakMs = getBreakMs();
+  const netMs = Math.max(0, workedMs - breakMs);
+  const netH = netMs / 3600000;
+
+  // Ring — max 10 hours
+  const prog = document.getElementById('ringProg');
+  const pct = Math.min(netH/10, 1);
+  prog.style.strokeDashoffset = 502 - (502 * pct);
+  prog.style.stroke = clockState.clocked ? 'var(--green)' : (netH>0 ? 'var(--accent)' : 'var(--surface3)');
+
+  document.getElementById('ringHours').textContent = fmtMs(netMs);
+
+  const pill = document.getElementById('statusPill');
+  const btn = document.getElementById('mainClockBtn');
+  const statusTxt = document.getElementById('statusText');
+
+  if(clockState.clocked) {
+    pill.className = 'status-pill-big pill-clocked-in';
+    statusTxt.textContent = 'Clocked in';
+    btn.className = 'clock-btn btn-clockout';
+    btn.textContent = 'Clock Out';
+  } else if(clockState.clockInTime) {
+    pill.className = 'status-pill-big pill-clocked-out';
+    statusTxt.textContent = 'Clocked out';
+    btn.className = 'clock-btn btn-clockin';
+    btn.textContent = 'Clock In Again';
+  } else {
+    pill.className = 'status-pill-big pill-clocked-out';
+    statusTxt.textContent = 'Not clocked in';
+    btn.className = 'clock-btn btn-clockin';
+    btn.textContent = 'Clock In';
+  }
+
+  document.getElementById('timeIn').textContent = fmtTime(clockState.clockInTime);
+  document.getElementById('timeOut').textContent = fmtTime(clockState.clockOutTime);
+
+  const totalBreakMin = Math.round(breakMs/60000);
+  document.getElementById('breakTotal').textContent = totalBreakMin+' min';
+  document.getElementById('netHours').textContent = fmtMs(netMs);
+
+  // Break buttons
+  clockState.breaks.forEach((b,i) => {
+    const timer = document.getElementById('breakTimer'+i);
+    const btn = document.getElementById('breakBtn'+i);
+    timer.textContent = fmtBreakTimer(b);
+    if(b.done) {
+      btn.className = 'break-btn btn-taken'; btn.textContent = 'Done ✓';
+    } else if(b.started) {
+      btn.className = 'break-btn btn-stop-break'; btn.textContent = 'End';
+    } else {
+      btn.className = 'break-btn btn-start-break'; btn.textContent = 'Start';
+    }
   });
 }
 
+function startTick() {
+  tickInterval = setInterval(() => {
+    const now = new Date();
+    document.getElementById('liveClock').textContent =
+      now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit',hour12:true});
+    document.getElementById('liveDate').textContent =
+      now.toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'});
+    if(clockState.clocked || clockState.breaks.some(b=>b.started)) updateClockUI();
+  }, 1000);
+}
+
+function saveClock() { localStorage.setItem('cw2_clock', JSON.stringify(clockState)); }
+
+// ══ TECH SYNC ══
+function syncTech() {
+  const a = document.getElementById('clockTechSelect').value;
+  const b = document.getElementById('jobTechSelect').value;
+  if(event && event.target.id==='clockTechSelect') document.getElementById('jobTechSelect').value=a;
+  else document.getElementById('clockTechSelect').value=b;
+  saveDraft();
+}
+
+// ══ JOBS ══
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function initWeek() {
+  const ws = document.getElementById('weekStart');
+  if(!ws.value) {
+    const d=new Date(), day=d.getDay();
+    const mon=new Date(d); mon.setDate(d.getDate()-(day===0?6:day-1));
+    ws.value=toISO(mon);
+  }
+  updateWeekEnd();
+}
+
+function toISO(d){ return d.toISOString().split('T')[0]; }
+
+function updateWeekEnd() {
+  const ws=document.getElementById('weekStart').value;
+  if(!ws) return;
+  const mon=new Date(ws+'T00:00:00'), sat=new Date(mon);
+  sat.setDate(mon.getDate()+5);
+  document.getElementById('weekEnd').value=toISO(sat);
+  renderJobs();
+}
+
+function getDayNums() {
+  const ws=document.getElementById('weekStart').value;
+  if(!ws) return DAYS.map((_,i)=>i+1);
+  const mon=new Date(ws+'T00:00:00');
+  return DAYS.map((_,i)=>{ const d=new Date(mon); d.setDate(mon.getDate()+i); return d.getDate(); });
+}
+
 function addJob() {
-  jobs.push({ id: nextJobId++, desc: '', hours: [0,0,0,0,0,0], rate: settings.rate });
-  renderJobs();
-  saveDraft();
-  setTimeout(() => {
-    const inputs = document.querySelectorAll('.job-desc input');
-    if (inputs.length) inputs[inputs.length-1].focus();
-  }, 50);
+  jobs.push({id:nextId++,desc:'',hours:[0,0,0,0,0,0],rate:settings.rate});
+  renderJobs(); saveDraft();
+  setTimeout(()=>{ const ins=document.querySelectorAll('.job-desc input'); if(ins.length) ins[ins.length-1].focus(); },50);
 }
 
-function deleteJob(id) {
-  jobs = jobs.filter(j => j.id !== id);
-  renderJobs();
-  saveDraft();
+function delJob(id) { jobs=jobs.filter(j=>j.id!==id); renderJobs(); saveDraft(); }
+
+function updateJob(id,field,val) {
+  const j=jobs.find(j=>j.id===id); if(!j) return;
+  if(field==='desc') j.desc=val;
+  else if(field==='rate') j.rate=parseFloat(val)||0;
+  else j.hours[field]=parseFloat(val)||0;
+  updateSummary(); saveDraft();
 }
 
-function updateJob(id, field, value) {
-  const j = jobs.find(j => j.id === id);
-  if (!j) return;
-  if (field === 'desc') j.desc = value;
-  else if (field === 'rate') j.rate = parseFloat(value) || 0;
-  else j.hours[field] = parseFloat(value) || 0;
-  updateSummary();
-  saveDraft();
-}
-
-function jobTotal(j) { return j.hours.reduce((s,h) => s + h, 0); }
-function jobAmount(j) { return jobTotal(j) * j.rate; }
+function jTotal(j){ return j.hours.reduce((s,h)=>s+h,0); }
+function jAmt(j){ return jTotal(j)*j.rate; }
 
 function renderJobs() {
-  const dayNums = getDayLabels();
-  const list = document.getElementById('jobList');
-  list.innerHTML = '';
-  jobs.forEach(j => {
-    const div = document.createElement('div');
-    div.className = 'job-card';
-    const tot = jobTotal(j);
-    const amt = jobAmount(j);
-    div.innerHTML = `
-      <div class="job-card-header">
-        <span class="job-num">Line ${j.id}</span>
-        <button class="job-del" onclick="deleteJob(${j.id})" aria-label="Remove">×</button>
+  const nums=getDayNums();
+  const list=document.getElementById('jobList');
+  list.innerHTML='';
+  jobs.forEach(j=>{
+    const div=document.createElement('div');
+    div.className='job-card';
+    const tot=jTotal(j), amt=jAmt(j);
+    div.innerHTML=`
+      <div class="job-head">
+        <span class="job-line-label">Job ${j.id}</span>
+        <button class="job-del" onclick="delJob(${j.id})">×</button>
       </div>
-      <div class="job-card-body">
+      <div class="job-body">
         <div class="job-desc">
-          <input type="text" placeholder="Job ref or description (e.g. CW-1042 / plumbing)" value="${j.desc.replace(/"/g,'&quot;')}"
-            oninput="updateJob(${j.id},'desc',this.value)" onchange="updateJob(${j.id},'desc',this.value)">
+          <input type="text" placeholder="Job ref or description..." value="${j.desc.replace(/"/g,'&quot;')}"
+            oninput="updateJob(${j.id},'desc',this.value)">
         </div>
-        <div class="hours-grid">
-          ${DAYS.map((d,i) => `
-            <div class="day-cell">
-              <span class="day-label">${dayNums[i]}<br>${d}</span>
-              <input class="day-input" type="number" min="0" max="24" step="0.5" value="${j.hours[i] || ''}" placeholder="—"
-                oninput="updateJob(${j.id},${i},this.value)" onchange="updateJob(${j.id},${i},this.value)">
+        <div class="hours-row">
+          ${DAYS.map((d,i)=>`
+            <div class="day-col">
+              <div class="day-lbl">${d}</div>
+              <div class="day-lbl-num">${nums[i]}</div>
+              <input class="hr-input" type="number" min="0" max="24" step="0.5"
+                value="${j.hours[i]||''}" placeholder="—"
+                oninput="updateJob(${j.id},${i},this.value)">
             </div>`).join('')}
         </div>
-        <div class="job-footer">
-          <div class="job-footer-rate">
-            <label>Rate/hr</label>
-            <input type="number" min="0" step="1" value="${j.rate}" style="width:80px"
+        <div class="job-foot">
+          <div class="rate-wrap">
+            <label>$/hr</label>
+            <input type="number" min="0" step="1" value="${j.rate}"
               oninput="updateJob(${j.id},'rate',this.value)">
           </div>
-          <div class="job-total">${tot > 0 ? tot.toFixed(1)+'h = $'+Math.round(amt) : '—'}</div>
+          <div class="job-amt">${tot>0?tot.toFixed(1)+'h · $'+Math.round(amt):'—'}</div>
         </div>
       </div>`;
     list.appendChild(div);
@@ -440,241 +761,252 @@ function renderJobs() {
 }
 
 function updateSummary() {
-  let totalH = 0, totalAmt = 0;
-  jobs.forEach(j => { totalH += jobTotal(j); totalAmt += jobAmount(j); });
-  document.getElementById('sumHours').textContent = totalH.toFixed(1);
-  document.getElementById('sumAmount').textContent = '$' + Math.round(totalAmt).toLocaleString();
+  let h=0,amt=0;
+  jobs.forEach(j=>{h+=jTotal(j);amt+=jAmt(j);});
+  document.getElementById('sumH').textContent=h.toFixed(1);
+  document.getElementById('sumAmt').textContent='$'+Math.round(amt).toLocaleString();
+  document.getElementById('sumJobs').textContent=jobs.length;
 }
 
-function clearDraft() {
-  if (!confirm('Clear this timesheet?')) return;
-  jobs = [];
-  nextJobId = 1;
-  document.getElementById('techSelect').value = '';
-  initWeek();
-  renderJobs();
-  saveDraft();
+function saveDraft() {
+  const tech=document.getElementById('jobTechSelect').value;
+  localStorage.setItem('cw2_draft',JSON.stringify({jobs,nextId,tech,week:document.getElementById('weekStart').value}));
 }
 
-function submitTimesheet() {
-  const tech = document.getElementById('techSelect').value;
-  const weekStart = document.getElementById('weekStart').value;
-  if (!tech) { showToast('Select your name first', 'error'); return; }
-  if (!weekStart) { showToast('Set week start date', 'error'); return; }
-  if (jobs.length === 0) { showToast('Add at least one job', 'error'); return; }
-  const totalH = jobs.reduce((s,j) => s + jobTotal(j), 0);
-  if (totalH === 0) { showToast('No hours entered', 'error'); return; }
+// ══ SUBMIT ══
+function submitSheet() {
+  const tech=document.getElementById('jobTechSelect').value||document.getElementById('clockTechSelect').value;
+  const ws=document.getElementById('weekStart').value;
+  if(!tech){ showToast('Select your name','err'); return; }
+  if(!ws){ showToast('Set week date','err'); return; }
+  if(jobs.length===0){ showToast('Add a job first','err'); return; }
+  const totalH=jobs.reduce((s,j)=>s+jTotal(j),0);
+  if(totalH===0){ showToast('No hours entered','err'); return; }
 
-  const submission = {
-    id: Date.now(),
-    tech,
-    weekStart,
-    weekEnd: document.getElementById('weekEnd').value,
-    jobs: JSON.parse(JSON.stringify(jobs)),
-    totalHours: totalH,
-    totalAmount: jobs.reduce((s,j) => s + jobAmount(j), 0),
-    submittedAt: new Date().toISOString(),
-    exported: false
+  const sub={
+    id:Date.now(), tech, weekStart:ws,
+    weekEnd:document.getElementById('weekEnd').value,
+    jobs:JSON.parse(JSON.stringify(jobs)),
+    totalHours:totalH,
+    totalAmount:jobs.reduce((s,j)=>s+jAmt(j),0),
+    submittedAt:new Date().toISOString(),
+    clockIn:clockState.clockInTime,
+    clockOut:clockState.clockOutTime,
+    breakMins:Math.round(getBreakMs()/60000),
+    exported:false
   };
-  submissions.unshift(submission);
-  saveSubmissions();
-  jobs = [];
-  nextJobId = 1;
-  document.getElementById('techSelect').value = '';
-  initWeek();
-  renderJobs();
-  saveDraft();
-  showToast('Timesheet submitted ✓', 'success');
+  submissions.unshift(sub);
+  localStorage.setItem('cw2_subs',JSON.stringify(submissions));
+  jobs=[]; nextId=1;
+  initWeek(); renderJobs(); saveDraft();
+  clockState={clocked:false,clockInTime:null,clockOutTime:null,breaks:[
+    {name:'Smoko',mins:15,started:null,elapsed:0,done:false},
+    {name:'Lunch',mins:30,started:null,elapsed:0,done:false}
+  ]};
+  saveClock(); updateClockUI();
+  showToast('Submitted ✓','ok');
 }
 
-function renderSubmissions() {
-  const list = document.getElementById('subList');
-  if (submissions.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div>No submissions yet.<br>Timesheets submitted from the Entry tab will appear here.</div>`;
+// ══ SUBMISSIONS ══
+function renderSubs() {
+  const wrap=document.getElementById('subsList');
+  if(!submissions.length){
+    wrap.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No submissions yet</div></div>`;
     return;
   }
-  list.innerHTML = '<div class="sub-list">' + submissions.map(s => {
-    const d = new Date(s.submittedAt);
-    const dateStr = d.toLocaleDateString('en-NZ', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-    return `
-      <div class="sub-card">
-        <div class="sub-card-header">
-          <div>
-            <div class="sub-tech">${s.tech}</div>
-            <div class="sub-date">Submitted ${dateStr}</div>
-          </div>
-          <span class="status-badge ${s.exported ? 'badge-exported' : 'badge-pending'}">${s.exported ? 'Exported' : 'Pending'}</span>
-        </div>
-        <div class="sub-week">Week: ${formatDate(s.weekStart)} – ${formatDate(s.weekEnd)}</div>
-        <div class="sub-stats">
-          <div class="sub-stat">Hours: <span>${s.totalHours.toFixed(1)}</span></div>
-          <div class="sub-stat">Amount: <span>$${Math.round(s.totalAmount).toLocaleString()}</span></div>
-          <div class="sub-stat">Jobs: <span>${s.jobs.length}</span></div>
-        </div>
-        <div class="sub-actions">
-          <button class="sub-btn export" onclick="exportSingleCSV(${s.id})">↓ CSV</button>
-          <button class="sub-btn" onclick="exportSingleText(${s.id})">↓ Text</button>
-          <button class="sub-btn danger" onclick="deleteSubmission(${s.id})">Delete</button>
-        </div>
-      </div>`;
-  }).join('') + '</div>';
+  wrap.innerHTML=submissions.map(s=>{
+    const d=new Date(s.submittedAt);
+    const ds=d.toLocaleDateString('en-NZ',{day:'2-digit',month:'short',year:'numeric'});
+    const ts=d.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="sub-card">
+      <div class="sub-head">
+        <div class="sub-tech-name">${s.tech}</div>
+        <div class="sub-meta">${ds} at ${ts} · Week ${s.weekStart}</div>
+      </div>
+      <div class="sub-stats-grid">
+        <div class="sub-stat"><div class="sub-stat-val">${s.totalHours.toFixed(1)}</div><div class="sub-stat-lbl">Hours</div></div>
+        <div class="sub-stat"><div class="sub-stat-val" style="color:var(--accent)">$${Math.round(s.totalAmount).toLocaleString()}</div><div class="sub-stat-lbl">Amount</div></div>
+        <div class="sub-stat"><div class="sub-stat-val">${s.breakMins||0}m</div><div class="sub-stat-lbl">Breaks</div></div>
+      </div>
+      ${s.clockIn?`<div class="sub-clock-info">
+        <div class="sub-clock-item">In: <span>${fmtTime(s.clockIn)}</span></div>
+        <div class="sub-clock-item">Out: <span>${fmtTime(s.clockOut)}</span></div>
+      </div>`:''}
+      <div class="sub-actions">
+        <button class="sub-action-btn export" onclick="exportOne(${s.id})">↓ CSV</button>
+        <button class="sub-action-btn" onclick="exportTxt(${s.id})">↓ Text</button>
+        <button class="sub-action-btn danger" onclick="delSub(${s.id})">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-function formatDate(str) {
-  if (!str) return '—';
-  const d = new Date(str + 'T00:00:00');
-  return d.toLocaleDateString('en-NZ', {day:'2-digit',month:'short'});
-}
-
-function deleteSubmission(id) {
-  if (!confirm('Delete this submission?')) return;
-  submissions = submissions.filter(s => s.id !== id);
-  saveSubmissions();
-  renderSubmissions();
+function delSub(id) {
+  if(!confirm('Delete this submission?')) return;
+  submissions=submissions.filter(s=>s.id!==id);
+  localStorage.setItem('cw2_subs',JSON.stringify(submissions));
+  renderSubs();
 }
 
 function buildCSV(subs) {
-  const rows = [['Submission ID','Technician','Week Start','Week End','Submitted At','Job Ref / Description','Mon','Tue','Wed','Thu','Fri','Sat','Total Hours','Rate','Amount (excl GST)']];
-  subs.forEach(s => {
-    s.jobs.forEach(j => {
-      const tot = jobTotal(j);
-      rows.push([
-        s.id, s.tech, s.weekStart, s.weekEnd,
-        new Date(s.submittedAt).toLocaleString('en-NZ'),
-        j.desc || '',
-        ...j.hours,
-        tot.toFixed(1),
-        j.rate.toFixed(2),
-        (tot * j.rate).toFixed(2)
-      ]);
-    });
-  });
-  return rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const rows=[['ID','Technician','Week Start','Week End','Submitted','Clock In','Clock Out','Break (min)','Description','Mon','Tue','Wed','Thu','Fri','Sat','Hours','Rate','Amount']];
+  subs.forEach(s=>s.jobs.forEach(j=>{
+    const h=jTotal(j);
+    rows.push([s.id,s.tech,s.weekStart,s.weekEnd,s.submittedAt,
+      s.clockIn?fmtTime(s.clockIn):'',s.clockOut?fmtTime(s.clockOut):'',s.breakMins||0,
+      j.desc,...j.hours,h.toFixed(1),j.rate.toFixed(2),(h*j.rate).toFixed(2)]);
+  }));
+  return rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
 }
 
-function downloadFile(content, filename, type) {
-  const blob = new Blob([content], {type});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
+function dl(content,name,type){
+  const b=new Blob([content],{type});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b); a.download=name; a.click(); URL.revokeObjectURL(a.href);
 }
 
-function exportSingleCSV(id) {
-  const s = submissions.find(s => s.id === id);
-  if (!s) return;
-  const csv = buildCSV([s]);
-  downloadFile(csv, `timesheet-${s.tech.replace(/\s+/g,'-').toLowerCase()}-${s.weekStart}.csv`, 'text/csv');
-  s.exported = true;
-  saveSubmissions();
-  renderSubmissions();
-  showToast('CSV downloaded', 'success');
+function exportOne(id){
+  const s=submissions.find(s=>s.id===id); if(!s) return;
+  dl(buildCSV([s]),`cw-timesheet-${s.tech.replace(/\s+/g,'-').toLowerCase()}-${s.weekStart}.csv`,'text/csv');
+  s.exported=true; localStorage.setItem('cw2_subs',JSON.stringify(submissions));
+  showToast('CSV saved','ok');
 }
 
-function exportAllCSV() {
-  if (submissions.length === 0) { showToast('No submissions to export', 'error'); return; }
-  const csv = buildCSV(submissions);
-  const today = new Date().toISOString().split('T')[0];
-  downloadFile(csv, `corpworks-timesheets-${today}.csv`, 'text/csv');
-  submissions.forEach(s => s.exported = true);
-  saveSubmissions();
-  renderSubmissions();
-  showToast(`Exported ${submissions.length} submission(s)`, 'success');
+function exportAll(){
+  if(!submissions.length){showToast('Nothing to export','err');return;}
+  const today=new Date().toISOString().split('T')[0];
+  dl(buildCSV(submissions),`corpworks-timesheets-${today}.csv`,'text/csv');
+  submissions.forEach(s=>s.exported=true); localStorage.setItem('cw2_subs',JSON.stringify(submissions));
+  showToast(`Exported ${submissions.length} sheet(s)`,'ok');
 }
 
-function exportSingleText(id) {
-  const s = submissions.find(s => s.id === id);
-  if (!s) return;
-  let txt = `${settings.company.toUpperCase()} — TIMESHEET\n`;
-  txt += `Tech: ${s.tech}   Week: ${s.weekStart} to ${s.weekEnd}\n`;
-  txt += '─'.repeat(56) + '\n';
-  txt += `${'DESCRIPTION'.padEnd(28)} ${'HRS'.padStart(5)} ${'RATE'.padStart(6)} ${'AMT'.padStart(8)}\n`;
-  txt += '─'.repeat(56) + '\n';
-  s.jobs.forEach(j => {
-    const h = jobTotal(j), amt = h * j.rate;
-    txt += `${(j.desc||'(no description)').substring(0,27).padEnd(28)} ${h.toFixed(1).padStart(5)} ${'$'+j.rate.toFixed(0).padStart(5)} ${'$'+Math.round(amt).toLocaleString().padStart(7)}\n`;
-  });
-  txt += '─'.repeat(56) + '\n';
-  txt += `${'TOTAL'.padEnd(28)} ${s.totalHours.toFixed(1).padStart(5)} ${''.padStart(6)} ${'$'+Math.round(s.totalAmount).toLocaleString().padStart(7)}\n\n`;
-  txt += `GST (15%):     $${Math.round(s.totalAmount*0.15).toLocaleString()}\n`;
-  txt += `Total inc GST: $${Math.round(s.totalAmount*1.15).toLocaleString()}\n`;
-  downloadFile(txt, `timesheet-${s.tech.replace(/\s+/g,'-').toLowerCase()}-${s.weekStart}.txt`, 'text/plain');
-  showToast('Text file downloaded', 'success');
+function exportTxt(id){
+  const s=submissions.find(s=>s.id===id); if(!s) return;
+  let t=`CORPWORKS LTD — TIMESHEET\n${s.tech}  |  Week ${s.weekStart} – ${s.weekEnd}\n`;
+  if(s.clockIn) t+=`Clocked in: ${fmtTime(s.clockIn)}  Out: ${fmtTime(s.clockOut)}  Breaks: ${s.breakMins}min\n`;
+  t+='─'.repeat(52)+'\n';
+  s.jobs.forEach(j=>{ const h=jTotal(j),a=h*j.rate; t+=`${(j.desc||'—').substring(0,28).padEnd(28)} ${h.toFixed(1).padStart(5)}h  $${Math.round(a).toLocaleString().padStart(6)}\n`; });
+  t+='─'.repeat(52)+'\n';
+  t+=`TOTAL  ${s.totalHours.toFixed(1)}h  $${Math.round(s.totalAmount).toLocaleString()}\nGST: $${Math.round(s.totalAmount*.15).toLocaleString()}  Total incl GST: $${Math.round(s.totalAmount*1.15).toLocaleString()}`;
+  dl(t,`cw-timesheet-${s.tech.replace(/\s+/g,'-').toLowerCase()}-${s.weekStart}.txt`,'text/plain');
+  showToast('Text saved','ok');
 }
 
+// ══ SETTINGS ══
 function renderSettings() {
-  document.getElementById('settingCompany').value = settings.company;
-  document.getElementById('settingRate').value = settings.rate;
-  renderTechTags();
+  document.getElementById('setCompany').value=settings.company;
+  document.getElementById('setRate').value=settings.rate;
+  renderChips();
 }
 
-function renderTechTags() {
-  const wrap = document.getElementById('techTags');
-  wrap.innerHTML = settings.techs.map(t =>
-    `<div class="tech-tag">${t}<button onclick="removeTech('${t}')" aria-label="Remove ${t}">×</button></div>`
+function renderChips(){
+  document.getElementById('techChips').innerHTML=settings.techs.map(t=>
+    `<div class="chip">${t}<button onclick="removeTech('${t}')">×</button></div>`
   ).join('');
-  renderTechSelect();
+  renderTechSelects();
 }
 
-function renderTechSelect() {
-  const sel = document.getElementById('techSelect');
-  const current = sel.value;
-  sel.innerHTML = '<option value="">— Select your name —</option>' +
-    settings.techs.map(t => `<option value="${t}"${t===current?' selected':''}>${t}</option>`).join('');
+function renderTechSelects(){
+  ['clockTechSelect','jobTechSelect'].forEach(id=>{
+    const sel=document.getElementById(id);
+    const cur=sel.value;
+    sel.innerHTML='<option value="">— Select your name —</option>'+
+      settings.techs.map(t=>`<option value="${t}"${t===cur?' selected':''}>${t}</option>`).join('');
+  });
 }
 
-function addTech() {
-  const input = document.getElementById('newTechInput');
-  const name = input.value.trim();
-  if (!name) return;
-  if (settings.techs.includes(name)) { showToast('Already in list', 'error'); return; }
-  settings.techs.push(name);
-  input.value = '';
-  saveSettings();
-  renderTechTags();
+function addTech(){
+  const inp=document.getElementById('newTech');
+  const n=inp.value.trim(); if(!n) return;
+  if(settings.techs.includes(n)){showToast('Already there','err');return;}
+  settings.techs.push(n); inp.value='';
+  saveSettings(); renderChips();
 }
 
-function removeTech(name) {
-  settings.techs = settings.techs.filter(t => t !== name);
-  saveSettings();
-  renderTechTags();
+function removeTech(n){ settings.techs=settings.techs.filter(t=>t!==n); saveSettings(); renderChips(); }
+
+function saveSettings(){
+  settings.company=document.getElementById('setCompany').value||'Corpworks Ltd';
+  settings.rate=parseFloat(document.getElementById('setRate').value)||35;
+  localStorage.setItem('cw2_settings',JSON.stringify(settings));
 }
 
-function clearAllData() {
-  if (!confirm('Delete ALL submissions? This cannot be undone.')) return;
-  submissions = [];
-  saveSubmissions();
-  renderSubmissions();
-  showToast('All submissions cleared');
+function clearAllData(){
+  if(!confirm('Delete ALL submissions?')) return;
+  submissions=[]; localStorage.setItem('cw2_subs',JSON.stringify(submissions));
+  renderSubs(); showToast('Cleared');
 }
 
-function showToast(msg, type='') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (type ? ' '+type : '');
-  setTimeout(() => t.classList.remove('show'), 2800);
+// ══ NAV ══
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(name==='subs') renderSubs();
+  if(name==='settings') renderSettings();
 }
 
-function setHeaderDate() {
-  const d = new Date();
-  document.getElementById('headerDate').innerHTML =
-    d.toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'}) + '<br>' +
-    d.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+// ══ TOAST ══
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show'+(type?' '+type:'');
+  setTimeout(()=>t.classList.remove('show'),2500);
 }
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+// ══ PWA INSTALL ══
+let deferredPrompt = null;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isInStandaloneMode = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if(!localStorage.getItem("cw_install_dismissed")) {
+    document.getElementById("installBanner").classList.add("visible");
+  }
+});
+
+window.addEventListener("appinstalled", () => {
+  document.getElementById("installBanner").classList.remove("visible");
+  deferredPrompt = null;
+  showToast("App installed 2713", "ok");
+});
+
+function triggerInstall() {
+  if(deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(choice => {
+      if(choice.outcome === "accepted") showToast("Installing...", "ok");
+      deferredPrompt = null;
+      document.getElementById("installBanner").classList.remove("visible");
+    });
+  } else if(isIOS) {
+    document.getElementById("iosPrompt").classList.add("visible");
+  }
 }
 
-loadData();
-initWeek();
-renderJobs();
-renderTechSelect();
-setHeaderDate();
-setInterval(setHeaderDate, 30000);
+function dismissInstall() {
+  document.getElementById("installBanner").classList.remove("visible");
+  localStorage.setItem("cw_install_dismissed", "1");
+}
 
-if (jobs.length === 0) addJob();
+function closeIosPrompt(e) {
+  if(!e || e.target === document.getElementById("iosPrompt") || (e.target.classList && e.target.classList.contains("ios-close"))) {
+    document.getElementById("iosPrompt").classList.remove("visible");
+  }
+}
+
+if(isIOS && !isInStandaloneMode && !localStorage.getItem("cw_install_dismissed")) {
+  document.getElementById("installBanner").classList.add("visible");
+  document.getElementById("installBtn").textContent = "How to Install";
+}
+
+if(isInStandaloneMode) {
+  document.getElementById("installBanner").style.display = "none";
+}
+
+init();
 </script>
 </body>
 </html>

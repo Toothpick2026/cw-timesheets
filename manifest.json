@@ -1,11 +1,11 @@
 {
   "name": "Corpworks Timesheet",
   "short_name": "CW Time",
-  "description": "Corpworks Ltd field timesheet app",
+  "description": "Corpworks Ltd field timesheet — clock in, track breaks, submit hours",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#1a1a1a",
-  "theme_color": "#1a1a1a",
+  "background_color": "#0f0f0f",
+  "theme_color": "#0f0f0f",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "icons/icon-72.png", "sizes": "72x72", "type": "image/png" },
