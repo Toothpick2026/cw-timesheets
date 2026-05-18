@@ -549,21 +549,23 @@ function showScreen(id) {
 
 // ══ LOGIN ══
 function renderLoginGrid() {
-  const grid = document.getElementById('loginGrid');
-  let staffToShow = STAFF;
-  grid.innerHTML = staffToShow.map(s => {
-    const initials = s.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-    const isAdmin = !!ADMIN_USERS[s.name];
-    return `<button class="login-btn" onclick="loginAs('${s.name}')">
-      <div class="login-avatar" style="background:${s.color}">${initials}</div>
-      <div class="login-name">${s.name}</div>
-    </button>`;
-  }).join('');
-  // Add Admin button
-  grid.innerHTML += `<button class="login-btn" onclick="showScreen('screenAdminLogin')" style="border-color:#333;grid-column:1/-1">
-    <div class="login-avatar" style="background:#222;font-size:24px">🔐</div>
-    <div class="login-name" style="color:#555">Admin Login</div>
-  </button>`;
+  var grid = document.getElementById('loginGrid');
+  if(!grid) return;
+  var buttons = '';
+  for(var i=0; i<STAFF.length; i++) {
+    var s = STAFF[i];
+    var initials = s.name.charAt(0).toUpperCase();
+    if(s.name.indexOf(' ') > 0) initials += s.name.split(' ')[1].charAt(0).toUpperCase();
+    buttons += '<button class="login-btn" onclick="loginAs(\'' + s.name + '\')">';
+    buttons += '<div class="login-avatar" style="background:' + s.color + '">' + initials + '</div>';
+    buttons += '<div class="login-name">' + s.name + '</div>';
+    buttons += '</button>';
+  }
+  buttons += '<button class="login-btn" onclick="showScreen(\'screenAdminLogin\')" style="border-color:#333;grid-column:1/-1">';
+  buttons += '<div class="login-avatar" style="background:#333;font-size:22px">&#128274;</div>';
+  buttons += '<div class="login-name" style="color:#555">Admin</div>';
+  buttons += '</button>';
+  grid.innerHTML = buttons;
 }
 
 function loginAs(name) {
