@@ -342,7 +342,6 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
         <button class="tab active" onclick="showPage('clock',this)" id="tabClock">Clock</button>
         <button class="tab" onclick="showPage('tally',this)" id="tabTally">Tally</button>
         <button class="tab" onclick="showPage('history',this)" id="tabHistory">History</button>
-        <button class="tab admin-tab" onclick="showAdminFromTab(this)" id="tabAdmin" style="display:none">Admin</button>
       </div>
     </header>
 
@@ -576,8 +575,6 @@ function loginAs(name) {
   document.getElementById('hdrAvatar').textContent = initials;
   document.getElementById('hdrAvatar').style.background = color;
   document.getElementById('hdrUserName').textContent = name;
-  // Show admin tab for admins
-  document.getElementById('tabAdmin').style.display = ADMIN_USERS[name] ? 'block' : 'none';
   showScreen('screenApp');
   showPage('clock', document.getElementById('tabClock'));
   updatePeriodBanner();
@@ -617,7 +614,7 @@ function doAdminLogin() {
     showScreen('screenApp');
     // Switch to the user if needed
     if(currentUser !== user) { loginAs(user); return; }
-    showPage('admin', document.getElementById('tabAdmin'));
+    showPage('admin', null);
     renderAdminPanel();
   } else {
     document.getElementById('adminLoginErr').textContent = 'Incorrect username or password';
