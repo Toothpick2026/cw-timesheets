@@ -246,6 +246,82 @@ select:focus,input:focus{border-color:var(--accent)}
 .ios-close{width:100%;padding:14px;border-radius:12px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-family:var(--font-cond);font-size:17px;font-weight:700;cursor:pointer;margin-top:8px;letter-spacing:.03em}
 
 
+
+/* ── ADMIN ── */
+.admin-pw-screen{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9998;padding:24px;display:none}
+.admin-pw-card{background:#111;border:1px solid #222;border-radius:16px;padding:32px 28px;width:100%;max-width:360px;text-align:center}
+.admin-pw-logo{width:72px;height:72px;object-fit:cover;border-radius:4px;margin:0 auto 16px}
+.admin-pw-title{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:#fff;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.admin-pw-sub{font-size:13px;color:#555;margin-bottom:20px}
+.admin-pw-input{width:100%;background:#1a1a1a;border:1px solid #2a2a2a;color:#fff;font-family:'Segoe UI',sans-serif;font-size:16px;padding:12px 14px;border-radius:10px;outline:none;margin-bottom:12px;-webkit-appearance:none}
+.admin-pw-input:focus{border-color:#E07B3C}
+.admin-pw-btn{width:100%;padding:14px;background:#E07B3C;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:.06em;cursor:pointer;text-transform:uppercase}
+.admin-pw-err{color:#e05c5c;font-size:12px;margin-top:8px;min-height:18px}
+.admin-back-btn{background:none;border:none;color:#555;font-size:13px;cursor:pointer;margin-top:12px;text-decoration:underline}
+
+/* Admin review panel */
+.admin-panel{padding:0}
+.admin-sub-card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:14px;margin:12px 16px;overflow:hidden}
+.admin-sub-card.approved{border-left:4px solid #4caf82}
+.admin-sub-card.pending{border-left:4px solid #d4a843}
+.admin-sub-card.queried{border-left:4px solid #e05c5c}
+.admin-sub-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;gap:10px}
+.admin-sub-avatar{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;color:#fff;flex-shrink:0}
+.admin-sub-info{flex:1;min-width:0}
+.admin-sub-name{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#f2ede6;letter-spacing:.02em}
+.admin-sub-meta{font-size:12px;color:#666;margin-top:2px}
+.admin-status-badge{font-size:10px;padding:3px 8px;border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.05em;text-transform:uppercase;flex-shrink:0}
+.badge-pending{background:rgba(212,168,67,.15);color:#d4a843;border:1px solid rgba(212,168,67,.3)}
+.badge-approved{background:rgba(76,175,130,.15);color:#4caf82;border:1px solid rgba(76,175,130,.3)}
+.badge-queried{background:rgba(224,92,92,.15);color:#e05c5c;border:1px solid rgba(224,92,92,.3)}
+.admin-sub-body{display:none;padding:14px 16px;border-top:1px solid #2a2a2a}
+.admin-sub-card.open .admin-sub-body{display:block}
+.admin-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.admin-stat{background:#111;border-radius:8px;padding:10px;text-align:center}
+.admin-stat-val{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#f2ede6}
+.admin-stat-lbl{font-size:10px;color:#555;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+.hours-table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:13px}
+.hours-table th{font-size:10px;font-weight:700;color:#555;letter-spacing:.08em;text-transform:uppercase;padding:6px 6px;border-bottom:1px solid #2a2a2a;text-align:center}
+.hours-table th:first-child{text-align:left}
+.hours-table td{padding:8px 6px;border-bottom:1px solid #1e1e1e;color:#f2ede6;text-align:center;font-size:13px}
+.hours-table td:first-child{text-align:left;color:#888;font-size:12px}
+.edit-hrs{width:40px;text-align:center;background:#222;border:1px solid #333;color:#f2ede6;font-size:14px;font-weight:700;padding:4px 2px;border-radius:6px;outline:none;font-family:'Segoe UI',sans-serif}
+.edit-hrs:focus{border-color:#E07B3C}
+.edit-hrs::-webkit-inner-spin-button,.edit-hrs::-webkit-outer-spin-button{-webkit-appearance:none}
+.admin-notes-area{width:100%;background:#111;border:1px solid #2a2a2a;color:#f2ede6;font-family:'Segoe UI',sans-serif;font-size:13px;padding:10px;border-radius:8px;outline:none;resize:vertical;min-height:60px;margin-bottom:12px}
+.admin-notes-area:focus{border-color:#E07B3C}
+.admin-actions{display:flex;gap:8px;flex-wrap:wrap}
+.admin-act-btn{flex:1;padding:11px;border-radius:10px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;min-width:80px}
+.btn-approve{background:#4caf82;color:#fff}
+.btn-query{background:rgba(224,92,92,.15);color:#e05c5c;border:1px solid rgba(224,92,92,.3)}
+.btn-unapprove{background:rgba(212,168,67,.15);color:#d4a843;border:1px solid rgba(212,168,67,.3)}
+.btn-del{background:none;color:#555;border:1px solid #2a2a2a}
+.admin-summary-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:16px;border-bottom:1px solid #1e1e1e}
+.admin-summary-card{background:#1a1a1a;border-radius:10px;padding:12px;text-align:center}
+.admin-summary-val{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800}
+.admin-summary-lbl{font-size:10px;color:#666;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-top:3px}
+.admin-filter-bar{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;border-bottom:1px solid #1e1e1e}
+.admin-filter-pill{padding:6px 14px;border-radius:20px;border:1px solid #2a2a2a;background:#1a1a1a;color:#666;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.04em;white-space:nowrap}
+.admin-filter-pill.active{background:rgba(224,123,60,.15);border-color:#E07B3C;color:#E07B3C}
+.export-smartly-btn{padding:10px 18px;background:#4caf82;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;margin:12px 16px;width:calc(100% - 32px)}
+
+/* Confirmation overlay */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9997;padding:24px;display:none}
+.confirm-card{background:#111;border:1px solid #2a2a2a;border-radius:16px;padding:28px 24px;width:100%;max-width:340px;text-align:center}
+.confirm-icon{font-size:40px;margin-bottom:12px}
+.confirm-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#fff;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px}
+.confirm-msg{font-size:14px;color:#888;line-height:1.6;margin-bottom:20px}
+.confirm-detail{background:#1a1a1a;border-radius:8px;padding:12px;margin-bottom:20px;text-align:left}
+.confirm-detail-row{display:flex;justify-content:space-between;font-size:13px;color:#888;margin-bottom:6px}
+.confirm-detail-row:last-child{margin-bottom:0}
+.confirm-detail-row span:last-child{color:#f2ede6;font-weight:600}
+.confirm-btns{display:flex;gap:10px}
+.confirm-yes{flex:2;padding:14px;background:#E07B3C;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;cursor:pointer;letter-spacing:.04em;text-transform:uppercase}
+.confirm-no{flex:1;padding:14px;background:#1a1a1a;color:#888;border:1px solid #2a2a2a;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;cursor:pointer;letter-spacing:.04em;text-transform:uppercase}
+
+/* Locked submission badge */
+.locked-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(76,175,130,.12);border:1px solid rgba(76,175,130,.25);color:#4caf82;border-radius:20px;padding:6px 14px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px}
+
 /* ── LOGIN SCREEN ── */
 .login-screen{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;padding:24px}
 .login-logo{width:120px;height:120px;object-fit:cover;margin-bottom:24px;border-radius:4px}
@@ -280,6 +356,34 @@ select:focus,input:focus{border-color:var(--accent)}
   </div>
   <hr class="login-divider">
   <div class="login-footer">Corpworks Ltd &nbsp;·&nbsp; Field Timesheet</div>
+</div>
+
+
+<!-- ══ ADMIN PASSWORD SCREEN ══ -->
+<div class="admin-pw-screen" id="adminPwScreen">
+  <div class="admin-pw-card">
+    <img src="data:image/jpeg;base64,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PNbPjX9mL4c/EL4laJ451zwno1/renCUSSXOl28pvSyIiNOzxlnMQjGwk/LXqn2iL/nqn/fQo+0Rf89U/wC+hQByHin4a2Xinx54L8V3FxcxXvhWS8ktYYtvlzG4gML78gnAByMY59elJb/DCwt/i5ffEEXNy2qXmiQaE9qSvkCGKeWZXHG7cWmYHnGAOM812H2iL/nqn/fQo+0Rf89U/wC+hQBx/wAI/hdp3we+GHh3wNptxcX+maJaLZRTXu1pZUGeX2qASc9gK838O/slaboVz4f06Txd4h1HwH4c1BdV0bwbdG3+x2k6OXhBlWITyRQud0cbyEKVTO4KAPePtEX/AD1T/voUfaIv+eqf99CgDwXS/wBkXTdL1/TAPGPiCbwTpXiB/FGn+DXFsLO3v2mecN5oiEzRrNI8gjZyAxGcgYr0zw78NLHw18RPGPjG3ubmS/8AE8djHdQSEGKIWsbomwAA8iQ5yT7YrrvtEX/PVP8AvoUfaIv+eqf99CgCSio/tEX/AD1T/voUfaIv+eqf99CgCSio/tEX/PVP++hR9oi/56p/30KAMOiiirICiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/9k=" alt="Corpworks" class="admin-pw-logo">
+    <div class="admin-pw-title">Admin Access</div>
+    <div class="admin-pw-sub" id="adminPwSub">Enter your admin password</div>
+    <input class="admin-pw-input" type="password" id="adminPwInput" placeholder="Password" onkeydown="if(event.key==='Enter')submitAdminPw()">
+    <button class="admin-pw-btn" onclick="submitAdminPw()">Sign In</button>
+    <div class="admin-pw-err" id="adminPwErr"></div>
+    <button class="admin-back-btn" onclick="closeAdminPw()">← Back</button>
+  </div>
+</div>
+
+<!-- ══ CONFIRM SUBMIT OVERLAY ══ -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-card">
+    <div class="confirm-icon">📋</div>
+    <div class="confirm-title">Submit Timesheet?</div>
+    <div class="confirm-msg">Once submitted you cannot make changes. Make sure everything is correct.</div>
+    <div class="confirm-detail" id="confirmDetail"></div>
+    <div class="confirm-btns">
+      <button class="confirm-no" onclick="hideConfirm()">Back</button>
+      <button class="confirm-yes" onclick="confirmSubmit()">Submit →</button>
+    </div>
+  </div>
 </div>
 
 <!-- ══ INSTALL BANNER ══ -->
@@ -333,6 +437,7 @@ select:focus,input:focus{border-color:var(--accent)}
     <button class="tab active" onclick="showPage('clock',this)">Clock</button>
     <button class="tab" onclick="showPage('jobs',this)">Tally</button>
     <button class="tab" onclick="showPage('subs',this)">Submitted</button>
+    <button class="tab admin-tab" id="adminTab" onclick="handleAdminTab(this)" style="display:none">Admin</button>
     <button class="tab" onclick="showPage('settings',this)">Settings</button>
   </nav>
 </header>
@@ -455,7 +560,7 @@ select:focus,input:focus{border-color:var(--accent)}
         <div class="strip-lbl">Days worked</div>
       </div>
     </div>
-    <button class="submit-btn" onclick="submitSheet()">Submit Timesheet →</button>
+    <button class="submit-btn" onclick="showConfirmSubmit()">Submit Timesheet →</button>
   </div>
 </div>
 
@@ -463,9 +568,7 @@ select:focus,input:focus{border-color:var(--accent)}
 <div class="page" id="page-subs">
   <div class="subs-section" id="subsList"></div>
   <div class="submit-bar">
-    <button class="submit-btn" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border2)" onclick="exportAll()">
-      Export All to CSV →
-    </button>
+    <div style="padding:12px 18px;font-size:13px;color:var(--text3);text-align:center">Submitted timesheets are locked — admin review required</div>
   </div>
 </div>
 
@@ -494,6 +597,24 @@ select:focus,input:focus{border-color:var(--accent)}
     <button class="danger-btn" onclick="switchUser()" style="border-color:var(--accent);color:var(--accent)">Switch User / Log Out</button>
     </div>
   </div>
+
+<!-- ══ ADMIN PAGE ══ -->
+<div class="page" id="page-admin">
+  <div class="admin-summary-strip">
+    <div class="admin-summary-card"><div class="admin-summary-val" style="color:var(--yellow)" id="aSumPending">0</div><div class="admin-summary-lbl">Pending</div></div>
+    <div class="admin-summary-card"><div class="admin-summary-val" style="color:var(--green)" id="aSumApproved">0</div><div class="admin-summary-lbl">Approved</div></div>
+    <div class="admin-summary-card"><div class="admin-summary-val" style="color:var(--accent)" id="aSumHours">0.0</div><div class="admin-summary-lbl">Total hrs</div></div>
+  </div>
+  <div class="admin-filter-bar">
+    <button class="admin-filter-pill active" onclick="setAdminFilter('all',this)">All</button>
+    <button class="admin-filter-pill" onclick="setAdminFilter('pending',this)">Pending</button>
+    <button class="admin-filter-pill" onclick="setAdminFilter('approved',this)">Approved</button>
+    <button class="admin-filter-pill" onclick="setAdminFilter('queried',this)">Queried</button>
+  </div>
+  <div id="adminSubsList"></div>
+  <button class="export-smartly-btn" onclick="exportSmartly()">↓ Export Approved to Smartly CSV</button>
+</div>
+
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1012,6 +1133,7 @@ function showPage(name, btn) {
   document.getElementById('page-'+name).classList.add('active');
   if(btn) btn.classList.add('active');
   if(name==='subs') renderSubs();
+  if(name==='admin') renderAdminPanel();
   if(name==='settings') renderSettings();
 }
 
@@ -1022,6 +1144,256 @@ function showToast(msg,type=''){
   setTimeout(()=>t.classList.remove('show'),2500);
 }
 
+
+
+// ══ ADMIN SYSTEM ══
+const ADMIN_CONFIG = {
+  'Monique': { pass: 'corpworks2026', level: 'super' },
+  'Glenn':   { pass: 'glenn2026',     level: 'manager' }
+};
+let currentAdminUser = null;
+let adminFilter = 'all';
+let pendingSubmitData = null;
+
+function handleAdminTab(btn) {
+  const tech = document.getElementById('clockTechSelect').value || localStorage.getItem('cw_current_tech');
+  if(ADMIN_CONFIG[tech]) {
+    // Already authenticated this session
+    if(currentAdminUser === tech) {
+      showPage('admin', btn);
+      renderAdminPanel();
+    } else {
+      showAdminPw(tech, btn);
+    }
+  } else {
+    showToast('Admin access required', 'err');
+  }
+}
+
+function showAdminPw(tech, btn) {
+  document.getElementById('adminPwScreen').style.display = 'flex';
+  document.getElementById('adminPwSub').textContent = 'Password for ' + tech;
+  document.getElementById('adminPwInput').value = '';
+  document.getElementById('adminPwErr').textContent = '';
+  document.getElementById('adminPwInput').focus();
+  document.getElementById('adminPwScreen')._btn = btn;
+  document.getElementById('adminPwScreen')._tech = tech;
+}
+
+function submitAdminPw() {
+  const screen = document.getElementById('adminPwScreen');
+  const tech = screen._tech;
+  const pw = document.getElementById('adminPwInput').value;
+  if(ADMIN_CONFIG[tech] && pw === ADMIN_CONFIG[tech].pass) {
+    currentAdminUser = tech;
+    screen.style.display = 'none';
+    showPage('admin', screen._btn);
+    renderAdminPanel();
+    showToast('Welcome ' + tech, 'ok');
+  } else {
+    document.getElementById('adminPwErr').textContent = 'Incorrect password';
+    document.getElementById('adminPwInput').value = '';
+  }
+}
+
+function closeAdminPw() {
+  document.getElementById('adminPwScreen').style.display = 'none';
+}
+
+function setAdminFilter(f, btn) {
+  adminFilter = f;
+  document.querySelectorAll('.admin-filter-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  renderAdminPanel();
+}
+
+function renderAdminPanel() {
+  let subs = JSON.parse(localStorage.getItem('cw2_subs') || '[]');
+  
+  // Glenn can only see his crew (not Monique)
+  if(currentAdminUser === 'Glenn') {
+    subs = subs.filter(s => s.tech !== 'Monique');
+  }
+  
+  // Filter
+  if(adminFilter !== 'all') subs = subs.filter(s => s.status === adminFilter);
+  
+  // Summary
+  const allSubs = JSON.parse(localStorage.getItem('cw2_subs') || '[]');
+  const filtered = currentAdminUser === 'Glenn' ? allSubs.filter(s => s.tech !== 'Monique') : allSubs;
+  document.getElementById('aSumPending').textContent = filtered.filter(s => s.status === 'pending').length;
+  document.getElementById('aSumApproved').textContent = filtered.filter(s => s.status === 'approved').length;
+  document.getElementById('aSumHours').textContent = filtered.reduce((t,s) => t+(s.totalHours||0),0).toFixed(1);
+  
+  const wrap = document.getElementById('adminSubsList');
+  if(!subs.length) {
+    wrap.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#444;font-family:Barlow Condensed,sans-serif;font-size:16px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">No submissions</div>';
+    return;
+  }
+  
+  wrap.innerHTML = subs.map(s => {
+    const initials = s.tech.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const color = techColor2(s.tech);
+    const d = new Date(s.submittedAt||Date.now());
+    const dateStr = d.toLocaleDateString('en-NZ',{day:'2-digit',month:'short',year:'numeric'});
+    const jobRows = (s.jobs||[]).map((j,ji) => {
+      const tot = j.hours.reduce((a,b)=>a+b,0);
+      const dayCells = ['M','T','W','T','F','S'].map((day,i) =>
+        `<td><input class="edit-hrs" type="number" min="0" max="24" step="0.5" value="${j.hours[i]||''}" placeholder="-" oninput="adminUpdateHours('${s.id}',${ji},${i},this.value)"></td>`
+      ).join('');
+      return `<tr><td>${j.desc||'Hours'}</td>${dayCells}<td style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--accent)">${tot.toFixed(1)}h</td></tr>`;
+    }).join('');
+    
+    const approveBtn = s.status !== 'approved' 
+      ? `<button class="admin-act-btn btn-approve" onclick="adminApprove('${s.id}')">✓ Approve</button>`
+      : `<button class="admin-act-btn btn-unapprove" onclick="adminUnapprove('${s.id}')">↩ Unapprove</button>`;
+    
+    return `<div class="admin-sub-card ${s.status}" id="asc-${s.id}">
+      <div class="admin-sub-head" onclick="toggleAdminCard('${s.id}')">
+        <div class="admin-sub-avatar" style="background:${color}">${initials}</div>
+        <div class="admin-sub-info">
+          <div class="admin-sub-name">${s.tech}</div>
+          <div class="admin-sub-meta">Week ${formatDateAdmin(s.weekStart)} · Submitted ${dateStr}</div>
+        </div>
+        <span class="admin-status-badge badge-${s.status}">${s.status}</span>
+        <span style="color:#444;font-size:16px">▾</span>
+      </div>
+      <div class="admin-sub-body">
+        <div class="admin-stats-row">
+          <div class="admin-stat"><div class="admin-stat-val">${(s.totalHours||0).toFixed(1)}</div><div class="admin-stat-lbl">Hours</div></div>
+          <div class="admin-stat"><div class="admin-stat-val" style="color:var(--green)">$${Math.round(s.totalAmount||0)}</div><div class="admin-stat-lbl">Amount</div></div>
+          <div class="admin-stat"><div class="admin-stat-val" style="color:var(--yellow)">${s.breakMins||0}m</div><div class="admin-stat-lbl">Breaks</div></div>
+        </div>
+        ${s.clockIn ? `<div style="display:flex;gap:12px;margin-bottom:12px;font-size:12px;color:#666">
+          <span>In: <strong style="color:#f2ede6">${s.clockIn}</strong></span>
+          <span>Out: <strong style="color:#f2ede6">${s.clockOut||'--'}</strong></span>
+          ${s.clockInGPS ? `<span>📍 ${s.clockInGPS.lat}, ${s.clockInGPS.lng}</span>` : ''}
+        </div>` : ''}
+        <table class="hours-table">
+          <thead><tr><th>Entry</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Total</th></tr></thead>
+          <tbody>${jobRows}</tbody>
+        </table>
+        <div style="font-size:11px;color:#555;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">Admin notes</div>
+        <textarea class="admin-notes-area" placeholder="Payroll notes, queries, adjustments..." oninput="adminUpdateNotes('${s.id}',this.value)">${s.adminNotes||''}</textarea>
+        <div class="admin-actions">
+          ${approveBtn}
+          ${s.status !== 'queried' ? `<button class="admin-act-btn btn-query" onclick="adminQuery('${s.id}')">? Query</button>` : ''}
+          <button class="admin-act-btn btn-del" onclick="adminDelete('${s.id}')">Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleAdminCard(id) {
+  document.getElementById('asc-'+id)?.classList.toggle('open');
+}
+
+function adminUpdateHours(id,ji,di,val) {
+  let subs = JSON.parse(localStorage.getItem('cw2_subs')||'[]');
+  const s = subs.find(s=>String(s.id)===String(id)); if(!s) return;
+  s.jobs[ji].hours[di] = parseFloat(val)||0;
+  s.totalHours = s.jobs.reduce((t,j)=>t+j.hours.reduce((a,b)=>a+b,0),0);
+  s.totalAmount = s.jobs.reduce((t,j)=>t+j.hours.reduce((a,b)=>a+b,0)*j.rate,0);
+  localStorage.setItem('cw2_subs', JSON.stringify(subs));
+  renderAdminPanel();
+}
+
+function adminUpdateNotes(id,val) {
+  let subs = JSON.parse(localStorage.getItem('cw2_subs')||'[]');
+  const s = subs.find(s=>String(s.id)===String(id)); if(!s) return;
+  s.adminNotes = val;
+  localStorage.setItem('cw2_subs', JSON.stringify(subs));
+}
+
+function adminApprove(id) {
+  let subs = JSON.parse(localStorage.getItem('cw2_subs')||'[]');
+  const s = subs.find(s=>String(s.id)===String(id)); if(!s) return;
+  s.status = 'approved'; s.approvedAt = new Date().toISOString();
+  localStorage.setItem('cw2_subs', JSON.stringify(subs));
+  renderAdminPanel(); showToast('Approved ✓','ok');
+}
+
+function adminUnapprove(id) {
+  let subs = JSON.parse(localStorage.getItem('cw2_subs')||'[]');
+  const s = subs.find(s=>String(s.id)===String(id)); if(!s) return;
+  s.status = 'pending'; delete s.approvedAt;
+  localStorage.setItem('cw2_subs', JSON.stringify(subs));
+  renderAdminPanel(); showToast('Moved back to pending');
+}
+
+function adminQuery(id) {
+  let subs = JSON.parse(localStorage.getItem('cw2_subs')||'[]');
+  const s = subs.find(s=>String(s.id)===String(id)); if(!s) return;
+  s.status = 'queried';
+  localStorage.setItem('cw2_subs', JSON.stringify(subs));
+  renderAdminPanel(); showToast('Marked as queried');
+}
+
+function adminDelete(id) {
+  if(!confirm('Delete this submission?')) return;
+  let subs = JSON.parse(localStorage.getItem('cw2_subs')||'[]');
+  subs = subs.filter(s=>String(s.id)!==String(id));
+  localStorage.setItem('cw2_subs', JSON.stringify(subs));
+  renderAdminPanel(); showToast('Deleted');
+}
+
+function formatDateAdmin(str) {
+  if(!str) return '--';
+  const d = new Date(str+'T00:00:00');
+  return d.toLocaleDateString('en-NZ',{day:'2-digit',month:'short'});
+}
+
+function exportSmartly() {
+  let subs = JSON.parse(localStorage.getItem('cw2_subs')||'[]');
+  const approved = subs.filter(s=>s.status==='approved');
+  if(!approved.length){showToast('No approved timesheets','err');return;}
+  const rows=[['Employee','Week Start','Week End','Description','Hours','Admin Notes','Clock In','Clock Out','Break (min)','GPS In']];
+  approved.forEach(s=>s.jobs.forEach(j=>{
+    const h=j.hours.reduce((a,b)=>a+b,0);
+    if(h===0)return;
+    rows.push([s.tech,s.weekStart,s.weekEnd,j.desc||'General Labour',h.toFixed(2),s.adminNotes||'',s.clockIn||'',s.clockOut||'',s.breakMins||0,s.clockInGPS?s.clockInGPS.lat+','+s.clockInGPS.lng:'']);
+  }));
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const b=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b);
+  a.download='corpworks-smartly-'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+  showToast('Smartly CSV downloaded','ok');
+}
+
+// ══ CONFIRM SUBMIT ══
+function showConfirmSubmit() {
+  const tech = document.getElementById('jobTechSelect').value || localStorage.getItem('cw_current_tech');
+  const ws = document.getElementById('weekStart').value;
+  if(!tech){showToast('Select your name first','err');return;}
+  if(!ws){showToast('Set week date','err');return;}
+  if(jobs.length===0){showToast('Add entries first','err');return;}
+  const totalH = jobs.reduce((s,j)=>s+jTotal(j),0);
+  if(totalH===0){showToast('No hours entered','err');return;}
+  
+  pendingSubmitData = {tech, ws, totalH};
+  
+  const detail = document.getElementById('confirmDetail');
+  detail.innerHTML = `
+    <div class="confirm-detail-row"><span>Technician</span><span>${tech}</span></div>
+    <div class="confirm-detail-row"><span>Week</span><span>${ws}</span></div>
+    <div class="confirm-detail-row"><span>Total hours</span><span>${totalH.toFixed(1)} hrs</span></div>
+    <div class="confirm-detail-row"><span>Entries</span><span>${jobs.length}</span></div>
+  `;
+  document.getElementById('confirmOverlay').style.display = 'flex';
+}
+
+function hideConfirm() {
+  document.getElementById('confirmOverlay').style.display = 'none';
+  pendingSubmitData = null;
+}
+
+function confirmSubmit() {
+  document.getElementById('confirmOverlay').style.display = 'none';
+  submitSheet();
+}
 
 // ══ LOGIN ══
 const AVATAR_COLORS = ['#E07B3C','#4f46e5','#0891b2','#059669','#d97706','#dc2626','#7c3aed'];
@@ -1049,7 +1421,12 @@ function loginAs(name) {
   document.getElementById('clockTechSelect').value = name;
   document.getElementById('jobTechSelect').value = name;
   localStorage.setItem('cw_current_tech', name);
-  showToast('Welcome ' + name + ' 👋', 'ok');
+  // Show admin tab for admins
+  const adminTab = document.getElementById('adminTab');
+  if(adminTab) {
+    adminTab.style.display = ADMIN_CONFIG[name] ? 'block' : 'none';
+  }
+  showToast('Welcome ' + name, 'ok');
 }
 
 function checkAutoLogin() {
