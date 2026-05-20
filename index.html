@@ -381,16 +381,28 @@ function showPg(id){document.querySelectorAll('.pg').forEach(function(p){p.class
 // Build staff grid
 (function(){
   var g=document.getElementById('staffGrid');
-  var html='';
+  g.innerHTML='';
   for(var i=0;i<STAFF.length;i++){
     var s=STAFF[i];
     var init=s.name.charAt(0)+(s.name.indexOf(' ')>0?s.name.split(' ')[1].charAt(0):'');
-    html+='<button class="sbtn" onclick="loginAs(''+s.name+'',''+s.color+'')">';
-    html+='<div class="sav" style="background:'+s.color+'">'+init.toUpperCase()+'</div>';
-    html+='<div class="snm">'+s.name+'</div>';
-    html+='</button>';
+    var btn=document.createElement('button');
+    btn.className='sbtn';
+    btn.setAttribute('data-name',s.name);
+    btn.setAttribute('data-color',s.color);
+    var av=document.createElement('div');
+    av.className='sav';
+    av.style.background=s.color;
+    av.textContent=init.toUpperCase();
+    var nm=document.createElement('div');
+    nm.className='snm';
+    nm.textContent=s.name;
+    btn.appendChild(av);
+    btn.appendChild(nm);
+    btn.addEventListener('click',function(){
+      loginAs(this.getAttribute('data-name'),this.getAttribute('data-color'));
+    });
+    g.appendChild(btn);
   }
-  g.innerHTML=html;
 })();
 
 function loginAs(name,color){cu=name;ld();showPg('pgApp');var init=name.charAt(0)+(name.indexOf(' ')>0?name.split(' ')[1].charAt(0):'');document.getElementById('uAv').textContent=init.toUpperCase();document.getElementById('uAv').style.background=color;document.getElementById('uNm').textContent=name;document.getElementById('tb3').style.display=ADMINS[name]?'block':'none';updPP();renderTally();updClock();if(!ti)ti=setInterval(tick,1000);tick();toast('Welcome '+name,'ok');}
