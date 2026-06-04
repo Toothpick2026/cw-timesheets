@@ -1,1 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="CW Time">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="manifest.json">
+<title>CW Timesheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a; --surface: #141414; --surface2: #1e1e1e; --border: #2a2a2a;
+    --orange: #E07B3C; --orange-dim: rgba(224,123,60,0.15);
+    --text: #f0f0f0; --muted: #888;
+    --green: #4CAF50; --green-dim: rgba(76,175,80,0.15);
+    --red: #ef4444; --yellow: #f59e0b; --yellow-dim: rgba(245,158,11,0.15);
+    --blue: #3b82f6; --blue-dim: rgba(59,130,246,0.15);
+    --font: 'Aptos', 'Aptos Display', 'Segoe UI', 'Calibri', Arial, sans-serif;
+    --fs: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: var(--fs); overflow-x: hidden; }
 
+  /* LOGIN */
+  #loginScreen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+  .logo-block { text-align: center; margin-bottom: 3rem; }
+  .logo-cw { font-family: 'Space Mono', monospace; font-size: 3rem; font-weight: 700; color: var(--orange); letter-spacing: -2px; line-height: 1; }
+  .logo-sub { font-size: 0.75rem; letter-spacing: 4px; color: var(--muted); text-transform: uppercase; margin-top: 0.5rem; }
+  .login-card { width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; }
+  .login-card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; }
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.4rem; }
+  .field select, .field input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font); font-size: var(--fs); padding: 0.75rem 1rem; appearance: none; outline: none; transition: border-color 0.2s; }
+  .field select:focus, .field input:focus { border-color: var(--orange); }
+  .field select option { background: var(--surface2); }
+  .btn-primary { width: 100%; background: var(--orange); color: #fff; border: none; border-radius: 8px; font-family: var(--font); font-size: var(--fs); font-weight: 600; padding: 0.85rem; cursor: pointer; margin-top: 0.5rem; transition: opacity 0.2s; }
+  .btn-primary:active { opacity: 0.8; }
+  .err { color: var(--red); font-size: 0.85rem; margin-top: 0.75rem; display: none; }
+
+  /* APP SHELL */
+  #app { display: none; min-height: 100vh; flex-direction: column; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .topbar-left { display: flex; align-items: center; gap: 0.75rem; }
+  .topbar-logo { font-family: 'Space Mono', monospace; font-weight: 700; color: var(--orange); font-size: 1.1rem; }
+  .topbar-name { font-size: 0.9rem; color: var(--muted); }
+  .btn-logout { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; font-size: 0.8rem; padding: 0.35rem 0.75rem; cursor: pointer; font-family: var(--font); }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: inline-block; margin-left: 0.4rem; }
+  .sync-dot.offline { background: var(--red); }
+
+  .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 57px; z-index: 9; }
+  .tab { flex: 1; text-align: center; padding: 0.85rem 0.5rem; font-size: 0.85rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+  .page { display: none; padding: 1.25rem; max-width: 480px; margin: 0 auto; width: 100%; }
+  .page.active { display: block; }
+  .form-section { margin-bottom: 1.5rem; }
+  .section-label { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--orange); margin-bottom: 0.75rem; font-weight: 700; }
+
+  /* DAY STRIP */
+  .day-strip { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; -webkit-overflow-scrolling: touch; }
+  .day-strip::-webkit-scrollbar { display: none; }
+  .day-btn { flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.75rem; padding: 0.5rem 0.75rem; cursor: pointer; text-align: center; transition: all 0.15s; min-width: 52px; font-family: var(--font); }
+  .day-btn span { display: block; font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--text); }
+  .day-btn.selected { border-color: var(--orange); background: var(--orange-dim); color: var(--orange); }
+  .day-btn.selected span { color: var(--orange); }
+  .day-btn.today-btn { border-color: rgba(224,123,60,0.5); }
+
+  .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font); font-size: var(--fs); padding: 0.75rem 1rem; resize: none; outline: none; min-height: 80px; transition: border-color 0.2s; }
+  textarea:focus { border-color: var(--orange); }
+
+  /* GPS */
+  .gps-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+  .gps-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .gps-btn { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .gps-btn:active { opacity: 0.8; }
+  .gps-btn.clocked { border-color: var(--green); background: var(--green-dim); }
+  .gps-btn-label { font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem; }
+  .gps-btn-time { font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--text); }
+  .gps-btn.clocked .gps-btn-time { color: var(--green); }
+  .gps-address { font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; line-height: 1.3; }
+  .gps-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* HOURS */
+  .hours-display { background: var(--orange-dim); border: 1px solid var(--orange); border-radius: 8px; padding: 1rem; text-align: center; }
+  .hours-big { font-family: 'Space Mono', monospace; font-size: 2.5rem; font-weight: 700; color: var(--orange); line-height: 1; }
+  .hours-label { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-top: 0.25rem; }
+  .hours-breakdown { font-size: 0.8rem; color: var(--muted); margin-top: 0.4rem; }
+
+  /* BREAKS */
+  .breaks-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+  .break-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+  .break-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+  .break-name { font-weight: 600; font-size: 1rem; }
+  .break-badge { font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; }
+  .badge-fixed { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+  .badge-deducted { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+  .break-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .break-field label { display: block; font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem; }
+  .break-field input, .break-field select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--font); font-size: var(--fs); padding: 0.5rem 0.75rem; outline: none; transition: border-color 0.2s; appearance: none; }
+  .break-field input:focus, .break-field select:focus { border-color: var(--orange); }
+
+  /* LUNCH TIMER WIDGET */
+  .lunch-timer-widget { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-top: 0.75rem; }
+  .lunch-timer-display { font-family: 'Space Mono', monospace; font-size: 2rem; font-weight: 700; text-align: center; color: var(--yellow); letter-spacing: 2px; margin: 0.5rem 0; }
+  .lunch-timer-display.running { color: var(--yellow); }
+  .lunch-timer-display.over { color: var(--red); animation: flashWarn 0.5s ease infinite alternate; }
+  .lunch-timer-display.done { color: var(--green); }
+  .lunch-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.75rem; }
+  .lunch-start-btn { background: var(--yellow); color: #000; border: none; border-radius: 8px; font-family: var(--font); font-size: var(--fs); font-weight: 700; padding: 0.75rem; cursor: pointer; transition: opacity 0.2s; }
+  .lunch-start-btn:active { opacity: 0.8; }
+  .lunch-start-btn:disabled { opacity: 0.4; cursor: default; }
+  .lunch-end-btn { background: var(--green); color: #fff; border: none; border-radius: 8px; font-family: var(--font); font-size: var(--fs); font-weight: 700; padding: 0.75rem; cursor: pointer; transition: opacity 0.2s; }
+  .lunch-end-btn:active { opacity: 0.8; }
+  .lunch-end-btn:disabled { opacity: 0.4; cursor: default; }
+  .lunch-status { font-size: 0.8rem; color: var(--muted); text-align: center; margin-top: 0.5rem; }
+  .break-deduct-note { font-size: 0.8rem; color: var(--yellow); margin-top: 0.5rem; }
+
+  /* BREAK TIMER BAR */
+  .break-timer-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 50; transform: translateY(-100%); transition: transform 0.4s ease; }
+  .break-timer-bar.active { transform: translateY(0); }
+  .break-timer-inner { padding: 0.85rem 1.25rem; display: flex; align-items: center; justify-content: space-between; }
+  .break-timer-inner.morning { background: var(--blue); }
+  .break-timer-inner.lunch { background: #d97706; }
+  .break-timer-inner.afternoon { background: #16a34a; }
+  .break-timer-text { font-weight: 700; font-size: 0.9rem; color: #fff; font-family: var(--font); }
+  .break-timer-countdown { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 1.2rem; color: #fff; }
+  .btn-dismiss { background: rgba(255,255,255,0.25); border: none; border-radius: 6px; color: #fff; font-family: var(--font); font-size: 0.8rem; font-weight: 600; padding: 0.3rem 0.75rem; cursor: pointer; }
+  @keyframes flashWarn { from { opacity: 1; } to { opacity: 0.5; } }
+  .break-timer-inner.warning { animation: flashWarn 0.5s ease infinite alternate; }
+
+  .submit-btn { width: 100%; background: var(--orange); color: #fff; border: none; border-radius: 10px; font-family: var(--font); font-size: var(--fs); font-weight: 700; padding: 1rem; cursor: pointer; transition: opacity 0.2s; letter-spacing: 0.5px; }
+  .submit-btn:active { opacity: 0.8; }
+  .submit-btn:disabled { opacity: 0.45; cursor: default; }
+
+  /* HISTORY */
+  .page-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; }
+  .empty-state { text-align: center; color: var(--muted); padding: 3rem 1rem; font-size: 0.9rem; }
+  .week-group { margin-bottom: 1.5rem; }
+  .week-heading { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; }
+  .entry-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 0.5rem; }
+  .entry-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; }
+  .entry-date { font-weight: 600; font-size: 1rem; }
+  .entry-hours { font-family: 'Space Mono', monospace; font-size: 1.1rem; font-weight: 700; color: var(--orange); }
+  .entry-meta { font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
+  .entry-gps { font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; }
+  .entry-status { display: inline-block; font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 4px; margin-top: 0.4rem; font-weight: 700; }
+  .status-pending { background: rgba(224,123,60,0.15); color: var(--orange); }
+  .status-approved { background: rgba(76,175,80,0.15); color: var(--green); }
+  .status-syncing { background: rgba(59,130,246,0.15); color: var(--blue); }
+
+  .toast { position: fixed; bottom: 5rem; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1.25rem; font-size: 0.9rem; opacity: 0; transition: all 0.3s; z-index: 200; white-space: nowrap; pointer-events: none; max-width: 90vw; text-align: center; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--green); color: var(--green); }
+  .toast.error { border-color: var(--red); color: var(--red); }
+  .toast.warn { border-color: var(--yellow); color: var(--yellow); }
+</style>
+</head>
+<body>
+
+<!-- BREAK TIMER BAR -->
+<div class="break-timer-bar" id="breakTimerBar">
+  <div class="break-timer-inner" id="breakTimerInner">
+    <span class="break-timer-text" id="breakTimerText">Break ends in</span>
+    <span class="break-timer-countdown" id="breakTimerCountdown">02:00</span>
+    <button class="btn-dismiss" onclick="dismissTimer()">Dismiss</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="logo-block">
+    <div class="logo-cw">CW</div>
+    <div class="logo-sub">Timesheet</div>
+  </div>
+  <div class="login-card">
+    <h2>Who are you?</h2>
+    <div class="field">
+      <label>Select your name</label>
+      <select id="nameSelect">
+        <option value="">— pick your name —</option>
+        <option>Glenn Wilson</option>
+        <option>Troy Wilson</option>
+        <option>Marco</option>
+        <option>Sam</option>
+        <option>Kylie</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>PIN</label>
+      <input type="password" inputmode="numeric" maxlength="4" id="pinInput" placeholder="4-digit PIN" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Start →</button>
+    <div class="err" id="loginErr">Incorrect PIN. Try again.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">CW</span>
+      <span class="topbar-name" id="topbarName"></span>
+      <span class="sync-dot" id="syncDot"></span>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">Sign out</button>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="showPage('new',this)">New Entry</div>
+    <div class="tab" onclick="showPage('history',this)">My History</div>
+  </div>
+
+  <div class="page active" id="page-new">
+
+    <!-- GPS CLOCK IN/OUT -->
+    <div class="form-section">
+      <div class="section-label">Clock In / Out</div>
+      <div class="gps-card">
+        <div class="gps-row">
+          <div class="gps-btn" id="clockInBtn" onclick="doClockIn()">
+            <div class="gps-btn-label">📍 Clock In</div>
+            <div class="gps-btn-time" id="clockInTime">Tap to clock in</div>
+            <div class="gps-address" id="clockInAddr"></div>
+          </div>
+          <div class="gps-btn" id="clockOutBtn" onclick="doClockOut()">
+            <div class="gps-btn-label">🏁 Clock Out</div>
+            <div class="gps-btn-time" id="clockOutTime">Tap to clock out</div>
+            <div class="gps-address" id="clockOutAddr"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAY SELECT -->
+    <div class="form-section">
+      <div class="section-label">Select Day</div>
+      <div class="day-strip" id="dayStrip"></div>
+    </div>
+
+    <!-- HOURS -->
+    <div class="form-section">
+      <div class="section-label">Hours Worked</div>
+      <div class="time-row">
+        <div class="field"><label>Start time</label><input type="time" id="startTime" value="07:00" oninput="calcHours()"></div>
+        <div class="field"><label>Finish time</label><input type="time" id="endTime" value="16:00" oninput="calcHours()"></div>
+      </div>
+    </div>
+
+    <!-- BREAKS -->
+    <div class="form-section">
+      <div class="section-label">Breaks</div>
+      <div class="breaks-grid">
+
+        <!-- Morning Tea -->
+        <div class="break-card">
+          <div class="break-header">
+            <div class="break-name">☕ Morning Tea</div>
+            <span class="break-badge badge-fixed">10 min · paid</span>
+          </div>
+          <div class="break-row">
+            <div class="break-field"><label>Starts</label><input type="time" id="morningStart" value="09:30" oninput="scheduleBreakTimers()"></div>
+            <div class="break-field"><label>Duration</label>
+              <select id="morningDur" onchange="scheduleBreakTimers()">
+                <option value="10" selected>10 min</option>
+                <option value="15">15 min</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- LUNCH TIMER WIDGET -->
+        <div class="break-card">
+          <div class="break-header">
+            <div class="break-name">🥪 Lunch</div>
+            <span class="break-badge badge-deducted">unpaid · deducted</span>
+          </div>
+          <div class="lunch-timer-widget">
+            <div style="text-align:center;font-size:0.8rem;color:var(--muted);">Lunch timer</div>
+            <div class="lunch-timer-display" id="lunchTimerDisplay">00:00</div>
+            <div class="lunch-btn-row">
+              <button class="lunch-start-btn" id="lunchStartBtn" onclick="startLunch()">▶ Start Lunch</button>
+              <button class="lunch-end-btn" id="lunchEndBtn" onclick="endLunch()" disabled>■ End Lunch</button>
+            </div>
+            <div class="lunch-status" id="lunchStatus">Tap "Start Lunch" when you go on break</div>
+          </div>
+          <div class="break-deduct-note">⚠ Lunch time deducted from paid hours</div>
+        </div>
+
+        <!-- Afternoon Tea -->
+        <div class="break-card">
+          <div class="break-header">
+            <div class="break-name">🍵 Afternoon Tea</div>
+            <span class="break-badge badge-fixed">10 min · paid</span>
+          </div>
+          <div class="break-row">
+            <div class="break-field"><label>Starts</label><input type="time" id="afternoonStart" value="14:30" oninput="scheduleBreakTimers()"></div>
+            <div class="break-field"><label>Duration</label>
+              <select id="afternoonDur" onchange="scheduleBreakTimers()">
+                <option value="10" selected>10 min</option>
+                <option value="15">15 min</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOURS TOTAL -->
+    <div class="form-section">
+      <div class="hours-display">
+        <div class="hours-big" id="hoursCalc">8.5</div>
+        <div class="hours-label">paid hours</div>
+        <div class="hours-breakdown" id="hoursBreakdown">calculating…</div>
+      </div>
+    </div>
+
+    <!-- JOB -->
+    <div class="form-section">
+      <div class="section-label">Job / Site</div>
+      <div class="field">
+        <select id="jobSelect">
+          <option value="">— select job or site —</option>
+          <option>Downers – general</option>
+          <option>PAE – general</option>
+          <option>Craigs Investment Partners</option>
+          <option>One New Zealand</option>
+          <option>Cushman &amp; Wakefield</option>
+          <option>Other / multiple sites</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="form-section">
+      <div class="section-label">Notes (optional)</div>
+      <textarea id="notesField" placeholder="Any notes for Monique..."></textarea>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitEntry()">Submit Timesheet</button>
+    <div style="height:2rem;"></div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="page-history">
+    <div class="page-title">My Submissions</div>
+    <div id="historyList"></div>
+    <div style="height:2rem;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://baojgmrlwunizgcauyhl.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhb2pnbXJsd3VuaXpnY2F1eWhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDYwODAsImV4cCI6MjA5NTIyMjA4MH0.XPvjOWlgWkK5YWUax47aDvMS1V6Dbf4LERqI5Yht1r8';
+
+const STAFF = {
+  'Glenn Wilson':'1111','Troy Wilson':'2222','Marco':'3333',
+  'Sam':'4444','Kylie':'5555'
+};
+
+let currentUser = null;
+let breakTimers = [];
+let activeTimerInterval = null;
+let activeBreakEnd = null;
+let activeBreakType = null;
+
+// GPS
+let gpsData = {
+  clockInTime:null,clockInLat:null,clockInLng:null,clockInAddress:'',
+  clockOutTime:null,clockOutLat:null,clockOutLng:null,clockOutAddress:''
+};
+
+// LUNCH TIMER
+let lunchStartTime = null;
+let lunchEndTime = null;
+let lunchIntervalId = null;
+let lunchDurationMins = 0;
+let lunchHornFired = false;
+
+// ── SUPABASE ──
+async function dbInsert(row) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/timesheets`, {
+    method:'POST',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify(row)
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+async function dbFetch(staff) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/timesheets?staff=eq.${encodeURIComponent(staff)}&order=date.desc`,
+    {headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+function setSyncDot(online) {
+  const dot = document.getElementById('syncDot');
+  dot.className = 'sync-dot'+(online?'':' offline');
+}
+
+// ── AUTH ──
+function doLogin() {
+  const name = document.getElementById('nameSelect').value;
+  const pin  = document.getElementById('pinInput').value;
+  if (!name) { showLoginErr('Please select your name.'); return; }
+  if (STAFF[name] !== pin) { showLoginErr('Incorrect PIN. Try again.'); return; }
+  currentUser = name;
+  sessionStorage.setItem('cwts_user', name);
+  bootApp();
+}
+function doLogout() {
+  sessionStorage.removeItem('cwts_user');
+  currentUser = null;
+  clearAllTimers();
+  stopLunchTimer();
+  resetGPS();
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('pinInput').value='';
+}
+function showLoginErr(msg) {
+  const el=document.getElementById('loginErr'); el.textContent=msg; el.style.display='block';
+}
+function bootApp() {
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('topbarName').textContent=currentUser;
+  buildDayStrip();
+  calcHours();
+  renderHistory();
+  scheduleBreakTimers();
+  ['startTime','endTime'].forEach(id=>{
+    document.getElementById(id).addEventListener('change',()=>calcHours());
+  });
+}
+
+// ── GPS ──
+async function getGPS() {
+  return new Promise((resolve,reject)=>{
+    if (!navigator.geolocation){reject('GPS not available');return;}
+    navigator.geolocation.getCurrentPosition(
+      pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude}),
+      err=>reject(err.message),
+      {enableHighAccuracy:true,timeout:10000}
+    );
+  });
+}
+async function reverseGeocode(lat,lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+    const data = await res.json();
+    const a = data.address||{};
+    return [a.road,a.suburb,a.city||a.town||a.village].filter(Boolean).join(', ')||`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  } catch { return `${lat.toFixed(4)}, ${lng.toFixed(4)}`; }
+}
+async function doClockIn() {
+  const timeEl=document.getElementById('clockInTime');
+  const addrEl=document.getElementById('clockInAddr');
+  timeEl.innerHTML='<span class="gps-spinner"></span> Getting location…';
+  try {
+    const {lat,lng}=await getGPS();
+    const now=new Date();
+    gpsData.clockInTime=now.toISOString();
+    gpsData.clockInLat=lat; gpsData.clockInLng=lng;
+    document.getElementById('startTime').value=now.toTimeString().slice(0,5);
+    calcHours();
+    timeEl.textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('clockInBtn').classList.add('clocked');
+    addrEl.textContent='📍 Getting address…';
+    const addr=await reverseGeocode(lat,lng);
+    gpsData.clockInAddress=addr; addrEl.textContent=addr;
+    toast('Clocked in ✓','success');
+  } catch { timeEl.textContent='GPS failed — tap to retry'; toast('Could not get location','error'); }
+}
+async function doClockOut() {
+  const timeEl=document.getElementById('clockOutTime');
+  const addrEl=document.getElementById('clockOutAddr');
+  timeEl.innerHTML='<span class="gps-spinner"></span> Getting location…';
+  try {
+    const {lat,lng}=await getGPS();
+    const now=new Date();
+    gpsData.clockOutTime=now.toISOString();
+    gpsData.clockOutLat=lat; gpsData.clockOutLng=lng;
+    document.getElementById('endTime').value=now.toTimeString().slice(0,5);
+    calcHours();
+    timeEl.textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('clockOutBtn').classList.add('clocked');
+    addrEl.textContent='📍 Getting address…';
+    const addr=await reverseGeocode(lat,lng);
+    gpsData.clockOutAddress=addr; addrEl.textContent=addr;
+    toast('Clocked out ✓','success');
+  } catch { timeEl.textContent='GPS failed — tap to retry'; toast('Could not get location','error'); }
+}
+function resetGPS() {
+  gpsData={clockInTime:null,clockInLat:null,clockInLng:null,clockInAddress:'',clockOutTime:null,clockOutLat:null,clockOutLng:null,clockOutAddress:''};
+  document.getElementById('clockInBtn').classList.remove('clocked');
+  document.getElementById('clockOutBtn').classList.remove('clocked');
+  document.getElementById('clockInTime').textContent='Tap to clock in';
+  document.getElementById('clockOutTime').textContent='Tap to clock out';
+  document.getElementById('clockInAddr').textContent='';
+  document.getElementById('clockOutAddr').textContent='';
+}
+
+// ── LUNCH TIMER ──
+function startLunch() {
+  if (lunchStartTime) return;
+  lunchStartTime = new Date();
+  lunchEndTime = null;
+  lunchHornFired = false;
+  document.getElementById('lunchStartBtn').disabled = true;
+  document.getElementById('lunchEndBtn').disabled = false;
+  document.getElementById('lunchStatus').textContent = 'Lunch started — timer running';
+  document.getElementById('lunchTimerDisplay').className = 'lunch-timer-display running';
+  lunchIntervalId = setInterval(updateLunchTimer, 1000);
+  updateLunchTimer();
+}
+
+function updateLunchTimer() {
+  if (!lunchStartTime) return;
+  const now = new Date();
+  const elapsed = Math.floor((now - lunchStartTime) / 1000);
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  const display = document.getElementById('lunchTimerDisplay');
+  display.textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+
+  // Warn at 28 minutes
+  if (mins >= 28 && mins < 30) {
+    display.className = 'lunch-timer-display running';
+    document.getElementById('lunchStatus').textContent = '⚠ 2 minutes left on lunch!';
+    showBreakTimerBar('Lunch ends in', 'lunch', new Date(lunchStartTime.getTime() + 30*60000));
+  }
+  // Horn at 30 minutes
+  if (mins >= 30 && !lunchHornFired) {
+    lunchHornFired = true;
+    display.className = 'lunch-timer-display over';
+    document.getElementById('lunchStatus').textContent = '🔔 LUNCH OVER — back to work!';
+    blastHorn();
+    toast('🔔 LUNCH OVER — get back to work!', 'warn');
+    if ('Notification' in window && Notification.permission==='granted') {
+      try { new Notification('🔔 LUNCH OVER', {body:'30 minutes is up — back to work!'}); } catch{}
+    }
+  }
+  // Keep counting over 30 mins (shows how late they are)
+  if (mins >= 30) {
+    display.className = 'lunch-timer-display over';
+  }
+}
+
+function endLunch() {
+  if (!lunchStartTime) return;
+  lunchEndTime = new Date();
+  const elapsed = Math.floor((lunchEndTime - lunchStartTime) / 1000);
+  lunchDurationMins = Math.round(elapsed / 60);
+  stopLunchTimer();
+  document.getElementById('lunchStartBtn').disabled = false;
+  document.getElementById('lunchEndBtn').disabled = true;
+  document.getElementById('lunchTimerDisplay').className = 'lunch-timer-display done';
+  document.getElementById('lunchStatus').textContent = `✓ Lunch done — ${lunchDurationMins} min deducted`;
+  dismissTimer();
+  calcHours();
+  toast(`Lunch ended — ${lunchDurationMins}min deducted ✓`, 'success');
+}
+
+function stopLunchTimer() {
+  if (lunchIntervalId) { clearInterval(lunchIntervalId); lunchIntervalId = null; }
+}
+
+// ── HORN (Web Audio API) ──
+function blastHorn() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Three loud blasts
+    [0, 0.6, 1.2].forEach(offset => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, ctx.currentTime + offset);
+      osc.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + offset + 0.4);
+      gain.gain.setValueAtTime(1.0, ctx.currentTime + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.45);
+      osc.start(ctx.currentTime + offset);
+      osc.stop(ctx.currentTime + offset + 0.45);
+    });
+  } catch(e) { console.log('Audio error:', e); }
+}
+
+// ── DAY STRIP — today LEFT ──
+function buildDayStrip() {
+  const strip = document.getElementById('dayStrip');
+  strip.innerHTML = '';
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const btn = document.createElement('div');
+    btn.className = 'day-btn'+(i===0?' selected today-btn':'');
+    btn.dataset.iso = d.toISOString().split('T')[0];
+    btn.innerHTML = `<span>${d.getDate()}</span>${days[d.getDay()]}`;
+    btn.onclick = ()=>{ document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); };
+    strip.appendChild(btn);
+  }
+}
+function getSelectedDay() {
+  const sel = document.querySelector('.day-btn.selected');
+  return sel ? sel.dataset.iso : new Date().toISOString().split('T')[0];
+}
+
+// ── HOURS CALC ──
+function calcHours() {
+  const s = document.getElementById('startTime').value;
+  const e = document.getElementById('endTime').value;
+  // Use actual lunch duration if timer was used, else default 30
+  const lunchMins = lunchDurationMins > 0 ? lunchDurationMins : 30;
+  if (!s || !e) return;
+  const [sh,sm] = s.split(':').map(Number);
+  const [eh,em] = e.split(':').map(Number);
+  const grossMins = (eh*60+em)-(sh*60+sm);
+  const paidMins = Math.max(0, grossMins - lunchMins);
+  const grossHrs = (grossMins/60).toFixed(1);
+  const paid = paidMins/60;
+  const paidDisplay = paid%1===0 ? paid.toFixed(0) : paid.toFixed(1);
+  document.getElementById('hoursCalc').textContent = paidDisplay;
+  const lunchLabel = lunchMins>=60 ? (lunchMins/60).toFixed(1)+'h' : lunchMins+'min';
+  document.getElementById('hoursBreakdown').textContent = `${grossHrs}h on site − ${lunchLabel} lunch = ${paidDisplay}h paid`;
+}
+
+// ── BREAK TIMERS (morning + afternoon) ──
+function scheduleBreakTimers() {
+  clearAllTimers();
+  const today = getSelectedDay();
+  const now = new Date();
+  if (today !== now.toISOString().split('T')[0]) return;
+  const breaks = [
+    {startId:'morningStart',durId:'morningDur',label:'Morning tea',type:'morning'},
+    {startId:'afternoonStart',durId:'afternoonDur',label:'Afternoon tea',type:'afternoon'},
+  ];
+  breaks.forEach(b=>{
+    const startVal = document.getElementById(b.startId).value;
+    const durMins  = parseInt(document.getElementById(b.durId).value)||10;
+    if (!startVal) return;
+    const [bh,bm] = startVal.split(':').map(Number);
+    const breakStart = new Date(); breakStart.setHours(bh,bm,0,0);
+    const breakEnd   = new Date(breakStart.getTime()+durMins*60000);
+    const warnAt     = new Date(breakEnd.getTime()-2*60000);
+    const msWarn     = warnAt-now;
+    const msEnd      = breakEnd-now;
+    if (msWarn>0) breakTimers.push(setTimeout(()=>showBreakTimerBar(b.label+' ends in',b.type,breakEnd),msWarn));
+    else if (msEnd>0) showBreakTimerBar(b.label+' ends in',b.type,breakEnd);
+    if (msEnd>0) breakTimers.push(setTimeout(()=>{ if(activeBreakType===b.type)dismissTimer(); toast(`${b.label} over — back to work! 💪`,'warn'); },msEnd));
+  });
+}
+
+function showBreakTimerBar(label, type, endTime) {
+  activeBreakEnd=endTime; activeBreakType=type;
+  document.getElementById('breakTimerInner').className='break-timer-inner '+type;
+  document.getElementById('breakTimerText').textContent=label;
+  document.getElementById('breakTimerBar').classList.add('active');
+  if ('Notification' in window && Notification.permission==='default') Notification.requestPermission();
+  if ('Notification' in window && Notification.permission==='granted') {
+    try { new Notification(label, {body:'Head back to work soon ⏱'}); } catch{}
+  }
+  startCountdown();
+}
+
+function startCountdown() {
+  if (activeTimerInterval) clearInterval(activeTimerInterval);
+  activeTimerInterval = setInterval(()=>{
+    if (!activeBreakEnd){clearInterval(activeTimerInterval);return;}
+    const rem = Math.max(0,activeBreakEnd-new Date());
+    const mins=Math.floor(rem/60000), secs=Math.floor((rem%60000)/1000);
+    document.getElementById('breakTimerCountdown').textContent=`${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+    const inner=document.getElementById('breakTimerInner');
+    rem<30000?inner.classList.add('warning'):inner.classList.remove('warning');
+    if(rem<=0){clearInterval(activeTimerInterval);dismissTimer();}
+  },1000);
+}
+
+function dismissTimer() {
+  document.getElementById('breakTimerBar').classList.remove('active');
+  activeBreakEnd=null; activeBreakType=null;
+  if(activeTimerInterval){clearInterval(activeTimerInterval);activeTimerInterval=null;}
+}
+
+function clearAllTimers() {
+  breakTimers.forEach(t=>clearTimeout(t)); breakTimers=[];
+  if(activeTimerInterval){clearInterval(activeTimerInterval);activeTimerInterval=null;}
+  dismissTimer();
+}
+
+// ── SUBMIT ──
+async function submitEntry() {
+  const day=getSelectedDay();
+  const start=document.getElementById('startTime').value;
+  const end=document.getElementById('endTime').value;
+  const morningDur=parseInt(document.getElementById('morningDur').value)||10;
+  const afternoonDur=parseInt(document.getElementById('afternoonDur').value)||10;
+  const job=document.getElementById('jobSelect').value;
+  const notes=document.getElementById('notesField').value.trim();
+  const paidHrs=parseFloat(document.getElementById('hoursCalc').textContent);
+  const lunchMins = lunchDurationMins>0 ? lunchDurationMins : 30;
+
+  if (!job){toast('Please select a job / site','error');return;}
+  if (paidHrs<=0){toast('Check your start / finish times','error');return;}
+
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true; btn.textContent='Submitting…';
+
+  const row={
+    id:Date.now(), staff:currentUser, date:day,
+    start_time:start, end_time:end,
+    morning_break:morningDur,
+    lunch_break:lunchMins,
+    afternoon_break:afternoonDur,
+    lunch_start: lunchStartTime ? lunchStartTime.toTimeString().slice(0,5) : null,
+    paid_hours:paidHrs, job, notes,
+    status:'pending',
+    submitted_at:new Date().toISOString(),
+    clock_in_time:gpsData.clockInTime, clock_in_lat:gpsData.clockInLat,
+    clock_in_lng:gpsData.clockInLng, clock_in_address:gpsData.clockInAddress,
+    clock_out_time:gpsData.clockOutTime, clock_out_lat:gpsData.clockOutLat,
+    clock_out_lng:gpsData.clockOutLng, clock_out_address:gpsData.clockOutAddress
+  };
+
+  try {
+    await dbInsert(row);
+    setSyncDot(true);
+    toast('Submitted ✓ — Monique can see it now','success');
+    document.getElementById('notesField').value='';
+    document.getElementById('jobSelect').value='';
+    // Reset lunch
+    lunchStartTime=null; lunchEndTime=null; lunchDurationMins=0; lunchHornFired=false;
+    stopLunchTimer();
+    document.getElementById('lunchTimerDisplay').textContent='00:00';
+    document.getElementById('lunchTimerDisplay').className='lunch-timer-display';
+    document.getElementById('lunchStartBtn').disabled=false;
+    document.getElementById('lunchEndBtn').disabled=true;
+    document.getElementById('lunchStatus').textContent='Tap "Start Lunch" when you go on break';
+    resetGPS();
+    showPage('history',document.querySelectorAll('.tab')[1]);
+    renderHistory();
+  } catch(err) {
+    setSyncDot(false);
+    toast('Offline — saved locally','warn');
+    const q=JSON.parse(localStorage.getItem('cwts_queue')||'[]');
+    q.push(row); localStorage.setItem('cwts_queue',JSON.stringify(q));
+    renderHistory();
+  } finally {
+    btn.disabled=false; btn.textContent='Submit Timesheet';
+  }
+}
+
+// ── HISTORY ──
+async function renderHistory() {
+  const list=document.getElementById('historyList');
+  list.innerHTML='<div class="empty-state">Loading…</div>';
+  let entries=[];
+  try { entries=await dbFetch(currentUser); setSyncDot(true); }
+  catch { setSyncDot(false); list.innerHTML='<div class="empty-state">Offline — check connection</div>'; return; }
+  const queued=JSON.parse(localStorage.getItem('cwts_queue')||'[]').filter(r=>r.staff===currentUser).map(r=>({...r,status:'syncing'}));
+  const all=[...queued,...entries];
+  if (!all.length){list.innerHTML='<div class="empty-state">No submissions yet.<br>Fill in your first timesheet above.</div>';return;}
+  const grouped={};
+  all.forEach(e=>{
+    const wk=getMonday(new Date((e.date||'')+'T12:00:00'));
+    const wkStr=wk.toLocaleDateString('en-NZ',{day:'numeric',month:'short'});
+    if(!grouped[wkStr])grouped[wkStr]=[];
+    grouped[wkStr].push(e);
+  });
+  list.innerHTML=Object.entries(grouped).map(([wk,items])=>`
+    <div class="week-group">
+      <div class="week-heading">Week of ${wk}</div>
+      ${items.map(e=>`
+        <div class="entry-card">
+          <div class="entry-top">
+            <span class="entry-date">${fmtDate(e.date)}</span>
+            <span class="entry-hours">${e.paid_hours}h paid</span>
+          </div>
+          <div class="entry-meta">${e.start_time||'?'} – ${e.end_time||'?'} · ${e.job||'—'}</div>
+          <div class="entry-meta">☕ ${e.morning_break||10}min · 🥪 ${e.lunch_break||30}min lunch · 🍵 ${e.afternoon_break||10}min</div>
+          ${e.clock_in_address?`<div class="entry-gps">📍 In: ${e.clock_in_address}</div>`:''}
+          ${e.clock_out_address?`<div class="entry-gps">🏁 Out: ${e.clock_out_address}</div>`:''}
+          ${e.notes?`<div class="entry-meta" style="margin-top:0.3rem;font-style:italic;">${e.notes}</div>`:''}
+          <span class="entry-status status-${e.status}">${e.status==='syncing'?'⏳ syncing…':e.status}</span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function fmtDate(iso){
+  if(!iso)return'—';
+  return new Date(iso+'T12:00:00').toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'});
+}
+function getMonday(d){
+  const day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);
+  return new Date(new Date(d).setDate(diff));
+}
+function showPage(name,tab){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  tab.classList.add('active');
+  if(name==='history')renderHistory();
+}
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show'+(type?' '+type:'');
+  setTimeout(()=>el.className='toast',3500);
+}
+
+window.onload=()=>{
+  const saved=sessionStorage.getItem('cwts_user');
+  if(saved&&STAFF[saved]){currentUser=saved;bootApp();}
+};
+</script>
+</body>
+</html>
