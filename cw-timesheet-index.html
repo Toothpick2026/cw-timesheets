@@ -51,20 +51,34 @@
 
   .page { display: none; padding: 1.25rem; max-width: 480px; margin: 0 auto; width: 100%; }
   .page.active { display: block; }
-  .page-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; }
   .form-section { margin-bottom: 1.5rem; }
   .section-label { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--orange); margin-bottom: 0.75rem; font-weight: 600; }
 
-  .day-strip { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; -webkit-overflow-scrolling: touch; }
+  /* DAY STRIP — today on LEFT */
+  .day-strip { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; -webkit-overflow-scrolling: touch; }
   .day-strip::-webkit-scrollbar { display: none; }
   .day-btn { flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.75rem; padding: 0.5rem 0.75rem; cursor: pointer; text-align: center; transition: all 0.15s; min-width: 52px; }
   .day-btn span { display: block; font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--text); }
   .day-btn.selected { border-color: var(--orange); background: var(--orange-dim); color: var(--orange); }
   .day-btn.selected span { color: var(--orange); }
+  .day-btn.today-btn { border-color: rgba(224,123,60,0.4); }
 
   .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
   textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.95rem; padding: 0.75rem 1rem; resize: none; outline: none; min-height: 80px; transition: border-color 0.2s; }
   textarea:focus { border-color: var(--orange); }
+
+  /* GPS CLOCK IN/OUT */
+  .gps-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; }
+  .gps-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .gps-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; text-align: center; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+  .gps-btn:active { opacity: 0.8; }
+  .gps-btn.clocked { border-color: var(--green); background: var(--green-dim); }
+  .gps-btn-label { font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem; }
+  .gps-btn-time { font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--text); }
+  .gps-btn.clocked .gps-btn-time { color: var(--green); }
+  .gps-address { font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; line-height: 1.3; }
+  .gps-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   .hours-display { background: var(--orange-dim); border: 1px solid var(--orange); border-radius: 8px; padding: 1rem; text-align: center; margin-bottom: 1rem; }
   .hours-big { font-family: 'Space Mono', monospace; font-size: 2.5rem; font-weight: 700; color: var(--orange); line-height: 1; }
@@ -74,7 +88,7 @@
   .breaks-grid { display: flex; flex-direction: column; gap: 0.75rem; }
   .break-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
   .break-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-  .break-name { font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; }
+  .break-name { font-weight: 600; font-size: 0.95rem; }
   .break-badge { font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600; }
   .badge-fixed { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
   .badge-deducted { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
@@ -82,8 +96,9 @@
   .break-field label { display: block; font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem; }
   .break-field input, .break-field select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.9rem; padding: 0.5rem 0.75rem; outline: none; transition: border-color 0.2s; appearance: none; }
   .break-field input:focus, .break-field select:focus { border-color: var(--orange); }
-  .break-deduct-note { font-size: 0.75rem; color: var(--yellow); margin-top: 0.5rem; display: flex; align-items: center; gap: 0.4rem; }
+  .break-deduct-note { font-size: 0.75rem; color: var(--yellow); margin-top: 0.5rem; }
 
+  /* BREAK TIMER BAR */
   .break-timer-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 50; transform: translateY(-100%); transition: transform 0.4s ease; }
   .break-timer-bar.active { transform: translateY(0); }
   .break-timer-inner { padding: 0.85rem 1.25rem; display: flex; align-items: center; justify-content: space-between; }
@@ -100,6 +115,8 @@
   .submit-btn:active { opacity: 0.8; }
   .submit-btn:disabled { opacity: 0.45; cursor: default; }
 
+  /* HISTORY */
+  .page-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; }
   .empty-state { text-align: center; color: var(--muted); padding: 3rem 1rem; font-size: 0.9rem; }
   .week-group { margin-bottom: 1.5rem; }
   .week-heading { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; }
@@ -108,20 +125,17 @@
   .entry-date { font-weight: 600; font-size: 0.95rem; }
   .entry-hours { font-family: 'Space Mono', monospace; font-size: 1.1rem; font-weight: 700; color: var(--orange); }
   .entry-meta { font-size: 0.8rem; color: var(--muted); }
-  .entry-breaks { font-size: 0.75rem; color: var(--muted); margin-top: 0.3rem; }
+  .entry-gps { font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; }
   .entry-status { display: inline-block; font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 4px; margin-top: 0.4rem; font-weight: 600; }
   .status-pending { background: rgba(224,123,60,0.15); color: var(--orange); }
   .status-approved { background: rgba(76,175,80,0.15); color: var(--green); }
   .status-syncing { background: rgba(59,130,246,0.15); color: var(--blue); }
 
-  .export-bar { position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--border); padding: 1rem 1.25rem; display: none; max-width: 480px; margin: 0 auto; width: 100%; }
-
-  .toast { position: fixed; bottom: 5rem; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1.25rem; font-size: 0.9rem; opacity: 0; transition: all 0.3s; z-index: 200; white-space: nowrap; pointer-events: none; }
+  .toast { position: fixed; bottom: 5rem; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1.25rem; font-size: 0.9rem; opacity: 0; transition: all 0.3s; z-index: 200; white-space: nowrap; pointer-events: none; max-width: 90vw; text-align: center; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.success { border-color: var(--green); color: var(--green); }
   .toast.error { border-color: var(--red); color: var(--red); }
   .toast.warn { border-color: var(--yellow); color: var(--yellow); }
-  .toast.info { border-color: var(--blue); color: var(--blue); }
 
   .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: inline-block; margin-left: 0.4rem; }
   .sync-dot.offline { background: var(--red); }
@@ -151,6 +165,8 @@
         <option>Glenn Wilson</option>
         <option>Troy Wilson</option>
         <option>Marco</option>
+        <option>Sam</option>
+        <option>Kylie</option>
       </select>
     </div>
     <div class="field">
@@ -167,7 +183,7 @@
     <div class="topbar-left">
       <span class="topbar-logo">CW</span>
       <span class="topbar-name" id="topbarName"></span>
-      <span class="sync-dot" id="syncDot" title="Connected"></span>
+      <span class="sync-dot" id="syncDot"></span>
     </div>
     <button class="btn-logout" onclick="doLogout()">Sign out</button>
   </div>
@@ -177,10 +193,33 @@
   </div>
 
   <div class="page active" id="page-new">
+
+    <!-- GPS CLOCK IN/OUT -->
+    <div class="form-section">
+      <div class="section-label">Clock In / Out</div>
+      <div class="gps-card">
+        <div class="gps-row">
+          <div class="gps-btn" id="clockInBtn" onclick="doClockIn()">
+            <div class="gps-btn-label">📍 Clock In</div>
+            <div class="gps-btn-time" id="clockInTime">Tap to clock in</div>
+            <div class="gps-address" id="clockInAddr"></div>
+          </div>
+          <div class="gps-btn" id="clockOutBtn" onclick="doClockOut()">
+            <div class="gps-btn-label">🏁 Clock Out</div>
+            <div class="gps-btn-time" id="clockOutTime">Tap to clock out</div>
+            <div class="gps-address" id="clockOutAddr"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAY SELECT -->
     <div class="form-section">
       <div class="section-label">Select Day</div>
       <div class="day-strip" id="dayStrip"></div>
     </div>
+
+    <!-- HOURS -->
     <div class="form-section">
       <div class="section-label">Hours Worked</div>
       <div class="time-row">
@@ -188,6 +227,8 @@
         <div class="field"><label>Finish time</label><input type="time" id="endTime" value="16:00" oninput="calcHours()"></div>
       </div>
     </div>
+
+    <!-- BREAKS -->
     <div class="form-section">
       <div class="section-label">Breaks</div>
       <div class="breaks-grid">
@@ -241,6 +282,8 @@
         </div>
       </div>
     </div>
+
+    <!-- HOURS TOTAL -->
     <div class="form-section">
       <div class="hours-display">
         <div class="hours-big" id="hoursCalc">8.5</div>
@@ -248,6 +291,8 @@
         <div class="hours-breakdown" id="hoursBreakdown">9.0h on site − 30min lunch = 8.5h paid</div>
       </div>
     </div>
+
+    <!-- JOB -->
     <div class="form-section">
       <div class="section-label">Job / Site</div>
       <div class="field">
@@ -262,20 +307,23 @@
         </select>
       </div>
     </div>
+
+    <!-- NOTES -->
     <div class="form-section">
       <div class="section-label">Notes (optional)</div>
       <textarea id="notesField" placeholder="Any notes for Monique..."></textarea>
     </div>
+
     <button class="submit-btn" id="submitBtn" onclick="submitEntry()">Submit Timesheet</button>
     <div style="height:2rem;"></div>
   </div>
 
+  <!-- HISTORY -->
   <div class="page" id="page-history">
     <div class="page-title">My Submissions</div>
     <div id="historyList"></div>
-    <div style="height:5rem;"></div>
+    <div style="height:2rem;"></div>
   </div>
-  <div class="export-bar" id="exportBar"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -284,7 +332,10 @@
 const SUPABASE_URL = 'https://baojgmrlwunizgcauyhl.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhb2pnbXJsd3VuaXpnY2F1eWhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDYwODAsImV4cCI6MjA5NTIyMjA4MH0.XPvjOWlgWkK5YWUax47aDvMS1V6Dbf4LERqI5Yht1r8';
 
-const STAFF = { 'Glenn Wilson':'1111', 'Troy Wilson':'2222', 'Marco':'3333' };
+const STAFF = {
+  'Glenn Wilson':'1111', 'Troy Wilson':'2222', 'Marco':'3333',
+  'Sam':'4444', 'Kylie':'5555'
+};
 
 let currentUser = null;
 let breakTimers = [];
@@ -292,26 +343,25 @@ let activeTimerInterval = null;
 let activeBreakEnd = null;
 let activeBreakType = null;
 
-// ── SUPABASE HELPERS ──
+// GPS state
+let gpsData = {
+  clockInTime: null, clockInLat: null, clockInLng: null, clockInAddress: '',
+  clockOutTime: null, clockOutLat: null, clockOutLng: null, clockOutAddress: ''
+};
+
+// ── SUPABASE ──
 async function dbInsert(row) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/timesheets`, {
     method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal'
-    },
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
     body: JSON.stringify(row)
   });
   if (!res.ok) throw new Error(await res.text());
 }
 
 async function dbFetch(staff) {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/timesheets?staff=eq.${encodeURIComponent(staff)}&order=date.desc`,
-    { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-  );
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/timesheets?staff=eq.${encodeURIComponent(staff)}&order=date.desc`,
+    { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -319,7 +369,6 @@ async function dbFetch(staff) {
 function setSyncDot(online) {
   const dot = document.getElementById('syncDot');
   dot.className = 'sync-dot' + (online ? '' : ' offline');
-  dot.title = online ? 'Connected to server' : 'Offline — submissions will retry';
 }
 
 // ── AUTH ──
@@ -337,6 +386,7 @@ function doLogout() {
   sessionStorage.removeItem('cwts_user');
   currentUser = null;
   clearAllTimers();
+  gpsData = { clockInTime:null, clockInLat:null, clockInLng:null, clockInAddress:'', clockOutTime:null, clockOutLat:null, clockOutLng:null, clockOutAddress:'' };
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('pinInput').value = '';
@@ -360,20 +410,100 @@ function bootApp() {
   });
 }
 
-// ── DAY STRIP ──
+// ── GPS CLOCK IN/OUT ──
+async function getGPS() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) { reject('GPS not available'); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      err => reject(err.message),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+}
+
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+    const data = await res.json();
+    const a = data.address || {};
+    return [a.road, a.suburb, a.city || a.town || a.village].filter(Boolean).join(', ') || data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  } catch {
+    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  }
+}
+
+async function doClockIn() {
+  const btn = document.getElementById('clockInBtn');
+  const timeEl = document.getElementById('clockInTime');
+  const addrEl = document.getElementById('clockInAddr');
+  timeEl.innerHTML = '<span class="gps-spinner"></span> Getting location…';
+  try {
+    const { lat, lng } = await getGPS();
+    const now = new Date();
+    gpsData.clockInTime = now.toISOString();
+    gpsData.clockInLat = lat;
+    gpsData.clockInLng = lng;
+    // Set start time field
+    document.getElementById('startTime').value = now.toTimeString().slice(0,5);
+    calcHours();
+    timeEl.textContent = now.toLocaleTimeString('en-NZ', { hour:'2-digit', minute:'2-digit' });
+    btn.classList.add('clocked');
+    addrEl.textContent = '📍 Getting address…';
+    const addr = await reverseGeocode(lat, lng);
+    gpsData.clockInAddress = addr;
+    addrEl.textContent = addr;
+    toast('Clocked in ✓', 'success');
+  } catch(e) {
+    timeEl.textContent = 'GPS failed — tap to retry';
+    toast('Could not get location', 'error');
+  }
+}
+
+async function doClockOut() {
+  const btn = document.getElementById('clockOutBtn');
+  const timeEl = document.getElementById('clockOutTime');
+  const addrEl = document.getElementById('clockOutAddr');
+  timeEl.innerHTML = '<span class="gps-spinner"></span> Getting location…';
+  try {
+    const { lat, lng } = await getGPS();
+    const now = new Date();
+    gpsData.clockOutTime = now.toISOString();
+    gpsData.clockOutLat = lat;
+    gpsData.clockOutLng = lng;
+    // Set finish time field
+    document.getElementById('endTime').value = now.toTimeString().slice(0,5);
+    calcHours();
+    timeEl.textContent = now.toLocaleTimeString('en-NZ', { hour:'2-digit', minute:'2-digit' });
+    btn.classList.add('clocked');
+    addrEl.textContent = '📍 Getting address…';
+    const addr = await reverseGeocode(lat, lng);
+    gpsData.clockOutAddress = addr;
+    addrEl.textContent = addr;
+    toast('Clocked out ✓', 'success');
+  } catch(e) {
+    timeEl.textContent = 'GPS failed — tap to retry';
+    toast('Could not get location', 'error');
+  }
+}
+
+// ── DAY STRIP — today first (left) ──
 function buildDayStrip() {
   const strip = document.getElementById('dayStrip');
   strip.innerHTML = '';
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  for (let i = 0; i < 14; i++) {
+  // Build oldest first (they get reversed by flex-direction:row-reverse)
+  for (let i = 13; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
     const btn = document.createElement('div');
-    btn.className = 'day-btn' + (i===0?' selected':'');
+    btn.className = 'day-btn' + (i===0?' selected today-btn':'');
     btn.dataset.iso = d.toISOString().split('T')[0];
     btn.innerHTML = `<span>${d.getDate()}</span>${days[d.getDay()]}`;
     btn.onclick = () => { document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); };
     strip.appendChild(btn);
   }
+  // Scroll to start (today is on left)
+  strip.scrollLeft = 0;
 }
 
 function getSelectedDay() {
@@ -418,19 +548,14 @@ function scheduleBreakTimers() {
     if (!startVal) return;
     const [bh,bm] = startVal.split(':').map(Number);
     const breakStart = new Date(); breakStart.setHours(bh,bm,0,0);
-    const breakEnd = new Date(breakStart.getTime() + durMins*60000);
-    const warnAt   = new Date(breakEnd.getTime() - 2*60000);
-    const msWarn   = warnAt - now;
-    const msEnd    = breakEnd - now;
+    const breakEnd   = new Date(breakStart.getTime() + durMins*60000);
+    const warnAt     = new Date(breakEnd.getTime() - 2*60000);
+    const msWarn     = warnAt - now;
+    const msEnd      = breakEnd - now;
 
-    if (msWarn > 0) {
-      breakTimers.push(setTimeout(()=>showBreakTimer(b.label,b.type,breakEnd), msWarn));
-    } else if (msEnd > 0) {
-      showBreakTimer(b.label, b.type, breakEnd);
-    }
-    if (msEnd > 0) {
-      breakTimers.push(setTimeout(()=>{ if(activeBreakType===b.type) dismissTimer(); toast(`${b.label} over — back to work! 💪`,'warn'); }, msEnd));
-    }
+    if (msWarn > 0) breakTimers.push(setTimeout(()=>showBreakTimer(b.label,b.type,breakEnd), msWarn));
+    else if (msEnd > 0) showBreakTimer(b.label, b.type, breakEnd);
+    if (msEnd > 0) breakTimers.push(setTimeout(()=>{ if(activeBreakType===b.type) dismissTimer(); toast(`${b.label} over — back to work! 💪`,'warn'); }, msEnd));
   });
 }
 
@@ -474,16 +599,16 @@ function clearAllTimers() {
 
 // ── SUBMIT ──
 async function submitEntry() {
-  const day  = getSelectedDay();
-  const start = document.getElementById('startTime').value;
-  const end   = document.getElementById('endTime').value;
-  const lunchDur      = parseInt(document.getElementById('lunchDur').value)||30;
-  const morningDur    = parseInt(document.getElementById('morningDur').value)||10;
-  const afternoonDur  = parseInt(document.getElementById('afternoonDur').value)||10;
-  const lunchStartVal = document.getElementById('lunchStart').value;
-  const job   = document.getElementById('jobSelect').value;
-  const notes = document.getElementById('notesField').value.trim();
-  const paidHrs = parseFloat(document.getElementById('hoursCalc').textContent);
+  const day         = getSelectedDay();
+  const start       = document.getElementById('startTime').value;
+  const end         = document.getElementById('endTime').value;
+  const lunchDur    = parseInt(document.getElementById('lunchDur').value)||30;
+  const morningDur  = parseInt(document.getElementById('morningDur').value)||10;
+  const afternoonDur= parseInt(document.getElementById('afternoonDur').value)||10;
+  const lunchStartV = document.getElementById('lunchStart').value;
+  const job         = document.getElementById('jobSelect').value;
+  const notes       = document.getElementById('notesField').value.trim();
+  const paidHrs     = parseFloat(document.getElementById('hoursCalc').textContent);
 
   if (!job)       { toast('Please select a job / site','error'); return; }
   if (paidHrs<=0) { toast('Check your start / finish times','error'); return; }
@@ -500,12 +625,20 @@ async function submitEntry() {
     morning_break: morningDur,
     lunch_break: lunchDur,
     afternoon_break: afternoonDur,
-    lunch_start: lunchStartVal,
+    lunch_start: lunchStartV,
     paid_hours: paidHrs,
-    job,
-    notes,
+    job, notes,
     status: 'pending',
-    submitted_at: new Date().toISOString()
+    submitted_at: new Date().toISOString(),
+    // GPS
+    clock_in_time: gpsData.clockInTime,
+    clock_in_lat:  gpsData.clockInLat,
+    clock_in_lng:  gpsData.clockInLng,
+    clock_in_address: gpsData.clockInAddress,
+    clock_out_time: gpsData.clockOutTime,
+    clock_out_lat:  gpsData.clockOutLat,
+    clock_out_lng:  gpsData.clockOutLng,
+    clock_out_address: gpsData.clockOutAddress
   };
 
   try {
@@ -514,12 +647,19 @@ async function submitEntry() {
     toast('Submitted ✓ — Monique can see it now','success');
     document.getElementById('notesField').value = '';
     document.getElementById('jobSelect').value = '';
+    // Reset GPS
+    gpsData = { clockInTime:null, clockInLat:null, clockInLng:null, clockInAddress:'', clockOutTime:null, clockOutLat:null, clockOutLng:null, clockOutAddress:'' };
+    document.getElementById('clockInBtn').classList.remove('clocked');
+    document.getElementById('clockOutBtn').classList.remove('clocked');
+    document.getElementById('clockInTime').textContent = 'Tap to clock in';
+    document.getElementById('clockOutTime').textContent = 'Tap to clock out';
+    document.getElementById('clockInAddr').textContent = '';
+    document.getElementById('clockOutAddr').textContent = '';
     showPage('history', document.querySelectorAll('.tab')[1]);
     renderHistory();
   } catch(err) {
     setSyncDot(false);
-    toast('Offline — saved locally, will retry','warn');
-    // Save to localStorage as fallback
+    toast('Offline — saved locally','warn');
     const q = JSON.parse(localStorage.getItem('cwts_queue')||'[]');
     q.push(row); localStorage.setItem('cwts_queue', JSON.stringify(q));
     renderHistory();
@@ -532,7 +672,6 @@ async function submitEntry() {
 async function renderHistory() {
   const list = document.getElementById('historyList');
   list.innerHTML = '<div class="empty-state">Loading…</div>';
-
   let entries = [];
   try {
     entries = await dbFetch(currentUser);
@@ -542,28 +681,16 @@ async function renderHistory() {
     list.innerHTML = '<div class="empty-state">Offline — check connection</div>';
     return;
   }
-
-  // Also show any queued offline items
-  const queued = JSON.parse(localStorage.getItem('cwts_queue')||'[]')
-    .filter(r=>r.staff===currentUser)
-    .map(r=>({...r, status:'syncing'}));
-
+  const queued = JSON.parse(localStorage.getItem('cwts_queue')||'[]').filter(r=>r.staff===currentUser).map(r=>({...r,status:'syncing'}));
   const all = [...queued, ...entries];
-
-  if (!all.length) {
-    list.innerHTML = '<div class="empty-state">No submissions yet.<br>Fill in your first timesheet above.</div>';
-    return;
-  }
-
+  if (!all.length) { list.innerHTML = '<div class="empty-state">No submissions yet.<br>Fill in your first timesheet above.</div>'; return; }
   const grouped = {};
   all.forEach(e => {
-    const d = e.date || '';
-    const wk = getMonday(new Date(d+'T12:00:00'));
+    const wk = getMonday(new Date((e.date||'')+'T12:00:00'));
     const wkStr = wk.toLocaleDateString('en-NZ',{day:'numeric',month:'short'});
     if (!grouped[wkStr]) grouped[wkStr] = [];
     grouped[wkStr].push(e);
   });
-
   list.innerHTML = Object.entries(grouped).map(([wk,items])=>`
     <div class="week-group">
       <div class="week-heading">Week of ${wk}</div>
@@ -574,7 +701,9 @@ async function renderHistory() {
             <span class="entry-hours">${e.paid_hours}h paid</span>
           </div>
           <div class="entry-meta">${e.start_time||'?'} – ${e.end_time||'?'} · ${e.job||'—'}</div>
-          <div class="entry-breaks">☕ ${e.morning_break||10}min · 🥪 ${e.lunch_break||30}min lunch · 🍵 ${e.afternoon_break||10}min</div>
+          <div class="entry-meta">☕ ${e.morning_break||10}min · 🥪 ${e.lunch_break||30}min · 🍵 ${e.afternoon_break||10}min</div>
+          ${e.clock_in_address ? `<div class="entry-gps">📍 In: ${e.clock_in_address}</div>` : ''}
+          ${e.clock_out_address ? `<div class="entry-gps">🏁 Out: ${e.clock_out_address}</div>` : ''}
           ${e.notes?`<div class="entry-meta" style="margin-top:0.3rem;font-style:italic;">${e.notes}</div>`:''}
           <span class="entry-status status-${e.status}">${e.status==='syncing'?'⏳ syncing…':e.status}</span>
         </div>
