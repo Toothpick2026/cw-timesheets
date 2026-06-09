@@ -10,16 +10,17 @@
 <link rel="manifest" href="manifest.json">
 <title>CW Timesheet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0a0a; --surface: #141414; --surface2: #1e1e1e; --border: #2a2a2a;
-    --orange: #E07B3C; --orange-dim: rgba(224,123,60,0.15);
+    --bg: #0d0d0d; --surface: #141414; --surface2: #1a1a1a; --border: #2a2a2a;
+    --orange: #FFD000; --orange-dim: rgba(255,208,0,0.12);
     --text: #f0f0f0; --muted: #888;
     --green: #4CAF50; --green-dim: rgba(76,175,80,0.15);
-    --red: #ef4444; --yellow: #f59e0b; --yellow-dim: rgba(245,158,11,0.15);
+    --red: #ef4444; --yellow: #FFD000; --yellow-dim: rgba(255,208,0,0.12);
     --blue: #3b82f6; --blue-dim: rgba(59,130,246,0.15);
-    --font: 'Aptos', 'Aptos Display', 'Segoe UI', 'Calibri', Arial, sans-serif;
+    --font: 'Inter', 'Segoe UI', Arial, sans-serif;
+    --heading: 'Bebas Neue', sans-serif;
     --fs: 14px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -28,16 +29,16 @@
   /* LOGIN */
   #loginScreen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
   .logo-block { text-align: center; margin-bottom: 3rem; }
-  .logo-cw { font-family: 'Space Mono', monospace; font-size: 3rem; font-weight: 700; color: var(--orange); letter-spacing: -2px; line-height: 1; }
-  .logo-sub { font-size: 0.75rem; letter-spacing: 4px; color: var(--muted); text-transform: uppercase; margin-top: 0.5rem; }
-  .login-card { width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; }
-  .login-card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; }
+  .logo-cw { font-family: var(--heading); font-size: 4rem; color: var(--orange); letter-spacing: 2px; line-height: 1; }
+  .logo-sub { font-family: var(--heading); font-size: 1.1rem; letter-spacing: 6px; color: var(--muted); text-transform: uppercase; margin-top: 0.25rem; }
+  .login-card { width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 2rem; }
+  .login-card h2 { font-family: var(--heading); font-size: 1.8rem; letter-spacing: 1px; font-weight: 400; margin-bottom: 1.5rem; direction: ltr; unicode-bidi: isolate; }
   .field { margin-bottom: 1rem; }
   .field label { display: block; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.4rem; }
   .field select, .field input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font); font-size: var(--fs); padding: 0.75rem 1rem; appearance: none; outline: none; transition: border-color 0.2s; }
   .field select:focus, .field input:focus { border-color: var(--orange); }
   .field select option { background: var(--surface2); }
-  .btn-primary { width: 100%; background: var(--orange); color: #fff; border: none; border-radius: 8px; font-family: var(--font); font-size: var(--fs); font-weight: 600; padding: 0.85rem; cursor: pointer; margin-top: 0.5rem; transition: opacity 0.2s; }
+  .btn-primary { width: 100%; background: var(--orange); color: #0d0d0d; border: none; border-radius: 4px; font-family: var(--heading); font-size: 1.2rem; letter-spacing: 1px; font-weight: 400; padding: 0.85rem; cursor: pointer; margin-top: 0.5rem; transition: opacity 0.2s; }
   .btn-primary:active { opacity: 0.8; }
   .err { color: var(--red); font-size: 0.85rem; margin-top: 0.75rem; display: none; }
 
@@ -45,29 +46,23 @@
   #app { display: none; min-height: 100vh; flex-direction: column; }
   .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
   .topbar-left { display: flex; align-items: center; gap: 0.75rem; }
-  .topbar-logo { font-family: 'Space Mono', monospace; font-weight: 700; color: var(--orange); font-size: 1.1rem; }
+  .topbar-logo { font-family: var(--heading); color: var(--orange); font-size: 1.6rem; letter-spacing: 2px; }
   .topbar-name { font-size: 0.9rem; color: var(--muted); }
   .btn-logout { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; font-size: 0.8rem; padding: 0.35rem 0.75rem; cursor: pointer; font-family: var(--font); }
   .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: inline-block; margin-left: 0.4rem; }
   .sync-dot.offline { background: var(--red); }
 
   .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 57px; z-index: 9; }
-  .tab { flex: 1; text-align: center; padding: 0.85rem 0.5rem; font-size: 0.85rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .tab { flex: 1; text-align: center; padding: 0.85rem 0.5rem; font-family: var(--heading); font-size: 1.1rem; letter-spacing: 1px; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
   .tab.active { color: var(--orange); border-bottom-color: var(--orange); }
 
   .page { display: none; padding: 1.25rem; max-width: 480px; margin: 0 auto; width: 100%; }
   .page.active { display: block; }
   .form-section { margin-bottom: 1.5rem; }
-  .section-label { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--orange); margin-bottom: 0.75rem; font-weight: 700; }
+  .section-label { font-family: var(--heading); font-size: 1.2rem; letter-spacing: 3px; text-transform: uppercase; color: var(--orange); margin-bottom: 0.75rem; }
 
-  /* DAY STRIP */
-  .day-strip { display: flex; flex-direction: row; justify-content: flex-end; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; -webkit-overflow-scrolling: touch; }
-  .day-strip::-webkit-scrollbar { display: none; }
-  .day-btn { flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.75rem; padding: 0.5rem 0.75rem; cursor: pointer; text-align: center; transition: all 0.15s; min-width: 52px; font-family: var(--font); }
-  .day-btn span { display: block; font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--text); }
-  .day-btn.selected { border-color: var(--orange); background: var(--orange-dim); color: var(--orange); }
-  .day-btn.selected span { color: var(--orange); }
-  .day-btn.today-btn { border-color: rgba(224,123,60,0.5); }
+  /* TODAY DISPLAY */
+  .today-display { background: var(--orange-dim); border: 1px solid rgba(255,208,0,0.3); border-radius: 4px; padding: 0.6rem 1rem; font-family: var(--heading); font-size: 1.4rem; letter-spacing: 1px; color: var(--orange); }
 
   .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
   textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font); font-size: var(--fs); padding: 0.75rem 1rem; resize: none; outline: none; min-height: 80px; transition: border-color 0.2s; }
@@ -79,24 +74,25 @@
   .gps-btn { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; text-align: center; cursor: pointer; transition: all 0.2s; }
   .gps-btn:active { opacity: 0.8; }
   .gps-btn.clocked { border-color: var(--green); background: var(--green-dim); }
-  .gps-btn-label { font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem; }
-  .gps-btn-time { font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--text); }
+  .gps-btn-label { font-family: var(--heading); font-size: 0.95rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem; }
+  .gps-btn-time { font-family: var(--heading); font-size: 1.4rem; letter-spacing: 1px; color: var(--text); }
   .gps-btn.clocked .gps-btn-time { color: var(--green); }
   .gps-address { font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; line-height: 1.3; }
+  .gps-btn { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.75rem; text-align: center; cursor: pointer; transition: all 0.2s; }
   .gps-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* HOURS */
-  .hours-display { background: var(--orange-dim); border: 1px solid var(--orange); border-radius: 8px; padding: 1rem; text-align: center; }
-  .hours-big { font-family: 'Space Mono', monospace; font-size: 2.5rem; font-weight: 700; color: var(--orange); line-height: 1; }
-  .hours-label { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-top: 0.25rem; }
+  .hours-display { background: var(--orange-dim); border: 1px solid var(--orange); border-radius: 4px; padding: 1rem; text-align: center; }
+  .hours-big { font-family: var(--heading); font-size: 3.5rem; color: var(--orange); line-height: 1; letter-spacing: 2px; }
+  .hours-label { font-family: var(--heading); font-size: 1rem; letter-spacing: 4px; text-transform: uppercase; color: var(--muted); margin-top: 0.25rem; }
   .hours-breakdown { font-size: 0.8rem; color: var(--muted); margin-top: 0.4rem; }
 
   /* BREAKS */
   .breaks-grid { display: flex; flex-direction: column; gap: 0.75rem; }
   .break-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
   .break-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-  .break-name { font-weight: 600; font-size: 1rem; }
+  .break-name { font-family: var(--heading); font-size: 1.3rem; letter-spacing: 1px; font-weight: 400; }
   .break-badge { font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; }
   .badge-fixed { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
   .badge-deducted { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
@@ -107,15 +103,15 @@
 
   /* LUNCH TIMER WIDGET */
   .lunch-timer-widget { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-top: 0.75rem; }
-  .lunch-timer-display { font-family: 'Space Mono', monospace; font-size: 2rem; font-weight: 700; text-align: center; color: var(--yellow); letter-spacing: 2px; margin: 0.5rem 0; }
+  .lunch-timer-display { font-family: var(--heading); font-size: 2.8rem; text-align: center; color: var(--yellow); letter-spacing: 4px; margin: 0.5rem 0; }
   .lunch-timer-display.running { color: var(--yellow); }
   .lunch-timer-display.over { color: var(--red); animation: flashWarn 0.5s ease infinite alternate; }
   .lunch-timer-display.done { color: var(--green); }
   .lunch-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.75rem; }
-  .lunch-start-btn { background: var(--yellow); color: #000; border: none; border-radius: 8px; font-family: var(--font); font-size: var(--fs); font-weight: 700; padding: 0.75rem; cursor: pointer; transition: opacity 0.2s; }
+  .lunch-start-btn { background: var(--yellow); color: #0d0d0d; border: none; border-radius: 4px; font-family: var(--heading); font-size: 1.1rem; letter-spacing: 1px; padding: 0.75rem; cursor: pointer; transition: opacity 0.2s; }
   .lunch-start-btn:active { opacity: 0.8; }
   .lunch-start-btn:disabled { opacity: 0.4; cursor: default; }
-  .lunch-end-btn { background: var(--green); color: #fff; border: none; border-radius: 8px; font-family: var(--font); font-size: var(--fs); font-weight: 700; padding: 0.75rem; cursor: pointer; transition: opacity 0.2s; }
+  .lunch-end-btn { background: var(--green); color: #fff; border: none; border-radius: 4px; font-family: var(--heading); font-size: 1.1rem; letter-spacing: 1px; padding: 0.75rem; cursor: pointer; transition: opacity 0.2s; }
   .lunch-end-btn:active { opacity: 0.8; }
   .lunch-end-btn:disabled { opacity: 0.4; cursor: default; }
   .lunch-status { font-size: 0.8rem; color: var(--muted); text-align: center; margin-top: 0.5rem; }
@@ -134,19 +130,19 @@
   @keyframes flashWarn { from { opacity: 1; } to { opacity: 0.5; } }
   .break-timer-inner.warning { animation: flashWarn 0.5s ease infinite alternate; }
 
-  .submit-btn { width: 100%; background: var(--orange); color: #fff; border: none; border-radius: 10px; font-family: var(--font); font-size: var(--fs); font-weight: 700; padding: 1rem; cursor: pointer; transition: opacity 0.2s; letter-spacing: 0.5px; }
+  .submit-btn { width: 100%; background: var(--orange); color: #0d0d0d; border: none; border-radius: 4px; font-family: var(--heading); font-size: 1.4rem; letter-spacing: 2px; padding: 1rem; cursor: pointer; transition: opacity 0.2s; }
   .submit-btn:active { opacity: 0.8; }
   .submit-btn:disabled { opacity: 0.45; cursor: default; }
 
   /* HISTORY */
-  .page-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; }
+  .page-title { font-family: var(--heading); font-size: 2rem; letter-spacing: 2px; font-weight: 400; margin-bottom: 1.5rem; }
   .empty-state { text-align: center; color: var(--muted); padding: 3rem 1rem; font-size: 0.9rem; }
   .week-group { margin-bottom: 1.5rem; }
   .week-heading { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; }
   .entry-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 0.5rem; }
   .entry-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; }
   .entry-date { font-weight: 600; font-size: 1rem; }
-  .entry-hours { font-family: 'Space Mono', monospace; font-size: 1.1rem; font-weight: 700; color: var(--orange); }
+  .entry-hours { font-family: var(--heading); font-size: 1.4rem; letter-spacing: 1px; color: var(--orange); }
   .entry-meta { font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
   .entry-gps { font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; }
   .entry-status { display: inline-block; font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 4px; margin-top: 0.4rem; font-weight: 700; }
@@ -236,19 +232,16 @@
       </div>
     </div>
 
-    <!-- DAY SELECT -->
+    <!-- TODAY -->
     <div class="form-section">
-      <div class="section-label">Select Day</div>
-      <div class="day-strip" id="dayStrip"></div>
+      <div class="section-label">Date</div>
+      <div class="today-display" id="todayDisplay"></div>
     </div>
 
-    <!-- HOURS -->
-    <div class="form-section">
-      <div class="section-label">Hours Worked</div>
-      <div class="time-row">
-        <div class="field"><label>Start time</label><input type="time" id="startTime" value="07:00" oninput="calcHours()"></div>
-        <div class="field"><label>Finish time</label><input type="time" id="endTime" value="16:00" oninput="calcHours()"></div>
-      </div>
+    <!-- HOURS (hidden — populated automatically by Clock In/Out) -->
+    <div style="display:none">
+      <input type="time" id="startTime" value="07:00" oninput="calcHours()">
+      <input type="time" id="endTime" value="16:00" oninput="calcHours()">
     </div>
 
     <!-- BREAKS -->
@@ -287,6 +280,9 @@
               <button class="lunch-end-btn" id="lunchEndBtn" onclick="endLunch()" disabled>■ End Lunch</button>
             </div>
             <div class="lunch-status" id="lunchStatus">Tap "Start Lunch" when you go on break</div>
+          </div>
+          <div style="margin-top:0.5rem;">
+            <button onclick="blastHorn()" style="width:100%;background:var(--surface2);border:1px dashed var(--border);color:var(--muted);border-radius:8px;font-family:var(--font);font-size:0.8rem;padding:0.5rem;cursor:pointer;">🔔 Test Horn</button>
           </div>
           <div class="break-deduct-note">⚠ Lunch time deducted from paid hours</div>
         </div>
@@ -382,6 +378,7 @@ let lunchEndTime = null;
 let lunchIntervalId = null;
 let lunchDurationMins = 0;
 let lunchHornFired = false;
+let audioCtx = null;
 
 // ── SUPABASE ──
 async function dbInsert(row) {
@@ -410,11 +407,15 @@ function doLogin() {
   if (!name) { showLoginErr('Please select your name.'); return; }
   if (STAFF[name] !== pin) { showLoginErr('Incorrect PIN. Try again.'); return; }
   currentUser = name;
-  sessionStorage.setItem('cwts_user', name);
+  const today = new Date().toISOString().split('T')[0];
+  localStorage.setItem('cwts_user', name);
+  localStorage.setItem('cwts_day', today);
+  unlockAudio();
   bootApp();
 }
 function doLogout() {
-  sessionStorage.removeItem('cwts_user');
+  localStorage.removeItem('cwts_user');
+  localStorage.removeItem('cwts_day');
   currentUser = null;
   clearAllTimers();
   stopLunchTimer();
@@ -509,6 +510,7 @@ function resetGPS() {
 // ── LUNCH TIMER ──
 function startLunch() {
   if (lunchStartTime) return;
+  unlockAudio();
   lunchStartTime = new Date();
   lunchEndTime = null;
   lunchHornFired = false;
@@ -529,19 +531,13 @@ function updateLunchTimer() {
   const display = document.getElementById('lunchTimerDisplay');
   display.textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
 
-  // Warn at 28 minutes
-  if (mins >= 28 && mins < 30) {
-    display.className = 'lunch-timer-display running';
-    document.getElementById('lunchStatus').textContent = '⚠ 2 minutes left on lunch!';
-    showBreakTimerBar('Lunch ends in', 'lunch', new Date(lunchStartTime.getTime() + 30*60000));
-  }
-  // Horn at 30 minutes
-  if (mins >= 30 && !lunchHornFired) {
+  // Horn at 28 minutes — 2 min warning before lunch ends
+  if (mins >= 28 && !lunchHornFired) {
     lunchHornFired = true;
     display.className = 'lunch-timer-display over';
-    document.getElementById('lunchStatus').textContent = '🔔 LUNCH OVER — back to work!';
+    document.getElementById('lunchStatus').textContent = '🔔 2 minutes left — head back now!';
     blastHorn();
-    toast('🔔 LUNCH OVER — get back to work!', 'warn');
+    toast('🔔 2 minutes left on lunch — wrap it up!', 'warn');
     if ('Notification' in window && Notification.permission==='granted') {
       try { new Notification('🔔 LUNCH OVER', {body:'30 minutes is up — back to work!'}); } catch{}
     }
@@ -571,48 +567,83 @@ function stopLunchTimer() {
   if (lunchIntervalId) { clearInterval(lunchIntervalId); lunchIntervalId = null; }
 }
 
-// ── HORN (Web Audio API) ──
+// ── AUDIO UNLOCK ──
+function unlockAudio() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch(e) {}
+}
+
+// ── CARGO SHIP HORN (Web Audio API) ──
 function blastHorn() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // Three loud blasts
-    [0, 0.6, 1.2].forEach(offset => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(220, ctx.currentTime + offset);
-      osc.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + offset + 0.4);
-      gain.gain.setValueAtTime(1.0, ctx.currentTime + offset);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.45);
-      osc.start(ctx.currentTime + offset);
-      osc.stop(ctx.currentTime + offset + 0.45);
-    });
+    unlockAudio();
+    const ctx = audioCtx;
+    if (!ctx) return;
+
+    // Maximise volume
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -3;
+    comp.knee.value = 2;
+    comp.ratio.value = 20;
+    comp.attack.value = 0.001;
+    comp.release.value = 0.25;
+    comp.connect(ctx.destination);
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.value = 1.0;
+    masterGain.connect(comp);
+
+    function shipBlast(startAt, duration) {
+      const now = ctx.currentTime + startAt;
+
+      // Layers: [type, frequency, gain] — deep harmonics stack = massive ship horn
+      const layers = [
+        ['sawtooth', 58,  5.0],   // fundamental — earth-shaking bass
+        ['sawtooth', 116, 3.5],   // 2nd harmonic
+        ['square',   87,  3.0],   // adds thickness
+        ['sawtooth', 174, 2.0],   // 3rd harmonic — gives it that foghorn body
+        ['sawtooth', 232, 1.2],   // 4th harmonic — brightness
+        ['square',   29,  2.5],   // sub-bass rumble
+      ];
+
+      layers.forEach(([type, freq, g]) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+
+        // Slow swell in (ships horns build up), then hard cut
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(g, now + 0.3);      // build up
+        gain.gain.setValueAtTime(g, now + duration - 0.2);    // hold
+        gain.gain.linearRampToValueAtTime(0, now + duration); // cut off
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start(now);
+        osc.stop(now + duration + 0.05);
+      });
+    }
+
+    // One long blast (4s), short gap, one shorter blast (2s) — standard signal
+    shipBlast(0,   4.0);
+    shipBlast(5.0, 2.0);
+
   } catch(e) { console.log('Audio error:', e); }
 }
 
-// ── DAY STRIP — today RIGHT ──
+// ── TODAY DISPLAY ──
 function buildDayStrip() {
-  const strip = document.getElementById('dayStrip');
-  strip.innerHTML = '';
-  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  // Build oldest first (i=13) to newest (i=0=today) so today lands on right
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate()-i);
-    const btn = document.createElement('div');
-    btn.className = 'day-btn'+(i===0?' selected today-btn':'');
-    btn.dataset.iso = d.toISOString().split('T')[0];
-    btn.innerHTML = `<span>${d.getDate()}</span>${days[d.getDay()]}`;
-    btn.onclick = ()=>{ document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); };
-    strip.appendChild(btn);
-  }
-  // Scroll all the way right so today is visible
-  setTimeout(()=>{ strip.scrollLeft = strip.scrollWidth; }, 50);
+  const today = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('todayDisplay').textContent =
+    `${days[today.getDay()]} ${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
 }
 function getSelectedDay() {
-  const sel = document.querySelector('.day-btn.selected');
-  return sel ? sel.dataset.iso : new Date().toISOString().split('T')[0];
+  return new Date().toISOString().split('T')[0];
 }
 
 // ── HOURS CALC ──
@@ -819,8 +850,10 @@ function toast(msg,type=''){
 }
 
 window.onload=()=>{
-  const saved=sessionStorage.getItem('cwts_user');
-  if(saved&&STAFF[saved]){currentUser=saved;bootApp();}
+  const saved=localStorage.getItem('cwts_user');
+  const savedDay=localStorage.getItem('cwts_day');
+  const today=new Date().toISOString().split('T')[0];
+  if(saved&&STAFF[saved]&&savedDay===today){currentUser=saved;bootApp();}
   // Register service worker for PWA
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(()=>{});
