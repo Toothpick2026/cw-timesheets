@@ -1,5 +1,5 @@
-h<!DOCTYPE html>
-<html lang="en" dir="rtl">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -62,10 +62,10 @@ h<!DOCTYPE html>
   .section-label { font-family: var(--heading); font-size: 1.2rem; letter-spacing: 3px; text-transform: uppercase; color: var(--orange); margin-bottom: 0.75rem; }
 
   /* DAY STRIP */
-  .day-strip { display: flex; flex-direction: row; justify-content: flex-end; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; -webkit-overflow-scrolling: touch; }
+  .day-strip { display: flex; flex-direction: row; justify-content: center; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; -webkit-overflow-scrolling: touch; }
   .day-strip::-webkit-scrollbar { display: none; }
-  .day-btn { flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--muted); font-size: 0.75rem; padding: 0.5rem 0.75rem; cursor: pointer; text-align: center; transition: all 0.15s; min-width: 52px; font-family: var(--font); }
-  .day-btn span { display: block; font-family: var(--heading); font-size: 1.3rem; color: var(--text); }
+  .day-btn { flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 1rem; padding: 1.25rem 2rem; cursor: pointer; text-align: center; transition: all 0.15s; min-width: 100px; font-family: var(--font); }
+  .day-btn span { display: block; font-family: var(--heading); font-size: 2.8rem; color: var(--text); line-height: 1; margin-bottom: 0.2rem; }
   .day-btn.selected { border-color: var(--orange); background: var(--orange-dim); color: var(--orange); }
   .day-btn.selected span { color: var(--orange); }
   .day-btn.today-btn { border-color: rgba(255,208,0,0.4); }
@@ -384,6 +384,7 @@ let lunchEndTime = null;
 let lunchIntervalId = null;
 let lunchDurationMins = 0;
 let lunchHornFired = false;
+let audioCtx = null; // created on first user tap to satisfy browser autoplay policy
 
 // ── SUPABASE ──
 async function dbInsert(row) {
@@ -412,11 +413,13 @@ function doLogin() {
   if (!name) { showLoginErr('Please select your name.'); return; }
   if (STAFF[name] !== pin) { showLoginErr('Incorrect PIN. Try again.'); return; }
   currentUser = name;
-  sessionStorage.setItem('cwts_user', name);
+  localStorage.setItem('cwts_user', name);
   bootApp();
 }
 function doLogout() {
-  sessionStorage.removeItem('cwts_user');
+  localStorage.removeItem('cwts_user');
+  localStorage.removeItem('cwts_lunchStart');
+  localStorage.removeItem('cwts_clockIn');
   currentUser = null;
   clearAllTimers();
   stopLunchTimer();
@@ -439,6 +442,7 @@ function bootApp() {
   ['startTime','endTime'].forEach(id=>{
     document.getElementById(id).addEventListener('change',()=>calcHours());
   });
+  requestWakeLock();
 }
 
 // ── GPS ──
@@ -476,6 +480,7 @@ async function doClockIn() {
     addrEl.textContent='📍 Getting address…';
     const addr=await reverseGeocode(lat,lng);
     gpsData.clockInAddress=addr; addrEl.textContent=addr;
+    localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
     toast('Clocked in ✓','success');
   } catch { timeEl.textContent='GPS failed — tap to retry'; toast('Could not get location','error'); }
 }
@@ -495,11 +500,13 @@ async function doClockOut() {
     addrEl.textContent='📍 Getting address…';
     const addr=await reverseGeocode(lat,lng);
     gpsData.clockOutAddress=addr; addrEl.textContent=addr;
+    localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
     toast('Clocked out ✓','success');
   } catch { timeEl.textContent='GPS failed — tap to retry'; toast('Could not get location','error'); }
 }
 function resetGPS() {
   gpsData={clockInTime:null,clockInLat:null,clockInLng:null,clockInAddress:'',clockOutTime:null,clockOutLat:null,clockOutLng:null,clockOutAddress:''};
+  localStorage.removeItem('cwts_clockIn');
   document.getElementById('clockInBtn').classList.remove('clocked');
   document.getElementById('clockOutBtn').classList.remove('clocked');
   document.getElementById('clockInTime').textContent='Tap to clock in';
@@ -511,7 +518,13 @@ function resetGPS() {
 // ── LUNCH TIMER ──
 function startLunch() {
   if (lunchStartTime) return;
+  // Create (or resume) AudioContext NOW while we have a user gesture
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch(e) {}
   lunchStartTime = new Date();
+  localStorage.setItem('cwts_lunchStart', lunchStartTime.toISOString()); // persist across suspension
   lunchEndTime = null;
   lunchHornFired = false;
   document.getElementById('lunchStartBtn').disabled = true;
@@ -553,6 +566,7 @@ function endLunch() {
   lunchEndTime = new Date();
   const elapsed = Math.floor((lunchEndTime - lunchStartTime) / 1000);
   lunchDurationMins = Math.round(elapsed / 60);
+  localStorage.removeItem('cwts_lunchStart');
   stopLunchTimer();
   document.getElementById('lunchStartBtn').disabled = false;
   document.getElementById('lunchEndBtn').disabled = true;
@@ -570,7 +584,10 @@ function stopLunchTimer() {
 // ── CARGO SHIP HORN (Web Audio API) ──
 function blastHorn() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Reuse existing context (created on user tap) so autoplay policy is satisfied
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx;
 
     // Maximise volume
     const comp = ctx.createDynamicsCompressor();
@@ -624,23 +641,17 @@ function blastHorn() {
   } catch(e) { console.log('Audio error:', e); }
 }
 
-// ── DAY STRIP — today RIGHT ──
+// ── DAY STRIP — today only ──
 function buildDayStrip() {
   const strip = document.getElementById('dayStrip');
   strip.innerHTML = '';
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  // Build oldest first (i=13) to newest (i=0=today) so today lands on right
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate()-i);
-    const btn = document.createElement('div');
-    btn.className = 'day-btn'+(i===0?' selected today-btn':'');
-    btn.dataset.iso = d.toISOString().split('T')[0];
-    btn.innerHTML = `<span>${d.getDate()}</span>${days[d.getDay()]}`;
-    btn.onclick = ()=>{ document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('selected')); btn.classList.add('selected'); };
-    strip.appendChild(btn);
-  }
-  // Scroll all the way right so today is visible
-  setTimeout(()=>{ strip.scrollLeft = strip.scrollWidth; }, 50);
+  const d = new Date();
+  const btn = document.createElement('div');
+  btn.className = 'day-btn selected today-btn';
+  btn.dataset.iso = d.toISOString().split('T')[0];
+  btn.innerHTML = `<span>${d.getDate()}</span>${days[d.getDay()]}`;
+  strip.appendChild(btn);
 }
 function getSelectedDay() {
   const sel = document.querySelector('.day-btn.selected');
@@ -771,6 +782,7 @@ async function submitEntry() {
     document.getElementById('jobSelect').value='';
     // Reset lunch
     lunchStartTime=null; lunchEndTime=null; lunchDurationMins=0; lunchHornFired=false;
+    localStorage.removeItem('cwts_lunchStart');
     stopLunchTimer();
     document.getElementById('lunchTimerDisplay').textContent='00:00';
     document.getElementById('lunchTimerDisplay').className='lunch-timer-display';
@@ -850,9 +862,87 @@ function toast(msg,type=''){
   setTimeout(()=>el.className='toast',3500);
 }
 
+// ── RESTORE STATE after suspension/reload ──
+function restoreState() {
+  // Restore GPS clock-in
+  const savedClockIn = localStorage.getItem('cwts_clockIn');
+  if (savedClockIn) {
+    try {
+      const d = JSON.parse(savedClockIn);
+      gpsData = d;
+      if (d.clockInTime) {
+        const t = new Date(d.clockInTime);
+        document.getElementById('clockInTime').textContent = t.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+        document.getElementById('clockInBtn').classList.add('clocked');
+        document.getElementById('startTime').value = t.toTimeString().slice(0,5);
+        if (d.clockInAddress) document.getElementById('clockInAddr').textContent = d.clockInAddress;
+      }
+      if (d.clockOutTime) {
+        const t = new Date(d.clockOutTime);
+        document.getElementById('clockOutTime').textContent = t.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+        document.getElementById('clockOutBtn').classList.add('clocked');
+        document.getElementById('endTime').value = t.toTimeString().slice(0,5);
+        if (d.clockOutAddress) document.getElementById('clockOutAddr').textContent = d.clockOutAddress;
+      }
+      calcHours();
+    } catch(e) {}
+  }
+
+  // Restore lunch timer if it was running
+  const savedLunch = localStorage.getItem('cwts_lunchStart');
+  if (savedLunch) {
+    try {
+      lunchStartTime = new Date(savedLunch);
+      lunchEndTime = null;
+      lunchHornFired = false;
+      document.getElementById('lunchStartBtn').disabled = true;
+      document.getElementById('lunchEndBtn').disabled = false;
+      document.getElementById('lunchTimerDisplay').className = 'lunch-timer-display running';
+      // Check if horn should already have fired
+      const elapsedMins = (new Date() - lunchStartTime) / 60000;
+      if (elapsedMins >= 28) lunchHornFired = true;
+      lunchIntervalId = setInterval(updateLunchTimer, 1000);
+      updateLunchTimer();
+      document.getElementById('lunchStatus').textContent = 'Lunch timer restored — still running';
+    } catch(e) {}
+  }
+}
+
+// ── WAKE LOCK — prevent phone from killing the page ──
+let wakeLock = null;
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch(e) {}
+}
+async function reacquireWakeLock() {
+  if ('wakeLock' in navigator && (!wakeLock || wakeLock.released)) {
+    await requestWakeLock();
+  }
+}
+
+// ── PAGE VISIBILITY — re-sync when app comes back into view ──
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    reacquireWakeLock();
+    // Re-sync lunch timer display in case setInterval drifted
+    if (lunchStartTime && !lunchEndTime) {
+      updateLunchTimer();
+    }
+    calcHours();
+  }
+});
+
 window.onload=()=>{
-  const saved=sessionStorage.getItem('cwts_user');
-  if(saved&&STAFF[saved]){currentUser=saved;bootApp();}
+  const saved = localStorage.getItem('cwts_user');
+  if (saved && STAFF[saved]) {
+    currentUser = saved;
+    bootApp();
+    restoreState();
+    requestWakeLock();
+  }
   // Register service worker for PWA
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(()=>{});
