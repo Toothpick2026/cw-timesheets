@@ -1,0 +1,26 @@
+{
+  "name": "cw-timesheet",
+  "version": "1.0.0",
+  "description": "Mobile timesheet app for CorpWorks staff - clock in/out, track breaks, log work hours with GPS",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "deploy": "vercel"
+  },
+  "keywords": [
+    "timesheet",
+    "time-tracking",
+    "gps",
+    "mobile",
+    "pwa"
+  ],
+  "author": "CorpWorks",
+  "license": "PRIVATE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/cw-timesheet.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
