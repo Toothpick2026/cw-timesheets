@@ -313,9 +313,9 @@
     <!-- HOURS TOTAL -->
     <div class="form-section">
       <div class="hours-display">
-        <div class="hours-big" id="hoursCalc">8.5</div>
+        <div class="hours-big" id="hoursCalc">—</div>
         <div class="hours-label">paid hours</div>
-        <div class="hours-breakdown" id="hoursBreakdown">calculating…</div>
+        <div class="hours-breakdown" id="hoursBreakdown">Clock in and out to calculate hours</div>
       </div>
     </div>
 
@@ -404,6 +404,33 @@ function setSyncDot(online) {
   dot.className = 'sync-dot'+(online?'':' offline');
 }
 
+// ── OFFLINE QUEUE ──
+// Rows land here when a submit fails (no connection). Previously nothing ever
+// retried them, so a failed submission stayed "syncing…" forever and any
+// repeat submit attempts piled up as separate duplicate rows in history.
+function dedupeQueue(rows) {
+  const seen = new Set();
+  return rows.filter(r => {
+    const key = [r.staff,r.date,r.start_time,r.end_time,r.job,r.morning_break,r.lunch_break,r.afternoon_break,r.notes].join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+async function flushQueue() {
+  let q = JSON.parse(localStorage.getItem('cwts_queue')||'[]');
+  q = dedupeQueue(q);
+  if (!q.length) { localStorage.removeItem('cwts_queue'); return; }
+  const stillQueued = [];
+  for (const row of q) {
+    try { await dbInsert(row); }
+    catch (e) { stillQueued.push(row); }
+  }
+  if (stillQueued.length) localStorage.setItem('cwts_queue', JSON.stringify(stillQueued));
+  else localStorage.removeItem('cwts_queue');
+  if (stillQueued.length < q.length) setSyncDot(true);
+}
+
 // ── AUTH ──
 function doLogin() {
   const name = document.getElementById('nameSelect').value;
@@ -451,32 +478,35 @@ async function reverseGeocode(lat,lng) {
   } catch { return `${lat.toFixed(4)}, ${lng.toFixed(4)}`; }
 }
 async function mockClockIn() {
+  // GPS wasn't available/granted in time — record the punch honestly instead of
+  // guessing a location. (Previously this hardcoded "Auckland, NZ" next to
+  // coordinates that were actually Wellington's, which was misleading.)
   const now=new Date();
   gpsData.clockInTime=now.toISOString();
-  gpsData.clockInLat=-41.2865; 
-  gpsData.clockInLng=174.7762;
-  gpsData.clockInAddress='Auckland, NZ';
+  gpsData.clockInLat=null;
+  gpsData.clockInLng=null;
+  gpsData.clockInAddress='Location unavailable';
   document.getElementById('startTime').value=now.toTimeString().slice(0,5);
   calcHours();
   document.getElementById('clockInTime').textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('clockInBtn').classList.add('clocked');
   document.getElementById('clockInAddr').textContent=gpsData.clockInAddress;
   localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
-  toast('Clocked in ✓','success');
+  toast('Clocked in ✓ (location unavailable)','warn');
 }
 async function mockClockOut() {
   const now=new Date();
   gpsData.clockOutTime=now.toISOString();
-  gpsData.clockOutLat=-41.2865;
-  gpsData.clockOutLng=174.7762;
-  gpsData.clockOutAddress='Auckland, NZ';
+  gpsData.clockOutLat=null;
+  gpsData.clockOutLng=null;
+  gpsData.clockOutAddress='Location unavailable';
   document.getElementById('endTime').value=now.toTimeString().slice(0,5);
   calcHours();
   document.getElementById('clockOutTime').textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('clockOutBtn').classList.add('clocked');
   document.getElementById('clockOutAddr').textContent=gpsData.clockOutAddress;
   localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
-  toast('Clocked out ✓','success');
+  toast('Clocked out ✓ (location unavailable)','warn');
 }
 async function doClockIn() {
   const timeEl=document.getElementById('clockInTime');
@@ -596,8 +626,11 @@ function updateLunchTimer() {
 function endLunch() {
   if (!lunchStartTime) return;
   lunchEndTime = new Date();
-  const elapsed = Math.floor((lunchEndTime - lunchStartTime) / 1000);
-  lunchDurationMins = parseFloat((elapsed / 60).toFixed(2));
+  const elapsedSecs = Math.floor((lunchEndTime - lunchStartTime) / 1000);
+  // Round to the nearest whole minute — a raw float like "0.28min" is meaningless
+  // to a tradesperson reading their own timesheet. Anyone who tapped Start/End at
+  // all gets at least 1 minute deducted rather than a confusing "0min".
+  lunchDurationMins = Math.max(1, Math.round(elapsedSecs / 60));
   localStorage.removeItem('cwts_lunchStart');
   stopLunchTimer();
   document.getElementById('lunchStartBtn').disabled = false;
@@ -606,7 +639,7 @@ function endLunch() {
   document.getElementById('lunchStatus').textContent = `✓ Lunch done — ${lunchDurationMins} min deducted`;
   dismissTimer();
   calcHours();
-  toast(`Lunch ended — ${lunchDurationMins}min deducted ✓`, 'success');
+  toast(`Lunch ended — ${lunchDurationMins} min deducted ✓`, 'success');
 }
 
 function stopLunchTimer() {
@@ -711,7 +744,7 @@ function calcHours() {
   const paidHrs = (paidMins/60).toFixed(2);
   const paidDisplay = parseFloat(paidHrs) === 0 ? '0' : paidHrs;
   document.getElementById('hoursCalc').textContent = paidDisplay;
-  const lunchLabel = lunchMins>=60 ? (lunchMins/60).toFixed(1)+'h' : lunchMins.toFixed(2)+'min';
+  const lunchLabel = lunchMins>=60 ? (lunchMins/60).toFixed(1).replace(/\.0$/,'')+'h' : lunchMins+'min';
   document.getElementById('hoursBreakdown').textContent = `${grossMins}min on site − ${lunchLabel} lunch = ${paidDisplay}h paid`;
 }
 
@@ -856,6 +889,7 @@ async function submitEntry() {
 async function renderHistory() {
   const list=document.getElementById('historyList');
   list.innerHTML='<div class="empty-state">Loading…</div>';
+  await flushQueue();
   let entries=[];
   try { entries=await dbFetch(currentUser); setSyncDot(true); }
   catch { setSyncDot(false); list.innerHTML='<div class="empty-state">Offline — check connection</div>'; return; }
@@ -912,47 +946,62 @@ function toast(msg,type=''){
 }
 
 // ── RESTORE STATE after suspension/reload ──
+function isToday(dateInput) {
+  const d = new Date(dateInput);
+  return d.toISOString().split('T')[0] === new Date().toISOString().split('T')[0];
+}
 function restoreState() {
-  // Restore GPS clock-in
+  // Restore GPS clock-in — but only if it's from today. Previously this restored
+  // whatever was in localStorage regardless of date, so a punch from a prior day
+  // (or leftover test data) would silently reappear as if it just happened.
   const savedClockIn = localStorage.getItem('cwts_clockIn');
   if (savedClockIn) {
     try {
       const d = JSON.parse(savedClockIn);
-      gpsData = d;
-      if (d.clockInTime) {
-        const t = new Date(d.clockInTime);
-        document.getElementById('clockInTime').textContent = t.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
-        document.getElementById('clockInBtn').classList.add('clocked');
-        document.getElementById('startTime').value = t.toTimeString().slice(0,5);
-        if (d.clockInAddress) document.getElementById('clockInAddr').textContent = d.clockInAddress;
+      const stale = (d.clockInTime && !isToday(d.clockInTime)) || (d.clockOutTime && !isToday(d.clockOutTime));
+      if (stale) {
+        localStorage.removeItem('cwts_clockIn');
+      } else {
+        gpsData = d;
+        if (d.clockInTime) {
+          const t = new Date(d.clockInTime);
+          document.getElementById('clockInTime').textContent = t.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+          document.getElementById('clockInBtn').classList.add('clocked');
+          document.getElementById('startTime').value = t.toTimeString().slice(0,5);
+          if (d.clockInAddress) document.getElementById('clockInAddr').textContent = d.clockInAddress;
+        }
+        if (d.clockOutTime) {
+          const t = new Date(d.clockOutTime);
+          document.getElementById('clockOutTime').textContent = t.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+          document.getElementById('clockOutBtn').classList.add('clocked');
+          document.getElementById('endTime').value = t.toTimeString().slice(0,5);
+          if (d.clockOutAddress) document.getElementById('clockOutAddr').textContent = d.clockOutAddress;
+        }
+        calcHours();
       }
-      if (d.clockOutTime) {
-        const t = new Date(d.clockOutTime);
-        document.getElementById('clockOutTime').textContent = t.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
-        document.getElementById('clockOutBtn').classList.add('clocked');
-        document.getElementById('endTime').value = t.toTimeString().slice(0,5);
-        if (d.clockOutAddress) document.getElementById('clockOutAddr').textContent = d.clockOutAddress;
-      }
-      calcHours();
     } catch(e) {}
   }
 
-  // Restore lunch timer if it was running
+  // Restore lunch timer if it was running — same staleness check applies.
   const savedLunch = localStorage.getItem('cwts_lunchStart');
   if (savedLunch) {
     try {
-      lunchStartTime = new Date(savedLunch);
-      lunchEndTime = null;
-      lunchHornFired = false;
-      document.getElementById('lunchStartBtn').disabled = true;
-      document.getElementById('lunchEndBtn').disabled = false;
-      document.getElementById('lunchTimerDisplay').className = 'lunch-timer-display running';
-      // Check if horn should already have fired
-      const elapsedMins = (new Date() - lunchStartTime) / 60000;
-      if (elapsedMins >= 28) lunchHornFired = true;
-      lunchIntervalId = setInterval(updateLunchTimer, 1000);
-      updateLunchTimer();
-      document.getElementById('lunchStatus').textContent = 'Lunch timer restored — still running';
+      if (!isToday(savedLunch)) {
+        localStorage.removeItem('cwts_lunchStart');
+      } else {
+        lunchStartTime = new Date(savedLunch);
+        lunchEndTime = null;
+        lunchHornFired = false;
+        document.getElementById('lunchStartBtn').disabled = true;
+        document.getElementById('lunchEndBtn').disabled = false;
+        document.getElementById('lunchTimerDisplay').className = 'lunch-timer-display running';
+        // Check if horn should already have fired
+        const elapsedMins = (new Date() - lunchStartTime) / 60000;
+        if (elapsedMins >= 28) lunchHornFired = true;
+        lunchIntervalId = setInterval(updateLunchTimer, 1000);
+        updateLunchTimer();
+        document.getElementById('lunchStatus').textContent = 'Lunch timer restored — still running';
+      }
     } catch(e) {}
   }
 }
@@ -983,6 +1032,12 @@ document.addEventListener('visibilitychange', () => {
     calcHours();
   }
 });
+
+// Retry any stuck offline submissions whenever connectivity comes back, and as
+// a periodic safety net every minute while the app is open — instead of only
+// ever trying once at the moment of a failed submit.
+window.addEventListener('online', () => { if (currentUser) flushQueue().then(()=>{ if(document.getElementById('page-history').classList.contains('active')) renderHistory(); }); });
+setInterval(() => { if (currentUser && navigator.onLine) flushQueue(); }, 60000);
 
 window.onload=()=>{
   const saved = localStorage.getItem('cwts_user');
