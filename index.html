@@ -155,6 +155,16 @@
   .status-approved { background: rgba(76,175,80,0.15); color: var(--green); }
   .status-syncing { background: rgba(59,130,246,0.15); color: var(--blue); }
 
+  /* CHANGE PIN */
+  .change-pin-link { background: none; border: none; color: var(--muted); font-family: var(--font); font-size: 0.75rem; text-decoration: underline; cursor: pointer; padding: 0.4rem; }
+  .change-pin-link:active { opacity: 0.7; }
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 1.5rem; }
+  .modal-backdrop.show { display: flex; }
+  .modal-card { width: 100%; max-width: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; }
+  .modal-card h3 { font-family: var(--heading); font-size: 1.5rem; font-weight: 400; letter-spacing: 1px; margin-bottom: 1rem; }
+  .btn-secondary { width: 100%; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; font-family: var(--heading); font-size: 1rem; letter-spacing: 1px; padding: 0.7rem; cursor: pointer; margin-top: 0.5rem; }
+  .btn-secondary:active { opacity: 0.7; }
+
   .toast { position: fixed; bottom: 5rem; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1.25rem; font-size: 0.9rem; opacity: 0; transition: all 0.3s; z-index: 200; white-space: nowrap; pointer-events: none; max-width: 90vw; text-align: center; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.success { border-color: var(--green); color: var(--green); }
@@ -208,6 +218,25 @@
       <span class="topbar-logo">CW</span>
       <span class="topbar-name" id="topbarName"></span>
       <span class="sync-dot" id="syncDot"></span>
+    </div>
+    <button class="change-pin-link" onclick="toggleChangePin()">Change PIN</button>
+  </div>
+
+  <!-- CHANGE PIN MODAL -->
+  <div class="modal-backdrop" id="pinChangeBackdrop" onclick="if(event.target===this)toggleChangePin()">
+    <div class="modal-card">
+      <h3>Change your PIN</h3>
+      <div class="field">
+        <label>New 4-digit PIN</label>
+        <input type="password" inputmode="numeric" maxlength="4" id="newPin1" placeholder="4-digit PIN">
+      </div>
+      <div class="field">
+        <label>Confirm new PIN</label>
+        <input type="password" inputmode="numeric" maxlength="4" id="newPin2" placeholder="Re-enter PIN" onkeydown="if(event.key==='Enter')savePinChange()">
+      </div>
+      <button class="btn-primary" onclick="savePinChange()">Save PIN</button>
+      <button class="btn-secondary" onclick="toggleChangePin()">Cancel</button>
+      <div class="err" id="pinChangeErr"></div>
     </div>
   </div>
   <div class="tabs">
@@ -359,10 +388,42 @@
 const SUPABASE_URL = 'https://baojgmrlwunizgcauyhl.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhb2pnbXJsd3VuaXpnY2F1eWhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDYwODAsImV4cCI6MjA5NTIyMjA4MH0.XPvjOWlgWkK5YWUax47aDvMS1V6Dbf4LERqI5Yht1r8';
 
-const STAFF = {
+// Default/fallback PIN list — used only if the Supabase `staff` table hasn't
+// been created yet or a fetch fails. Once `staff` exists, real PINs (including
+// any staff has changed themselves) come from there instead.
+const DEFAULT_STAFF = {
   'Glenn Wilson':'1111','Troy Wilson':'2222','Marco':'3333',
   'Sam':'4444','Kylie':'5555'
 };
+let STAFF = {...DEFAULT_STAFF};
+// Master admin PIN — works for ANY name in the list regardless of that
+// person's own PIN, so Monique is never locked out of an account just
+// because a staff member changed their PIN. Loaded from Supabase `app_config`.
+let ADMIN_PIN = null;
+
+async function loadStaffAndConfig() {
+  try {
+    const [staffRes, cfgRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/staff?select=name,pin`, {headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}}),
+      fetch(`${SUPABASE_URL}/rest/v1/app_config?select=value&key=eq.admin_pin`, {headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}})
+    ]);
+    if (staffRes.ok) {
+      const rows = await staffRes.json();
+      if (rows.length) {
+        const fresh = {};
+        rows.forEach(r => fresh[r.name] = r.pin);
+        STAFF = fresh;
+      }
+    }
+    if (cfgRes.ok) {
+      const rows = await cfgRes.json();
+      if (rows.length) ADMIN_PIN = rows[0].value;
+    }
+  } catch (e) {
+    console.log('Using default staff list — Supabase staff/app_config table not reachable yet', e);
+  }
+}
+loadStaffAndConfig();
 
 let currentUser = null;
 let breakTimers = [];
@@ -432,17 +493,52 @@ async function flushQueue() {
 }
 
 // ── AUTH ──
-function doLogin() {
+async function doLogin() {
   const name = document.getElementById('nameSelect').value;
   const pin  = document.getElementById('pinInput').value;
   if (!name) { showLoginErr('Please select your name.'); return; }
-  if (STAFF[name] !== pin) { showLoginErr('Incorrect PIN. Try again.'); return; }
+  // Personal PIN, or the master admin PIN (works for any name — Monique is
+  // never locked out of someone's account just because they changed their PIN).
+  const isPersonalPin = STAFF[name] === pin;
+  const isAdminPin = ADMIN_PIN && pin === ADMIN_PIN;
+  if (!isPersonalPin && !isAdminPin) { showLoginErr('Incorrect PIN. Try again.'); return; }
   currentUser = name;
   localStorage.setItem('cwts_user', name);
   bootApp();
 }
 function showLoginErr(msg) {
   const el=document.getElementById('loginErr'); el.textContent=msg; el.style.display='block';
+}
+
+// ── CHANGE PIN ──
+function toggleChangePin() {
+  const backdrop = document.getElementById('pinChangeBackdrop');
+  backdrop.classList.toggle('show');
+  const err = document.getElementById('pinChangeErr');
+  err.style.display = 'none';
+  document.getElementById('newPin1').value = '';
+  document.getElementById('newPin2').value = '';
+}
+async function savePinChange() {
+  const p1 = document.getElementById('newPin1').value;
+  const p2 = document.getElementById('newPin2').value;
+  const err = document.getElementById('pinChangeErr');
+  const showErr = (msg) => { err.textContent = msg; err.style.display = 'block'; };
+  if (!/^\d{4}$/.test(p1)) { showErr('PIN must be exactly 4 digits.'); return; }
+  if (p1 !== p2) { showErr('PINs do not match.'); return; }
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/staff?name=eq.${encodeURIComponent(currentUser)}`, {
+      method: 'PATCH',
+      headers: {'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body: JSON.stringify({pin: p1, updated_at: new Date().toISOString()})
+    });
+    if (!res.ok) throw new Error(await res.text());
+    STAFF[currentUser] = p1;
+    toggleChangePin();
+    toast('PIN updated ✓', 'success');
+  } catch (e) {
+    showErr('Could not save — check connection and try again.');
+  }
 }
 function bootApp() {
   document.getElementById('loginScreen').style.display='none';
