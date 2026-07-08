@@ -387,6 +387,7 @@
 <script>
 const SUPABASE_URL = 'https://baojgmrlwunizgcauyhl.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhb2pnbXJsd3VuaXpnY2F1eWhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDYwODAsImV4cCI6MjA5NTIyMjA4MH0.XPvjOWlgWkK5YWUax47aDvMS1V6Dbf4LERqI5Yht1r8';
+const SUPABASE_AUTH_HEADERS = {'apikey':SUPABASE_KEY,'Authorization':'Bearer ' + SUPABASE_KEY};
 
 // Default/fallback PIN list — used only if the Supabase `staff` table hasn't
 // been created yet or a fetch fails. Once `staff` exists, real PINs (including
@@ -404,20 +405,27 @@ let ADMIN_PIN = null;
 async function loadStaffAndConfig() {
   try {
     const [staffRes, cfgRes] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/staff?select=name,pin`, {headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}}),
-      fetch(`${SUPABASE_URL}/rest/v1/app_config?select=value&key=eq.admin_pin`, {headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}})
+      fetch(`${SUPABASE_URL}/rest/v1/staff?select=name,pin`, {headers: SUPABASE_AUTH_HEADERS}),
+      fetch(`${SUPABASE_URL}/rest/v1/app_config?select=value&key=eq.admin_pin`, {headers: SUPABASE_AUTH_HEADERS})
     ]);
     if (staffRes.ok) {
       const rows = await staffRes.json();
       if (rows.length) {
         const fresh = {};
-        rows.forEach(r => fresh[r.name] = r.pin);
-        STAFF = fresh;
+        rows.forEach(r => {
+          const name = String(r.name || '').trim();
+          const pin = String(r.pin || '').trim();
+          if (name && /^\d{4}$/.test(pin)) fresh[name] = pin;
+        });
+        if (Object.keys(fresh).length) STAFF = fresh;
       }
     }
     if (cfgRes.ok) {
       const rows = await cfgRes.json();
-      if (rows.length) ADMIN_PIN = rows[0].value;
+      if (rows.length) {
+        const adminPin = String(rows[0].value || '').trim();
+        ADMIN_PIN = /^\d{4}$/.test(adminPin) ? adminPin : null;
+      }
     }
   } catch (e) {
     console.log('Using default staff list — Supabase staff/app_config table not reachable yet', e);
@@ -449,14 +457,14 @@ let audioCtx = null; // created on first user tap to satisfy browser autoplay po
 async function dbInsert(row) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/timesheets`, {
     method:'POST',
-    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+    headers:{...SUPABASE_AUTH_HEADERS,'Content-Type':'application/json','Prefer':'return=minimal'},
     body:JSON.stringify(row)
   });
   if (!res.ok) throw new Error(await res.text());
 }
 async function dbFetch(staff) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/timesheets?staff=eq.${encodeURIComponent(staff)}&order=date.desc`,
-    {headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});
+    {headers: SUPABASE_AUTH_HEADERS});
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -494,14 +502,15 @@ async function flushQueue() {
 
 // ── AUTH ──
 async function doLogin() {
-  const name = document.getElementById('nameSelect').value;
-  const pin  = document.getElementById('pinInput').value;
+  const name = document.getElementById('nameSelect').value.trim();
+  const pin  = document.getElementById('pinInput').value.trim();
   if (!name) { showLoginErr('Please select your name.'); return; }
   // Personal PIN, or the master admin PIN (works for any name — Monique is
   // never locked out of someone's account just because they changed their PIN).
   const isPersonalPin = STAFF[name] === pin;
   const isAdminPin = ADMIN_PIN && pin === ADMIN_PIN;
   if (!isPersonalPin && !isAdminPin) { showLoginErr('Incorrect PIN. Try again.'); return; }
+  document.getElementById('loginErr').style.display='none';
   currentUser = name;
   localStorage.setItem('cwts_user', name);
   bootApp();
@@ -520,8 +529,8 @@ function toggleChangePin() {
   document.getElementById('newPin2').value = '';
 }
 async function savePinChange() {
-  const p1 = document.getElementById('newPin1').value;
-  const p2 = document.getElementById('newPin2').value;
+  const p1 = document.getElementById('newPin1').value.trim();
+  const p2 = document.getElementById('newPin2').value.trim();
   const err = document.getElementById('pinChangeErr');
   const showErr = (msg) => { err.textContent = msg; err.style.display = 'block'; };
   if (!/^\d{4}$/.test(p1)) { showErr('PIN must be exactly 4 digits.'); return; }
@@ -529,7 +538,7 @@ async function savePinChange() {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/staff?name=eq.${encodeURIComponent(currentUser)}`, {
       method: 'PATCH',
-      headers: {'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      headers: {...SUPABASE_AUTH_HEADERS,'Content-Type':'application/json','Prefer':'return=minimal'},
       body: JSON.stringify({pin: p1, updated_at: new Date().toISOString()})
     });
     if (!res.ok) throw new Error(await res.text());
