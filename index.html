@@ -388,6 +388,7 @@
 const SUPABASE_URL = 'https://baojgmrlwunizgcauyhl.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhb2pnbXJsd3VuaXpnY2F1eWhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDYwODAsImV4cCI6MjA5NTIyMjA4MH0.XPvjOWlgWkK5YWUax47aDvMS1V6Dbf4LERqI5Yht1r8';
 const SUPABASE_AUTH_HEADERS = {'apikey':SUPABASE_KEY,'Authorization':'Bearer ' + SUPABASE_KEY};
+const PIN_FORMAT_REGEX = /^\d{4}$/;
 
 // Default/fallback PIN list — used only if the Supabase `staff` table hasn't
 // been created yet or a fetch fails. Once `staff` exists, real PINs (including
@@ -415,16 +416,19 @@ async function loadStaffAndConfig() {
         rows.forEach(r => {
           const name = String(r.name || '').trim();
           const pin = String(r.pin || '').trim();
-          if (name && /^\d{4}$/.test(pin)) fresh[name] = pin;
+          if (name && PIN_FORMAT_REGEX.test(pin)) fresh[name] = pin;
+          else console.warn('Skipping invalid staff entry due to PIN format.');
         });
         if (Object.keys(fresh).length) STAFF = fresh;
+        else console.warn('Staff rows fetched but no valid 4-digit PIN entries found; using fallback/default staff list.');
       }
     }
     if (cfgRes.ok) {
       const rows = await cfgRes.json();
       if (rows.length) {
         const adminPin = String(rows[0].value || '').trim();
-        ADMIN_PIN = /^\d{4}$/.test(adminPin) ? adminPin : null;
+        if (PIN_FORMAT_REGEX.test(adminPin)) ADMIN_PIN = adminPin;
+        else console.warn('Ignoring invalid admin PIN in app_config; keeping previously loaded admin PIN (if any).');
       }
     }
   } catch (e) {
@@ -502,6 +506,7 @@ async function flushQueue() {
 
 // ── AUTH ──
 async function doLogin() {
+  hideLoginErr();
   const name = document.getElementById('nameSelect').value.trim();
   const pin  = document.getElementById('pinInput').value.trim();
   if (!name) { showLoginErr('Please select your name.'); return; }
@@ -510,13 +515,16 @@ async function doLogin() {
   const isPersonalPin = STAFF[name] === pin;
   const isAdminPin = ADMIN_PIN && pin === ADMIN_PIN;
   if (!isPersonalPin && !isAdminPin) { showLoginErr('Incorrect PIN. Try again.'); return; }
-  document.getElementById('loginErr').style.display='none';
+  hideLoginErr();
   currentUser = name;
   localStorage.setItem('cwts_user', name);
   bootApp();
 }
 function showLoginErr(msg) {
   const el=document.getElementById('loginErr'); el.textContent=msg; el.style.display='block';
+}
+function hideLoginErr() {
+  document.getElementById('loginErr').style.display='none';
 }
 
 // ── CHANGE PIN ──
@@ -533,7 +541,7 @@ async function savePinChange() {
   const p2 = document.getElementById('newPin2').value.trim();
   const err = document.getElementById('pinChangeErr');
   const showErr = (msg) => { err.textContent = msg; err.style.display = 'block'; };
-  if (!/^\d{4}$/.test(p1)) { showErr('PIN must be exactly 4 digits.'); return; }
+  if (!PIN_FORMAT_REGEX.test(p1)) { showErr('PIN must be exactly 4 digits.'); return; }
   if (p1 !== p2) { showErr('PINs do not match.'); return; }
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/staff?name=eq.${encodeURIComponent(currentUser)}`, {
