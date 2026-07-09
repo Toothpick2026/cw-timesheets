@@ -195,11 +195,6 @@
       <label>Select your name</label>
       <select id="nameSelect">
         <option value="">— pick your name —</option>
-        <option>Glenn Wilson</option>
-        <option>Troy Wilson</option>
-        <option>Marco</option>
-        <option>Sam</option>
-        <option>Kylie</option>
       </select>
     </div>
     <div class="field">
@@ -387,45 +382,72 @@
 <script>
 const SUPABASE_URL = 'https://baojgmrlwunizgcauyhl.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhb2pnbXJsd3VuaXpnY2F1eWhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDYwODAsImV4cCI6MjA5NTIyMjA4MH0.XPvjOWlgWkK5YWUax47aDvMS1V6Dbf4LERqI5Yht1r8';
+const SUPABASE_AUTH_HEADERS = {'apikey':SUPABASE_KEY,'Authorization':'Bearer ' + SUPABASE_KEY};
+const PIN_FORMAT_REGEX = /^\d{4}$/;
 
 // Default/fallback PIN list — used only if the Supabase `staff` table hasn't
 // been created yet or a fetch fails. Once `staff` exists, real PINs (including
 // any staff has changed themselves) come from there instead.
+// Fallback names shown only if the server list can't be reached. The real,
+// live list comes from the list_staff RPC below and rebuilds the dropdown.
 const DEFAULT_STAFF = {
-  'Glenn Wilson':'1111','Troy Wilson':'2222','Marco':'3333',
-  'Sam':'4444','Kylie':'5555'
+  'Glenn Wilson': true, 'Troy Wilson': true, 'Marko Minic': true,
+  'Kylie Poultney': true, 'Sam Veltzman': true
 };
 let STAFF = {...DEFAULT_STAFF};
+
+// Build the login dropdown from whatever names are in STAFF, so the list always
+// matches the database and new staff appear automatically.
+function populateNameDropdown() {
+  const sel = document.getElementById('nameSelect');
+  if (!sel) return;
+  const chosen = sel.value;
+  sel.length = 1; // keep only the "pick your name" placeholder
+  Object.keys(STAFF).sort().forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  if (chosen) sel.value = chosen;
+}
+populateNameDropdown();
 // Master admin PIN — works for ANY name in the list regardless of that
 // person's own PIN, so Monique is never locked out of an account just
 // because a staff member changed their PIN. Loaded from Supabase `app_config`.
 let ADMIN_PIN = null;
 
+const ORG_ID = 'a0d4b1d7-05de-4623-8e40-11ad338df54a';
+
 async function loadStaffAndConfig() {
+  // Names only — the client NEVER sees PINs. The list_staff RPC returns the
+  // roster; each entry is stored as TRUE (present), never a PIN value. All PIN
+  // checking happens server-side via the verify_* RPCs.
   try {
-    const [staffRes, cfgRes] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/staff?select=name,pin`, {headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}}),
-      fetch(`${SUPABASE_URL}/rest/v1/app_config?select=value&key=eq.admin_pin`, {headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}})
-    ]);
-    if (staffRes.ok) {
-      const rows = await staffRes.json();
-      if (rows.length) {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/list_staff', {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_org: ORG_ID })
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      if (rows && rows.length) {
         const fresh = {};
-        rows.forEach(r => fresh[r.name] = r.pin);
-        STAFF = fresh;
+        rows.forEach(r => {
+          const name = String(r.name || '').trim();
+          if (name) fresh[name] = true;
+        });
+        if (Object.keys(fresh).length) STAFF = fresh;
       }
     }
-    if (cfgRes.ok) {
-      const rows = await cfgRes.json();
-      if (rows.length) ADMIN_PIN = rows[0].value;
-    }
   } catch (e) {
-    console.log('Using default staff list — Supabase staff/app_config table not reachable yet', e);
+    console.log('Using default staff list — list_staff RPC not reachable yet', e);
   }
+  populateNameDropdown(); // refresh with the live database names
 }
 loadStaffAndConfig();
 
 let currentUser = null;
+let currentPin = null;
 let breakTimers = [];
 let activeTimerInterval = null;
 let activeBreakEnd = null;
@@ -447,16 +469,25 @@ let audioCtx = null; // created on first user tap to satisfy browser autoplay po
 
 // ── SUPABASE ──
 async function dbInsert(row) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/timesheets`, {
+  // Server-side insert via RPC. staff + status are NOT sent — the server sets
+  // them from the verified identity. Pass the authenticated name + PIN so the
+  // RPC can authorise the write.
+  const {staff, status, ...data} = row;
+  const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/submit_timesheet', {
     method:'POST',
-    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
-    body:JSON.stringify(row)
+    headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+    body:JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: data })
   });
   if (!res.ok) throw new Error(await res.text());
 }
 async function dbFetch(staff) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/timesheets?staff=eq.${encodeURIComponent(staff)}&order=date.desc`,
-    {headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});
+  // Server-side read via RPC — the caller only ever gets their own rows, gated
+  // by their verified name + PIN.
+  const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/my_timesheets', {
+    method:'POST',
+    headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+    body:JSON.stringify({ p_name: currentUser, p_pin: currentPin })
+  });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -494,20 +525,48 @@ async function flushQueue() {
 
 // ── AUTH ──
 async function doLogin() {
-  const name = document.getElementById('nameSelect').value;
-  const pin  = document.getElementById('pinInput').value;
+  hideLoginErr();
+  const name = document.getElementById('nameSelect').value.trim();
+  const pin  = document.getElementById('pinInput').value.trim();
   if (!name) { showLoginErr('Please select your name.'); return; }
-  // Personal PIN, or the master admin PIN (works for any name — Monique is
-  // never locked out of someone's account just because they changed their PIN).
-  const isPersonalPin = STAFF[name] === pin;
-  const isAdminPin = ADMIN_PIN && pin === ADMIN_PIN;
-  if (!isPersonalPin && !isAdminPin) { showLoginErr('Incorrect PIN. Try again.'); return; }
+  // All PIN verification happens server-side. Try the personal PIN first
+  // (verify_staff_pin), then fall back to the master admin PIN
+  // (verify_admin_pin) so Monique is never locked out of an account.
+  const rpcHeaders = { apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' };
+  let ok = false;
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/verify_staff_pin', {
+      method:'POST', headers:rpcHeaders,
+      body:JSON.stringify({ p_name: name, p_pin: pin })
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      ok = Array.isArray(rows) && rows.length === 1;
+    }
+    if (!ok) {
+      const ares = await fetch(SUPABASE_URL + '/rest/v1/rpc/verify_admin_pin', {
+        method:'POST', headers:rpcHeaders,
+        body:JSON.stringify({ p_pin: pin })
+      });
+      if (ares.ok) ok = (await ares.json()) === true;
+    }
+  } catch (e) {
+    showLoginErr('Could not reach server — check connection and try again.');
+    return;
+  }
+  if (!ok) { showLoginErr('Incorrect PIN. Try again.'); return; }
+  hideLoginErr();
   currentUser = name;
+  currentPin = pin;
   localStorage.setItem('cwts_user', name);
+  localStorage.setItem('cwts_pin', pin);
   bootApp();
 }
 function showLoginErr(msg) {
   const el=document.getElementById('loginErr'); el.textContent=msg; el.style.display='block';
+}
+function hideLoginErr() {
+  document.getElementById('loginErr').style.display='none';
 }
 
 // ── CHANGE PIN ──
@@ -520,20 +579,21 @@ function toggleChangePin() {
   document.getElementById('newPin2').value = '';
 }
 async function savePinChange() {
-  const p1 = document.getElementById('newPin1').value;
-  const p2 = document.getElementById('newPin2').value;
+  const p1 = document.getElementById('newPin1').value.trim();
+  const p2 = document.getElementById('newPin2').value.trim();
   const err = document.getElementById('pinChangeErr');
   const showErr = (msg) => { err.textContent = msg; err.style.display = 'block'; };
-  if (!/^\d{4}$/.test(p1)) { showErr('PIN must be exactly 4 digits.'); return; }
+  if (!PIN_FORMAT_REGEX.test(p1)) { showErr('PIN must be exactly 4 digits.'); return; }
   if (p1 !== p2) { showErr('PINs do not match.'); return; }
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/staff?name=eq.${encodeURIComponent(currentUser)}`, {
-      method: 'PATCH',
-      headers: {'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body: JSON.stringify({pin: p1, updated_at: new Date().toISOString()})
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/set_staff_pin', {
+      method: 'POST',
+      headers: { apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ p_name: currentUser, p_old_pin: currentPin, p_new_pin: p1 })
     });
     if (!res.ok) throw new Error(await res.text());
-    STAFF[currentUser] = p1;
+    currentPin = p1;
+    localStorage.setItem('cwts_pin', p1);
     toggleChangePin();
     toast('PIN updated ✓', 'success');
   } catch (e) {
@@ -1135,13 +1195,32 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('online', () => { if (currentUser) flushQueue().then(()=>{ if(document.getElementById('page-history').classList.contains('active')) renderHistory(); }); });
 setInterval(() => { if (currentUser && navigator.onLine) flushQueue(); }, 60000);
 
-window.onload=()=>{
-  const saved = localStorage.getItem('cwts_user');
-  if (saved && STAFF[saved]) {
-    currentUser = saved;
-    bootApp();
-    restoreState();
-    requestWakeLock();
+window.onload=async ()=>{
+  const savedUser = localStorage.getItem('cwts_user');
+  const savedPin = localStorage.getItem('cwts_pin');
+  if (savedUser && savedPin) {
+    // Re-verify the saved credentials server-side before auto-logging in.
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/verify_staff_pin', {
+        method:'POST',
+        headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+        body:JSON.stringify({ p_name: savedUser, p_pin: savedPin })
+      });
+      const rows = res.ok ? await res.json() : [];
+      if (Array.isArray(rows) && rows.length === 1) {
+        currentUser = savedUser;
+        currentPin = savedPin;
+        bootApp();
+        restoreState();
+        requestWakeLock();
+      } else {
+        localStorage.removeItem('cwts_user');
+        localStorage.removeItem('cwts_pin');
+      }
+    } catch (e) {
+      // Offline or unreachable — do not auto-login; leave saved creds for next try.
+      console.log('Auto-login re-verify failed', e);
+    }
   }
   // Register service worker for PWA
   if ('serviceWorker' in navigator) {
