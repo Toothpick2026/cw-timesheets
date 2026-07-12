@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CorpWorks Time — Owner Portal</title>
+<style>
+  :root {
+    --bg: #f4f6f8; --card: #ffffff; --ink: #1c2733; --muted: #6b7885;
+    --line: #e2e8ee; --brand: #2563eb; --brand-dark: #1d4ed8;
+    --danger: #dc2626; --ok: #16a34a; --warn-bg: #fef3c7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--ink); font-size: 16px; line-height: 1.45;
+  }
+  header {
+    background: var(--card); border-bottom: 1px solid var(--line);
+    padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { font-size: 18px; margin: 0; }
+  header .who { font-size: 13px; color: var(--muted); }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 20px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 22px; margin-bottom: 18px;
+  }
+  h2 { font-size: 16px; margin: 0 0 14px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  input, select {
+    width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px;
+    font-size: 15px; background: #fff; color: var(--ink);
+  }
+  button {
+    font-size: 15px; font-weight: 600; border: none; border-radius: 8px;
+    padding: 11px 16px; cursor: pointer; background: var(--brand); color: #fff;
+  }
+  button:hover { background: var(--brand-dark); }
+  button.secondary { background: #eef2f7; color: var(--ink); }
+  button.secondary:hover { background: #e2e8ee; }
+  button.danger { background: #fff; color: var(--danger); border: 1px solid #f3c6c6; }
+  button.danger:hover { background: #fdecec; }
+  button.small { padding: 7px 11px; font-size: 13px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > * { flex: 1; min-width: 140px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .pill.active { background: #dcfce7; color: #166534; }
+  .pill.inactive { background: #f1f5f9; color: #64748b; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .msg { padding: 11px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 14px; display: none; }
+  .msg.show { display: block; }
+  .msg.err { background: #fdecec; color: #991b1b; }
+  .msg.ok { background: #dcfce7; color: #166534; }
+  .msg.info { background: var(--warn-bg); color: #92400e; }
+  .hidden { display: none !important; }
+  .center { max-width: 400px; margin: 8vh auto; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(20,30,45,.45);
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-bg.show { display: flex; }
+  .modal { background: #fff; border-radius: 12px; padding: 22px; width: 100%; max-width: 420px; }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN VIEW ================= -->
+<div id="loginView">
+  <div class="wrap center">
+    <div class="card">
+      <h1 style="margin:0 0 6px;">CorpWorks Time</h1>
+      <p class="muted" style="margin:0 0 18px;">Owner sign-in</p>
+      <div id="loginMsg" class="msg"></div>
+      <label for="email">Your email address</label>
+      <input id="email" type="email" placeholder="you@business.com" autocomplete="email" />
+      <button id="sendLinkBtn" style="width:100%; margin-top:16px;">Email me a sign-in link</button>
+      <p class="muted" style="margin-top:14px;">We'll email you a secure link — no password to remember. Click it and you'll be signed in.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DASHBOARD VIEW ================= -->
+<div id="appView" class="hidden">
+  <header>
+    <h1>CorpWorks Time — Staff</h1>
+    <div style="text-align:right;">
+      <div class="who" id="whoami"></div>
+      <button class="secondary small" id="signOutBtn" style="margin-top:4px;">Sign out</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div id="appMsg" class="msg"></div>
+
+    <!-- Add staff -->
+    <div class="card">
+      <h2>Add a staff member</h2>
+      <div class="row">
+        <div>
+          <label for="newName">Full name</label>
+          <input id="newName" type="text" placeholder="e.g. Jane Smith" />
+        </div>
+        <div>
+          <label for="newRole">Role</label>
+          <input id="newRole" type="text" placeholder="e.g. Field Tech" />
+        </div>
+        <div style="max-width:160px;">
+          <label for="newPin">Starting PIN</label>
+          <input id="newPin" type="text" inputmode="numeric" placeholder="4–6 digits" />
+        </div>
+      </div>
+      <button id="addBtn" style="margin-top:16px;">Add staff member</button>
+    </div>
+
+    <!-- Staff list -->
+    <div class="card">
+      <h2>Your staff</h2>
+      <div id="listStatus" class="muted">Loading…</div>
+      <table id="staffTable" class="hidden">
+        <thead>
+          <tr><th>Name</th><th>Role</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
+        </thead>
+        <tbody id="staffBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================= EDIT MODAL ================= -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <h2 id="editTitle">Edit staff member</h2>
+    <div id="editMsg" class="msg"></div>
+    <label for="editName">Full name</label>
+    <input id="editName" type="text" />
+    <label for="editRole">Role</label>
+    <input id="editRole" type="text" />
+    <label for="editActive">Status</label>
+    <select id="editActive">
+      <option value="true">Active</option>
+      <option value="false">Inactive (deactivated)</option>
+    </select>
+    <hr style="border:none; border-top:1px solid var(--line); margin:18px 0;" />
+    <label for="editPin">Reset PIN (optional — leave blank to keep current)</label>
+    <input id="editPin" type="text" inputmode="numeric" placeholder="New 4–6 digit PIN" />
+    <div class="row" style="margin-top:18px;">
+      <button class="secondary" id="editCancel">Cancel</button>
+      <button id="editSave">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ============================================================
+  // CONFIG — fill in the anon key (see step-by-step notes).
+  // The URL below is your live project; the anon key is the SAME
+  // public key already used in your existing index.html.
+  // ============================================================
+  const SUPABASE_URL = "https://baojgmrlwunizgcauyhl.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhb2pnbXJsd3VuaXpnY2F1eWhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDYwODAsImV4cCI6MjA5NTIyMjA4MH0.XPvjOWlgWkK5YWUax47aDvMS1V6Dbf4LERqI5Yht1r8";
+
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ---- tiny helpers ----
+  const $ = (id) => document.getElementById(id);
+  function show(el, on) { el.classList.toggle("hidden", !on); }
+  function msg(el, text, kind) {
+    el.textContent = text;
+    el.className = "msg show " + (kind || "info");
+    if (!text) el.className = "msg";
+  }
+  function clearMsg(el) { el.className = "msg"; el.textContent = ""; }
+
+  let editingId = null;
+
+  // ---- auth wiring ----
+  async function refresh() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      show($("loginView"), false);
+      show($("appView"), true);
+      $("whoami").textContent = session.user.email;
+      loadStaff();
+    } else {
+      show($("loginView"), true);
+      show($("appView"), false);
+    }
+  }
+
+  $("sendLinkBtn").addEventListener("click", async () => {
+    const email = $("email").value.trim();
+    if (!email) { msg($("loginMsg"), "Please enter your email address.", "err"); return; }
+    $("sendLinkBtn").disabled = true;
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.href }
+    });
+    $("sendLinkBtn").disabled = false;
+    if (error) { msg($("loginMsg"), error.message, "err"); return; }
+    msg($("loginMsg"), "Check your email and click the sign-in link. You can close this tab once you do.", "ok");
+  });
+
+  $("signOutBtn").addEventListener("click", async () => {
+    await sb.auth.signOut();
+    refresh();
+  });
+
+  sb.auth.onAuthStateChange(() => refresh());
+
+  // ---- staff list ----
+  async function loadStaff() {
+    clearMsg($("appMsg"));
+    $("listStatus").textContent = "Loading…";
+    show($("staffTable"), false);
+    const { data, error } = await sb.rpc("owner_list_staff");
+    if (error) { $("listStatus").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
+    if (!data || data.length === 0) {
+      $("listStatus").innerHTML = "No staff found yet. If you just signed in for the first time and expected to see staff, your owner account may not be linked to the business yet — let Claude know.";
+      return;
+    }
+    $("listStatus").textContent = "";
+    const body = $("staffBody");
+    body.innerHTML = "";
+    data.forEach((s) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td>' + escapeHtml(s.name) + '</td>' +
+        '<td>' + escapeHtml(s.role || "") + '</td>' +
+        '<td><span class="pill ' + (s.active ? "active" : "inactive") + '">' +
+          (s.active ? "Active" : "Inactive") + '</span></td>' +
+        '<td><div class="actions">' +
+          '<button class="secondary small" data-edit="' + s.id + '">Edit</button>' +
+        '</div></td>';
+      body.appendChild(tr);
+      tr.querySelector("[data-edit]").addEventListener("click", () =>
+        openEdit(s.id, s.name, s.role, s.active));
+    });
+    show($("staffTable"), true);
+  }
+
+  // ---- add staff ----
+  $("addBtn").addEventListener("click", async () => {
+    const name = $("newName").value.trim();
+    const role = $("newRole").value.trim();
+    const pin  = $("newPin").value.trim();
+    clearMsg($("appMsg"));
+    if (!name)  { msg($("appMsg"), "Please enter a name.", "err"); return; }
+    if (!/^\d{4,6}$/.test(pin)) { msg($("appMsg"), "PIN must be 4 to 6 digits.", "err"); return; }
+    $("addBtn").disabled = true;
+    const { error } = await sb.rpc("owner_add_staff", { p_name: name, p_role: role, p_pin: pin });
+    $("addBtn").disabled = false;
+    if (error) { msg($("appMsg"), error.message, "err"); return; }
+    $("newName").value = ""; $("newRole").value = ""; $("newPin").value = "";
+    msg($("appMsg"), "Staff member added.", "ok");
+    loadStaff();
+  });
+
+  // ---- edit modal ----
+  function openEdit(id, name, role, active) {
+    editingId = id;
+    clearMsg($("editMsg"));
+    $("editTitle").textContent = "Edit — " + name;
+    $("editName").value = name;
+    $("editRole").value = role || "";
+    $("editActive").value = active ? "true" : "false";
+    $("editPin").value = "";
+    $("editModal").classList.add("show");
+  }
+  $("editCancel").addEventListener("click", () => $("editModal").classList.remove("show"));
+
+  $("editSave").addEventListener("click", async () => {
+    const name = $("editName").value.trim();
+    const role = $("editRole").value.trim();
+    const active = $("editActive").value === "true";
+    const pin = $("editPin").value.trim();
+    clearMsg($("editMsg"));
+    if (!name) { msg($("editMsg"), "Name can't be empty.", "err"); return; }
+    if (pin && !/^\d{4,6}$/.test(pin)) { msg($("editMsg"), "PIN must be 4 to 6 digits.", "err"); return; }
+    $("editSave").disabled = true;
+    const up = await sb.rpc("owner_update_staff",
+      { p_staff_id: editingId, p_name: name, p_role: role, p_active: active });
+    if (up.error) { $("editSave").disabled = false; msg($("editMsg"), up.error.message, "err"); return; }
+    if (pin) {
+      const rp = await sb.rpc("owner_reset_staff_pin", { p_staff_id: editingId, p_new_pin: pin });
+      if (rp.error) { $("editSave").disabled = false; msg($("editMsg"), rp.error.message, "err"); return; }
+    }
+    $("editSave").disabled = false;
+    $("editModal").classList.remove("show");
+    msg($("appMsg"), pin ? "Changes saved and PIN reset." : "Changes saved.", "ok");
+    loadStaff();
+  });
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  // go
+  refresh();
+</script>
+</body>
+</html>
