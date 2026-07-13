@@ -51,6 +51,7 @@
   th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
   td.num, th.num { text-align: right; white-space: nowrap; }
   th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  tfoot td { border-top: 2px solid var(--line); border-bottom: none; font-size: 14px; }
   .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
   .pill.active, .pill.approved { background: #dcfce7; color: #166534; }
   .pill.inactive { background: #f1f5f9; color: #64748b; }
@@ -115,6 +116,7 @@
     <div class="tabs">
       <button class="tab on" id="tabStaff">Staff</button>
       <button class="tab" id="tabTimesheets">Timesheets</button>
+      <button class="tab" id="tabReports">Reports</button>
     </div>
 
     <!-- ============ STAFF SECTION ============ -->
@@ -194,6 +196,45 @@
               </tr>
             </thead>
             <tbody id="tsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ REPORTS SECTION ============ -->
+    <div id="reportsSection" class="hidden">
+      <div class="card">
+        <h2>Weekly hours by staff</h2>
+        <div class="row">
+          <div>
+            <label for="rpFrom">From</label>
+            <input id="rpFrom" type="date" />
+          </div>
+          <div>
+            <label for="rpTo">To</label>
+            <input id="rpTo" type="date" />
+          </div>
+          <div style="max-width:160px; display:flex; align-items:flex-end;">
+            <button id="rpLoadBtn" style="width:100%;">Load report</button>
+          </div>
+        </div>
+        <p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). <b>Total</b> is every timesheet in the range; <b>Approved</b> and <b>Pending</b> split those hours by whether you've signed them off yet.</p>
+      </div>
+
+      <div class="card">
+        <div id="rpSummary" class="summary muted">Choose a date range and click “Load report”.</div>
+        <div style="overflow-x:auto;">
+          <table id="rpTable" class="hidden">
+            <thead>
+              <tr>
+                <th>Staff</th><th>Role</th>
+                <th class="num">Total hrs</th>
+                <th class="num">Approved hrs</th>
+                <th class="num">Pending hrs</th>
+              </tr>
+            </thead>
+            <tbody id="rpBody"></tbody>
+            <tfoot id="rpFoot"></tfoot>
           </table>
         </div>
       </div>
@@ -295,6 +336,7 @@
   let editingId = null;   // staff edit
   let adjustingId = null; // timesheet adjust
   let tsRows = [];        // last-loaded timesheet rows
+  let rpRows = [];        // last-loaded report summary rows
 
   // ---- auth wiring ----
   async function refresh() {
@@ -332,11 +374,12 @@
 
   // ---- tab switching ----
   function setTab(which) {
-    const staffOn = which === "staff";
-    $("tabStaff").classList.toggle("on", staffOn);
-    $("tabTimesheets").classList.toggle("on", !staffOn);
-    show($("staffSection"), staffOn);
-    show($("timesheetsSection"), !staffOn);
+    $("tabStaff").classList.toggle("on", which === "staff");
+    $("tabTimesheets").classList.toggle("on", which === "timesheets");
+    $("tabReports").classList.toggle("on", which === "reports");
+    show($("staffSection"), which === "staff");
+    show($("timesheetsSection"), which === "timesheets");
+    show($("reportsSection"), which === "reports");
     clearMsg($("appMsg"));
   }
   $("tabStaff").addEventListener("click", () => setTab("staff"));
@@ -344,6 +387,11 @@
     setTab("timesheets");
     if (!$("tsFrom").value) { $("tsFrom").value = isoDaysAgo(6); $("tsTo").value = isoDaysAgo(0); }
     if (tsRows.length === 0) loadTimesheets();
+  });
+  $("tabReports").addEventListener("click", () => {
+    setTab("reports");
+    if (!$("rpFrom").value) { $("rpFrom").value = isoDaysAgo(6); $("rpTo").value = isoDaysAgo(0); }
+    if (rpRows.length === 0) loadSummary();
   });
 
   // ---- staff list ----
@@ -603,6 +651,63 @@
     URL.revokeObjectURL(url);
     msg($("appMsg"), "Exported " + approved.length + " approved timesheet(s) to CSV.", "ok");
   });
+
+  // ---- reports: weekly hours by staff ----
+  async function loadSummary() {
+    clearMsg($("appMsg"));
+    const from = $("rpFrom").value;
+    const to = $("rpTo").value;
+    if (!from || !to) { msg($("appMsg"), "Please choose both a From and To date.", "err"); return; }
+    if (from > to) { msg($("appMsg"), "The From date can't be after the To date.", "err"); return; }
+    $("rpSummary").textContent = "Loading…";
+    show($("rpTable"), false);
+    $("rpLoadBtn").disabled = true;
+    const { data, error } = await sb.rpc("owner_timesheet_summary", { p_from: from, p_to: to });
+    $("rpLoadBtn").disabled = false;
+    if (error) { $("rpSummary").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
+    rpRows = data || [];
+    renderSummary();
+  }
+
+  function renderSummary() {
+    const body = $("rpBody");
+    body.innerHTML = "";
+    $("rpFoot").innerHTML = "";
+    if (rpRows.length === 0) {
+      $("rpSummary").textContent = "No timesheets found for this range.";
+      show($("rpTable"), false);
+      return;
+    }
+    let totAll = 0, totAppr = 0, totPend = 0;
+    rpRows.forEach((r) => {
+      const total = Number(r.total_hours) || 0;
+      const appr = Number(r.approved_hours) || 0;
+      const pend = Number(r.pending_hours) || 0;
+      totAll += total; totAppr += appr; totPend += pend;
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td>' + escapeHtml(r.staff) + '</td>' +
+        '<td>' + escapeHtml(r.role || "") + '</td>' +
+        '<td class="num">' + total.toFixed(2) + '</td>' +
+        '<td class="num">' + appr.toFixed(2) + '</td>' +
+        '<td class="num">' + pend.toFixed(2) + '</td>';
+      body.appendChild(tr);
+    });
+    $("rpFoot").innerHTML =
+      '<tr>' +
+        '<td><b>Total</b></td><td></td>' +
+        '<td class="num"><b>' + totAll.toFixed(2) + '</b></td>' +
+        '<td class="num"><b>' + totAppr.toFixed(2) + '</b></td>' +
+        '<td class="num"><b>' + totPend.toFixed(2) + '</b></td>' +
+      '</tr>';
+    $("rpSummary").innerHTML =
+      '<b>' + rpRows.length + '</b> staff · ' +
+      '<b>' + totAll.toFixed(2) + '</b> total hrs · ' +
+      '<b>' + totAppr.toFixed(2) + '</b> approved · ' +
+      '<b>' + totPend.toFixed(2) + '</b> pending';
+    show($("rpTable"), true);
+  }
+  $("rpLoadBtn").addEventListener("click", loadSummary);
 
   // go
   refresh();
