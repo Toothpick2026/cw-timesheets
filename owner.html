@@ -233,12 +233,12 @@
     <p class="subtle" id="adjWho" style="margin-top:0;"></p>
     <div class="row">
       <div>
-        <label for="adjStart">Start time</label>
-        <input id="adjStart" type="time" />
+        <label for="adjStart">Start time <span class="subtle">(24h, e.g. 07:30)</span></label>
+        <input id="adjStart" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" />
       </div>
       <div>
-        <label for="adjEnd">Finish time</label>
-        <input id="adjEnd" type="time" />
+        <label for="adjEnd">Finish time <span class="subtle">(24h, e.g. 16:15)</span></label>
+        <input id="adjEnd" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" />
       </div>
       <div style="max-width:130px;">
         <label for="adjLunch">Lunch (min)</label>
@@ -544,12 +544,14 @@
 
   $("adjSave").addEventListener("click", async () => {
     clearMsg($("adjMsg"));
-    const start = $("adjStart").value;
-    const end = $("adjEnd").value;
+    const start = $("adjStart").value.trim();
+    const end = $("adjEnd").value.trim();
     const lunch = parseInt($("adjLunch").value, 10);
     const h = parseFloat($("adjHours").value);
     const note = $("adjNote").value.trim();
+    const timeRe = /^([01]?\d|2[0-3]):[0-5]\d$/; // 24-hour HH:MM
     if (!start || !end) { msg($("adjMsg"), "Please enter both a start and finish time.", "err"); return; }
+    if (!timeRe.test(start) || !timeRe.test(end)) { msg($("adjMsg"), "Times must be 24-hour, like 07:30 or 16:15.", "err"); return; }
     if (isNaN(lunch) || lunch < 0 || lunch > 600) { msg($("adjMsg"), "Lunch minutes must be between 0 and 600.", "err"); return; }
     if (isNaN(h) || h < 0 || h > 24) { msg($("adjMsg"), "Paid hours must be a number between 0 and 24.", "err"); return; }
     $("adjSave").disabled = true;
