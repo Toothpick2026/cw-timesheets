@@ -218,7 +218,10 @@
             <button id="rpLoadBtn" style="width:100%;">Load report</button>
           </div>
         </div>
-        <p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). <b>Total</b> is every timesheet in the range; <b>Approved</b> and <b>Pending</b> split those hours by whether you've signed them off yet.</p>
+        <div class="row" style="margin-top:16px;">
+          <button class="secondary" id="rpCsvBtn" style="max-width:230px;">Download summary CSV</button>
+        </div>
+        <p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). <b>Total</b> is every timesheet in the range; <b>Approved</b> and <b>Pending</b> split those hours by whether you've signed them off yet. The CSV saves the table exactly as shown, including the grand-total row.</p>
       </div>
 
       <div class="card">
@@ -332,6 +335,24 @@
     return d.toISOString().slice(0, 10);
   }
   function hrs(v) { return (v == null || v === "") ? "" : Number(v).toFixed(2); }
+  // Shared CSV cell escaper (quotes values containing commas, quotes, or newlines)
+  function csvEsc(v) {
+    const s = String(v == null ? "" : v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  // Build a CSV string and trigger a download
+  function downloadCsv(filename, rows) {
+    const csv = rows.map((row) => row.map(csvEsc).join(",")).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   let editingId = null;   // staff edit
   let adjustingId = null; // timesheet adjust
@@ -619,7 +640,7 @@
     loadTimesheets();
   });
 
-  // ---- CSV export (approved rows only) ----
+  // ---- CSV export: payroll (approved rows only) ----
   $("tsLoadBtn").addEventListener("click", loadTimesheets);
 
   $("tsCsvBtn").addEventListener("click", () => {
@@ -629,26 +650,13 @@
       msg($("appMsg"), "No approved timesheets in this range to export. Approve some first, or adjust the date range.", "err");
       return;
     }
-    const cols = ["Staff", "Role", "Date", "Start", "End", "Lunch (min)", "Paid hours", "Job", "Staff note", "Payroll note"];
+    const header = ["Staff", "Role", "Date", "Start", "End", "Lunch (min)", "Paid hours", "Job", "Staff note", "Payroll note"];
     const rows = approved.map((r) => [
       r.staff || "", r.role || "", fmtDate(r.work_date),
       r.start_time || "", r.end_time || "", (Number(r.lunch_break) || 0),
       hrs(r.paid_hours), r.job || "", r.notes || "", r.payroll_note || ""
     ]);
-    const esc = (v) => {
-      const s = String(v == null ? "" : v);
-      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-    };
-    const csv = [cols.map(esc).join(","), ...rows.map((row) => row.map(esc).join(","))].join("\r\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "payroll_" + $("tsFrom").value + "_to_" + $("tsTo").value + ".csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadCsv("payroll_" + $("tsFrom").value + "_to_" + $("tsTo").value + ".csv", [header, ...rows]);
     msg($("appMsg"), "Exported " + approved.length + " approved timesheet(s) to CSV.", "ok");
   });
 
@@ -708,6 +716,26 @@
     show($("rpTable"), true);
   }
   $("rpLoadBtn").addEventListener("click", loadSummary);
+
+  $("rpCsvBtn").addEventListener("click", () => {
+    clearMsg($("appMsg"));
+    if (rpRows.length === 0) {
+      msg($("appMsg"), "Nothing to export yet. Click “Load report” first (or there are no timesheets in this range).", "err");
+      return;
+    }
+    const header = ["Staff", "Role", "Total hours", "Approved hours", "Pending hours"];
+    let totAll = 0, totAppr = 0, totPend = 0;
+    const rows = rpRows.map((r) => {
+      const total = Number(r.total_hours) || 0;
+      const appr = Number(r.approved_hours) || 0;
+      const pend = Number(r.pending_hours) || 0;
+      totAll += total; totAppr += appr; totPend += pend;
+      return [r.staff || "", r.role || "", total.toFixed(2), appr.toFixed(2), pend.toFixed(2)];
+    });
+    const totalRow = ["Total", "", totAll.toFixed(2), totAppr.toFixed(2), totPend.toFixed(2)];
+    downloadCsv("hours_summary_" + $("rpFrom").value + "_to_" + $("rpTo").value + ".csv", [header, ...rows, totalRow]);
+    msg($("appMsg"), "Exported summary for " + rpRows.length + " staff to CSV.", "ok");
+  });
 
   // go
   refresh();
