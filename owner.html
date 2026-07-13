@@ -514,10 +514,11 @@
   // ---- adjust timesheet modal ----
   // paid hours = (finish - start) - lunch, matching the staff app rule
   function computePaid() {
-    const s = $("adjStart").value;   // "HH:MM"
-    const e = $("adjEnd").value;
+    const s = $("adjStart").value.trim();   // "HH:MM" (24-hour)
+    const e = $("adjEnd").value.trim();
     const lunch = Number($("adjLunch").value) || 0;
-    if (!s || !e) return;
+    const re = /^([01]?\d|2[0-3]):[0-5]\d$/;
+    if (!re.test(s) || !re.test(e)) return;
     const [sh, sm] = s.split(":").map(Number);
     const [eh, em] = e.split(":").map(Number);
     let mins = (eh * 60 + em) - (sh * 60 + sm);
