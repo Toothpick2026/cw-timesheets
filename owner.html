@@ -189,7 +189,7 @@
               <tr>
                 <th>Staff</th><th>Role</th><th>Date</th>
                 <th>Start</th><th>End</th>
-                <th class="num">Break (min)</th>
+                <th class="num">Lunch (min)</th>
                 <th class="num">Paid hrs</th>
                 <th>Job</th><th>Status</th>
                 <th style="text-align:right;">Actions</th>
@@ -460,7 +460,7 @@
         '<td>' + fmtDate(r.work_date) + '</td>' +
         '<td>' + escapeHtml(r.start_time || "") + '</td>' +
         '<td>' + escapeHtml(r.end_time || "") + '</td>' +
-        '<td class="num">' + totalBreak(r) + '</td>' +
+        '<td class="num">' + (Number(r.lunch_break) || 0) + '</td>' +
         '<td class="num">' + hrs(r.paid_hours) + '</td>' +
         '<td>' + escapeHtml(r.job || "") + '</td>' +
         '<td><span class="pill ' + (isApproved ? "approved" : "pending") + '">' +
@@ -508,7 +508,7 @@
     clearMsg($("adjMsg"));
     $("adjTitle").textContent = "Adjust timesheet";
     $("adjWho").textContent = r.staff + " — " + fmtDate(r.work_date) +
-      " (" + (r.start_time || "?") + "–" + (r.end_time || "?") + ", " + totalBreak(r) + " min break)";
+      " (" + (r.start_time || "?") + "–" + (r.end_time || "?") + ", " + (Number(r.lunch_break) || 0) + " min lunch)";
     $("adjHours").value = (r.paid_hours == null ? "" : Number(r.paid_hours));
     $("adjNote").value = r.payroll_note || "";
     $("adjModal").classList.add("show");
@@ -541,10 +541,10 @@
       msg($("appMsg"), "No approved timesheets in this range to export. Approve some first, or adjust the date range.", "err");
       return;
     }
-    const cols = ["Staff", "Role", "Date", "Start", "End", "Break (min)", "Paid hours", "Job", "Staff note", "Payroll note"];
+    const cols = ["Staff", "Role", "Date", "Start", "End", "Lunch (min)", "Paid hours", "Job", "Staff note", "Payroll note"];
     const rows = approved.map((r) => [
       r.staff || "", r.role || "", fmtDate(r.work_date),
-      r.start_time || "", r.end_time || "", totalBreak(r),
+      r.start_time || "", r.end_time || "", (Number(r.lunch_break) || 0),
       hrs(r.paid_hours), r.job || "", r.notes || "", r.payroll_note || ""
     ]);
     const esc = (v) => {
