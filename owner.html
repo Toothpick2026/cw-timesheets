@@ -21,7 +21,7 @@
   }
   header h1 { font-size: 18px; margin: 0; }
   header .who { font-size: 13px; color: var(--muted); }
-  .wrap { max-width: 860px; margin: 0 auto; padding: 20px; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
   .card {
     background: var(--card); border: 1px solid var(--line); border-radius: 12px;
     padding: 22px; margin-bottom: 18px;
@@ -39,6 +39,8 @@
   button:hover { background: var(--brand-dark); }
   button.secondary { background: #eef2f7; color: var(--ink); }
   button.secondary:hover { background: #e2e8ee; }
+  button.ok { background: var(--ok); color: #fff; }
+  button.ok:hover { background: #15803d; }
   button.danger { background: #fff; color: var(--danger); border: 1px solid #f3c6c6; }
   button.danger:hover { background: #fdecec; }
   button.small { padding: 7px 11px; font-size: 13px; }
@@ -48,9 +50,11 @@
   table { width: 100%; border-collapse: collapse; }
   th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
   th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
   .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-  .pill.active { background: #dcfce7; color: #166534; }
+  .pill.active, .pill.approved { background: #dcfce7; color: #166534; }
   .pill.inactive { background: #f1f5f9; color: #64748b; }
+  .pill.pending { background: var(--warn-bg); color: #92400e; }
   .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
   .msg { padding: 11px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 14px; display: none; }
   .msg.show { display: block; }
@@ -60,12 +64,21 @@
   .hidden { display: none !important; }
   .center { max-width: 400px; margin: 8vh auto; }
   .muted { color: var(--muted); font-size: 13px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+  .tab {
+    background: #eef2f7; color: var(--ink); font-weight: 600; font-size: 14px;
+    padding: 9px 16px; border-radius: 999px; border: none; cursor: pointer;
+  }
+  .tab.on { background: var(--brand); color: #fff; }
+  .summary { font-size: 14px; color: var(--ink); margin: 0 0 12px; }
+  .summary b { font-size: 16px; }
   .modal-bg {
     position: fixed; inset: 0; background: rgba(20,30,45,.45);
     display: none; align-items: center; justify-content: center; padding: 20px;
   }
   .modal-bg.show { display: flex; }
   .modal { background: #fff; border-radius: 12px; padding: 22px; width: 100%; max-width: 420px; }
+  .subtle { font-size: 12px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -88,7 +101,7 @@
 <!-- ================= DASHBOARD VIEW ================= -->
 <div id="appView" class="hidden">
   <header>
-    <h1>CorpWorks Time — Staff</h1>
+    <h1>CorpWorks Time — Owner</h1>
     <div style="text-align:right;">
       <div class="who" id="whoami"></div>
       <button class="secondary small" id="signOutBtn" style="margin-top:4px;">Sign out</button>
@@ -98,41 +111,99 @@
   <div class="wrap">
     <div id="appMsg" class="msg"></div>
 
-    <!-- Add staff -->
-    <div class="card">
-      <h2>Add a staff member</h2>
-      <div class="row">
-        <div>
-          <label for="newName">Full name</label>
-          <input id="newName" type="text" placeholder="e.g. Jane Smith" />
-        </div>
-        <div>
-          <label for="newRole">Role</label>
-          <input id="newRole" type="text" placeholder="e.g. Field Tech" />
-        </div>
-        <div style="max-width:160px;">
-          <label for="newPin">Starting PIN</label>
-          <input id="newPin" type="text" inputmode="numeric" placeholder="4–6 digits" />
-        </div>
-      </div>
-      <button id="addBtn" style="margin-top:16px;">Add staff member</button>
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab on" id="tabStaff">Staff</button>
+      <button class="tab" id="tabTimesheets">Timesheets</button>
     </div>
 
-    <!-- Staff list -->
-    <div class="card">
-      <h2>Your staff</h2>
-      <div id="listStatus" class="muted">Loading…</div>
-      <table id="staffTable" class="hidden">
-        <thead>
-          <tr><th>Name</th><th>Role</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
-        </thead>
-        <tbody id="staffBody"></tbody>
-      </table>
+    <!-- ============ STAFF SECTION ============ -->
+    <div id="staffSection">
+      <!-- Add staff -->
+      <div class="card">
+        <h2>Add a staff member</h2>
+        <div class="row">
+          <div>
+            <label for="newName">Full name</label>
+            <input id="newName" type="text" placeholder="e.g. Jane Smith" />
+          </div>
+          <div>
+            <label for="newRole">Role</label>
+            <input id="newRole" type="text" placeholder="e.g. Field Tech" />
+          </div>
+          <div style="max-width:160px;">
+            <label for="newPin">Starting PIN</label>
+            <input id="newPin" type="text" inputmode="numeric" placeholder="4–6 digits" />
+          </div>
+        </div>
+        <button id="addBtn" style="margin-top:16px;">Add staff member</button>
+      </div>
+
+      <!-- Staff list -->
+      <div class="card">
+        <h2>Your staff</h2>
+        <div id="listStatus" class="muted">Loading…</div>
+        <table id="staffTable" class="hidden">
+          <thead>
+            <tr><th>Name</th><th>Role</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
+          </thead>
+          <tbody id="staffBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============ TIMESHEETS SECTION ============ -->
+    <div id="timesheetsSection" class="hidden">
+      <div class="card">
+        <h2>Review timesheets</h2>
+        <div class="row">
+          <div>
+            <label for="tsFrom">From</label>
+            <input id="tsFrom" type="date" />
+          </div>
+          <div>
+            <label for="tsTo">To</label>
+            <input id="tsTo" type="date" />
+          </div>
+          <div style="max-width:200px;">
+            <label for="tsStatus">Show</label>
+            <select id="tsStatus">
+              <option value="">All</option>
+              <option value="pending">Pending only</option>
+              <option value="approved">Approved only</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:16px;">
+          <button id="tsLoadBtn" style="max-width:160px;">Load timesheets</button>
+          <button class="secondary" id="tsCsvBtn" style="max-width:230px;">Download payroll CSV (approved)</button>
+        </div>
+        <p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). The CSV exports only <b>approved</b> timesheets in the selected range.</p>
+      </div>
+
+      <div class="card">
+        <div id="tsSummary" class="summary muted">Choose a date range and click “Load timesheets”.</div>
+        <div style="overflow-x:auto;">
+          <table id="tsTable" class="hidden">
+            <thead>
+              <tr>
+                <th>Staff</th><th>Role</th><th>Date</th>
+                <th>Start</th><th>End</th>
+                <th class="num">Break (min)</th>
+                <th class="num">Paid hrs</th>
+                <th>Job</th><th>Status</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tsBody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ================= EDIT MODAL ================= -->
+<!-- ================= EDIT STAFF MODAL ================= -->
 <div class="modal-bg" id="editModal">
   <div class="modal">
     <h2 id="editTitle">Edit staff member</h2>
@@ -156,12 +227,27 @@
   </div>
 </div>
 
+<!-- ================= ADJUST TIMESHEET MODAL ================= -->
+<div class="modal-bg" id="adjModal">
+  <div class="modal">
+    <h2 id="adjTitle">Adjust timesheet</h2>
+    <div id="adjMsg" class="msg"></div>
+    <p class="subtle" id="adjWho" style="margin-top:0;"></p>
+    <label for="adjHours">Paid hours</label>
+    <input id="adjHours" type="number" step="0.01" min="0" max="24" />
+    <label for="adjNote">Payroll note (optional — visible to you, not staff)</label>
+    <input id="adjNote" type="text" placeholder="e.g. adjusted lunch break" />
+    <div class="row" style="margin-top:18px;">
+      <button class="secondary" id="adjCancel">Cancel</button>
+      <button id="adjSave">Save adjustment</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // ============================================================
-  // CONFIG — fill in the anon key (see step-by-step notes).
-  // The URL below is your live project; the anon key is the SAME
-  // public key already used in your existing index.html.
+  // CONFIG — same public project + anon key as index.html.
   // ============================================================
   const SUPABASE_URL = "https://baojgmrlwunizgcauyhl.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhb2pnbXJsd3VuaXpnY2F1eWhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDYwODAsImV4cCI6MjA5NTIyMjA4MH0.XPvjOWlgWkK5YWUax47aDvMS1V6Dbf4LERqI5Yht1r8";
@@ -177,8 +263,29 @@
     if (!text) el.className = "msg";
   }
   function clearMsg(el) { el.className = "msg"; el.textContent = ""; }
+  function escapeHtml(str) {
+    return String(str == null ? "" : str).replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function fmtDate(iso) {
+    if (!iso) return "";
+    const p = String(iso).slice(0, 10).split("-");
+    if (p.length !== 3) return iso;
+    return p[2] + "/" + p[1] + "/" + p[0]; // DD/MM/YYYY
+  }
+  function isoDaysAgo(n) {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return d.toISOString().slice(0, 10);
+  }
+  function hrs(v) { return (v == null || v === "") ? "" : Number(v).toFixed(2); }
+  function totalBreak(r) {
+    return (Number(r.morning_break) || 0) + (Number(r.lunch_break) || 0) + (Number(r.afternoon_break) || 0);
+  }
 
-  let editingId = null;
+  let editingId = null;   // staff edit
+  let adjustingId = null; // timesheet adjust
+  let tsRows = [];        // last-loaded timesheet rows
 
   // ---- auth wiring ----
   async function refresh() {
@@ -214,9 +321,24 @@
 
   sb.auth.onAuthStateChange(() => refresh());
 
+  // ---- tab switching ----
+  function setTab(which) {
+    const staffOn = which === "staff";
+    $("tabStaff").classList.toggle("on", staffOn);
+    $("tabTimesheets").classList.toggle("on", !staffOn);
+    show($("staffSection"), staffOn);
+    show($("timesheetsSection"), !staffOn);
+    clearMsg($("appMsg"));
+  }
+  $("tabStaff").addEventListener("click", () => setTab("staff"));
+  $("tabTimesheets").addEventListener("click", () => {
+    setTab("timesheets");
+    if (!$("tsFrom").value) { $("tsFrom").value = isoDaysAgo(6); $("tsTo").value = isoDaysAgo(0); }
+    if (tsRows.length === 0) loadTimesheets();
+  });
+
   // ---- staff list ----
   async function loadStaff() {
-    clearMsg($("appMsg"));
     $("listStatus").textContent = "Loading…";
     show($("staffTable"), false);
     const { data, error } = await sb.rpc("owner_list_staff");
@@ -262,7 +384,7 @@
     loadStaff();
   });
 
-  // ---- edit modal ----
+  // ---- edit staff modal ----
   function openEdit(id, name, role, active) {
     editingId = id;
     clearMsg($("editMsg"));
@@ -297,10 +419,150 @@
     loadStaff();
   });
 
-  function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // ---- timesheets: load / render ----
+  async function loadTimesheets() {
+    clearMsg($("appMsg"));
+    const from = $("tsFrom").value;
+    const to = $("tsTo").value;
+    const status = $("tsStatus").value; // "" | pending | approved
+    if (!from || !to) { msg($("appMsg"), "Please choose both a From and To date.", "err"); return; }
+    if (from > to) { msg($("appMsg"), "The From date can't be after the To date.", "err"); return; }
+    $("tsSummary").textContent = "Loading…";
+    show($("tsTable"), false);
+    $("tsLoadBtn").disabled = true;
+    const { data, error } = await sb.rpc("owner_list_timesheets", {
+      p_from: from, p_to: to, p_status: status || null
+    });
+    $("tsLoadBtn").disabled = false;
+    if (error) { $("tsSummary").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
+    tsRows = data || [];
+    renderTimesheets();
   }
+
+  function renderTimesheets() {
+    const body = $("tsBody");
+    body.innerHTML = "";
+    if (tsRows.length === 0) {
+      $("tsSummary").textContent = "No timesheets found for this range.";
+      show($("tsTable"), false);
+      return;
+    }
+    let approvedCount = 0, approvedHrs = 0, pendingCount = 0;
+    tsRows.forEach((r) => {
+      if (r.status === "approved") { approvedCount++; approvedHrs += Number(r.paid_hours) || 0; }
+      else pendingCount++;
+
+      const tr = document.createElement("tr");
+      const isApproved = r.status === "approved";
+      tr.innerHTML =
+        '<td>' + escapeHtml(r.staff) + '</td>' +
+        '<td>' + escapeHtml(r.role || "") + '</td>' +
+        '<td>' + fmtDate(r.work_date) + '</td>' +
+        '<td>' + escapeHtml(r.start_time || "") + '</td>' +
+        '<td>' + escapeHtml(r.end_time || "") + '</td>' +
+        '<td class="num">' + totalBreak(r) + '</td>' +
+        '<td class="num">' + hrs(r.paid_hours) + '</td>' +
+        '<td>' + escapeHtml(r.job || "") + '</td>' +
+        '<td><span class="pill ' + (isApproved ? "approved" : "pending") + '">' +
+          (isApproved ? "Approved" : "Pending") + '</span></td>' +
+        '<td><div class="actions">' +
+          '<button class="secondary small" data-adj="' + r.id + '">Adjust</button>' +
+          (isApproved
+            ? '<button class="danger small" data-undo="' + r.id + '">Undo</button>'
+            : '<button class="ok small" data-appr="' + r.id + '">Approve</button>') +
+        '</div></td>';
+      body.appendChild(tr);
+
+      const apprBtn = tr.querySelector("[data-appr]");
+      if (apprBtn) apprBtn.addEventListener("click", () => approveTs(r.id));
+      const undoBtn = tr.querySelector("[data-undo]");
+      if (undoBtn) undoBtn.addEventListener("click", () => unapproveTs(r.id));
+      tr.querySelector("[data-adj]").addEventListener("click", () => openAdjust(r));
+    });
+
+    $("tsSummary").innerHTML =
+      '<b>' + tsRows.length + '</b> timesheet(s) · ' +
+      '<b>' + approvedCount + '</b> approved (' + approvedHrs.toFixed(2) + ' hrs) · ' +
+      '<b>' + pendingCount + '</b> pending';
+    show($("tsTable"), true);
+  }
+
+  async function approveTs(id) {
+    clearMsg($("appMsg"));
+    const { error } = await sb.rpc("owner_approve_timesheet", { p_id: id });
+    if (error) { msg($("appMsg"), error.message, "err"); return; }
+    msg($("appMsg"), "Timesheet approved.", "ok");
+    loadTimesheets();
+  }
+  async function unapproveTs(id) {
+    clearMsg($("appMsg"));
+    const { error } = await sb.rpc("owner_unapprove_timesheet", { p_id: id });
+    if (error) { msg($("appMsg"), error.message, "err"); return; }
+    msg($("appMsg"), "Approval undone — timesheet is pending again.", "ok");
+    loadTimesheets();
+  }
+
+  // ---- adjust timesheet modal ----
+  function openAdjust(r) {
+    adjustingId = r.id;
+    clearMsg($("adjMsg"));
+    $("adjTitle").textContent = "Adjust timesheet";
+    $("adjWho").textContent = r.staff + " — " + fmtDate(r.work_date) +
+      " (" + (r.start_time || "?") + "–" + (r.end_time || "?") + ", " + totalBreak(r) + " min break)";
+    $("adjHours").value = (r.paid_hours == null ? "" : Number(r.paid_hours));
+    $("adjNote").value = r.payroll_note || "";
+    $("adjModal").classList.add("show");
+  }
+  $("adjCancel").addEventListener("click", () => $("adjModal").classList.remove("show"));
+
+  $("adjSave").addEventListener("click", async () => {
+    clearMsg($("adjMsg"));
+    const h = parseFloat($("adjHours").value);
+    const note = $("adjNote").value.trim();
+    if (isNaN(h) || h < 0 || h > 24) { msg($("adjMsg"), "Paid hours must be a number between 0 and 24.", "err"); return; }
+    $("adjSave").disabled = true;
+    const { error } = await sb.rpc("owner_adjust_timesheet", {
+      p_id: adjustingId, p_paid_hours: h, p_payroll_note: note || null
+    });
+    $("adjSave").disabled = false;
+    if (error) { msg($("adjMsg"), error.message, "err"); return; }
+    $("adjModal").classList.remove("show");
+    msg($("appMsg"), "Timesheet adjusted.", "ok");
+    loadTimesheets();
+  });
+
+  // ---- CSV export (approved rows only) ----
+  $("tsLoadBtn").addEventListener("click", loadTimesheets);
+
+  $("tsCsvBtn").addEventListener("click", () => {
+    clearMsg($("appMsg"));
+    const approved = tsRows.filter((r) => r.status === "approved");
+    if (approved.length === 0) {
+      msg($("appMsg"), "No approved timesheets in this range to export. Approve some first, or adjust the date range.", "err");
+      return;
+    }
+    const cols = ["Staff", "Role", "Date", "Start", "End", "Break (min)", "Paid hours", "Job", "Staff note", "Payroll note"];
+    const rows = approved.map((r) => [
+      r.staff || "", r.role || "", fmtDate(r.work_date),
+      r.start_time || "", r.end_time || "", totalBreak(r),
+      hrs(r.paid_hours), r.job || "", r.notes || "", r.payroll_note || ""
+    ]);
+    const esc = (v) => {
+      const s = String(v == null ? "" : v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const csv = [cols.map(esc).join(","), ...rows.map((row) => row.map(esc).join(","))].join("\r\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "payroll_" + $("tsFrom").value + "_to_" + $("tsTo").value + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    msg($("appMsg"), "Exported " + approved.length + " approved timesheet(s) to CSV.", "ok");
+  });
 
   // go
   refresh();
