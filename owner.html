@@ -3,46 +3,56 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CorpWorks Time — Owner Portal</title>
+<title>Knockoff — Owner Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f4f6f8; --card: #ffffff; --ink: #1c2733; --muted: #6b7885;
-    --line: #e2e8ee; --brand: #2563eb; --brand-dark: #1d4ed8;
-    --danger: #dc2626; --ok: #16a34a; --warn-bg: #fef3c7;
+    color-scheme: dark;
+    --bg: #0d0d0d; --card: #1a1a1a; --ink: #f0f0f0; --muted: #888888;
+    --line: #2a2a2a; --field: #141414;
+    --brand: #FFD000; --brand-dark: #e6bb00; --accent: #FF5C00;
+    --danger: #ef4444; --ok: #4CAF50; --warn-bg: rgba(255,208,0,.12);
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    --heading: 'Bebas Neue', sans-serif;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0; font-family: var(--font);
     background: var(--bg); color: var(--ink); font-size: 16px; line-height: 1.45;
   }
   header {
     background: var(--card); border-bottom: 1px solid var(--line);
     padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
   }
-  header h1 { font-size: 18px; margin: 0; }
+  header h1 { font-family: var(--heading); font-weight: 400; font-size: 26px; letter-spacing: 1px; margin: 0; }
+  header h1 .mark { color: var(--brand); }
   header .who { font-size: 13px; color: var(--muted); }
   .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
   .card {
     background: var(--card); border: 1px solid var(--line); border-radius: 12px;
     padding: 22px; margin-bottom: 18px;
   }
-  h2 { font-size: 16px; margin: 0 0 14px; }
+  h2 { font-size: 16px; font-weight: 600; margin: 0 0 14px; }
   label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
   input, select {
     width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px;
-    font-size: 15px; background: #fff; color: var(--ink);
+    font-size: 15px; background: var(--field); color: var(--ink); font-family: var(--font);
   }
+  input:focus, select:focus { outline: none; border-color: var(--brand); }
+  input::placeholder { color: #5a5a5a; }
   button {
-    font-size: 15px; font-weight: 600; border: none; border-radius: 8px;
-    padding: 11px 16px; cursor: pointer; background: var(--brand); color: #fff;
+    font-size: 15px; font-weight: 700; border: none; border-radius: 8px;
+    padding: 11px 16px; cursor: pointer; background: var(--brand); color: #0d0d0d; font-family: var(--font);
   }
   button:hover { background: var(--brand-dark); }
-  button.secondary { background: #eef2f7; color: var(--ink); }
-  button.secondary:hover { background: #e2e8ee; }
-  button.ok { background: var(--ok); color: #fff; }
-  button.ok:hover { background: #15803d; }
-  button.danger { background: #fff; color: var(--danger); border: 1px solid #f3c6c6; }
-  button.danger:hover { background: #fdecec; }
+  button.secondary { background: #242424; color: var(--ink); border: 1px solid var(--line); }
+  button.secondary:hover { background: #2e2e2e; }
+  button.ok { background: var(--ok); color: #0d0d0d; }
+  button.ok:hover { background: #43a047; }
+  button.danger { background: transparent; color: var(--danger); border: 1px solid rgba(239,68,68,.45); }
+  button.danger:hover { background: rgba(239,68,68,.12); }
   button.small { padding: 7px 11px; font-size: 13px; }
   button:disabled { opacity: .5; cursor: default; }
   .row { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -53,33 +63,37 @@
   th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
   tfoot td { border-top: 2px solid var(--line); border-bottom: none; font-size: 14px; }
   .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-  .pill.active, .pill.approved { background: #dcfce7; color: #166534; }
-  .pill.inactive { background: #f1f5f9; color: #64748b; }
-  .pill.pending { background: var(--warn-bg); color: #92400e; }
+  .pill.active, .pill.approved { background: rgba(76,175,80,.15); color: #7bd67f; }
+  .pill.inactive { background: #242424; color: var(--muted); }
+  .pill.pending { background: var(--warn-bg); color: var(--brand); }
   .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
   .msg { padding: 11px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 14px; display: none; }
   .msg.show { display: block; }
-  .msg.err { background: #fdecec; color: #991b1b; }
-  .msg.ok { background: #dcfce7; color: #166534; }
-  .msg.info { background: var(--warn-bg); color: #92400e; }
+  .msg.err { background: rgba(239,68,68,.12); color: #fca5a5; }
+  .msg.ok { background: rgba(76,175,80,.15); color: #86efac; }
+  .msg.info { background: var(--warn-bg); color: var(--brand); }
   .hidden { display: none !important; }
   .center { max-width: 400px; margin: 8vh auto; }
   .muted { color: var(--muted); font-size: 13px; }
   .subtle { font-size: 12px; color: var(--muted); }
   .tabs { display: flex; gap: 6px; margin-bottom: 18px; }
   .tab {
-    background: #eef2f7; color: var(--ink); font-weight: 600; font-size: 14px;
-    padding: 9px 16px; border-radius: 999px; border: none; cursor: pointer;
+    background: #1a1a1a; color: var(--muted); font-weight: 600; font-size: 14px;
+    padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer;
   }
-  .tab.on { background: var(--brand); color: #fff; }
+  .tab.on { background: var(--brand); color: #0d0d0d; border-color: var(--brand); }
   .summary { font-size: 14px; color: var(--ink); margin: 0 0 12px; }
   .summary b { font-size: 16px; }
   .modal-bg {
-    position: fixed; inset: 0; background: rgba(20,30,45,.45);
+    position: fixed; inset: 0; background: rgba(0,0,0,.66);
     display: none; align-items: center; justify-content: center; padding: 20px;
   }
   .modal-bg.show { display: flex; }
-  .modal { background: #fff; border-radius: 12px; padding: 22px; width: 100%; max-width: 440px; }
+  .modal { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px; width: 100%; max-width: 440px; }
+  .brand-wordmark { font-family: var(--heading); font-weight: 400; letter-spacing: 2px; color: var(--brand); font-size: 44px; line-height: 1; margin: 0 0 4px; }
+  .gps-block { margin-bottom: 14px; }
+  .gps-block .gps-h { font-weight: 600; }
+  .gps-block a { color: var(--brand); }
 </style>
 </head>
 <body>
@@ -88,7 +102,7 @@
 <div id="loginView">
   <div class="wrap center">
     <div class="card">
-      <h1 style="margin:0 0 6px;">CorpWorks Time</h1>
+      <h1 class="brand-wordmark">KNOCKOFF</h1>
       <p class="muted" style="margin:0 0 18px;">Owner sign-in</p>
       <div id="loginMsg" class="msg"></div>
       <label for="email">Your email address</label>
@@ -102,7 +116,7 @@
 <!-- ================= DASHBOARD VIEW ================= -->
 <div id="appView" class="hidden">
   <header>
-    <h1>CorpWorks Time — Owner</h1>
+    <h1><span class="mark">KNOCKOFF</span> — Owner</h1>
     <div style="text-align:right;">
       <div class="who" id="whoami"></div>
       <button class="secondary small" id="signOutBtn" style="margin-top:4px;">Sign out</button>
@@ -178,7 +192,7 @@
           <button id="tsLoadBtn" style="max-width:160px;">Load timesheets</button>
           <button class="secondary" id="tsCsvBtn" style="max-width:230px;">Download payroll CSV (approved)</button>
         </div>
-        <p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). The CSV exports only <b>approved</b> timesheets in the selected range.</p>
+        <p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). The CSV exports only <b>approved</b> timesheets in the selected range. Tap <b>📍 Location</b> on any row to see where and when each person clocked on and off.</p>
       </div>
 
       <div class="card">
@@ -296,6 +310,18 @@
     <div class="row" style="margin-top:18px;">
       <button class="secondary" id="adjCancel">Cancel</button>
       <button id="adjSave">Save adjustment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= GPS / LOCATION MODAL ================= -->
+<div class="modal-bg" id="gpsModal">
+  <div class="modal">
+    <h2>📍 Clock-in location</h2>
+    <p class="subtle" id="gpsWho" style="margin-top:0;"></p>
+    <div id="gpsBody" class="muted">Loading…</div>
+    <div class="row" style="margin-top:18px;">
+      <button class="secondary" id="gpsClose">Close</button>
     </div>
   </div>
 </div>
@@ -544,6 +570,7 @@
         '<td><span class="pill ' + (isApproved ? "approved" : "pending") + '">' +
           (isApproved ? "Approved" : "Pending") + '</span></td>' +
         '<td><div class="actions">' +
+          '<button class="secondary small" data-gps="' + r.id + '">📍 Location</button>' +
           '<button class="secondary small" data-adj="' + r.id + '">Adjust</button>' +
           (isApproved
             ? '<button class="danger small" data-undo="' + r.id + '">Undo</button>'
@@ -556,6 +583,7 @@
       const undoBtn = tr.querySelector("[data-undo]");
       if (undoBtn) undoBtn.addEventListener("click", () => unapproveTs(r.id));
       tr.querySelector("[data-adj]").addEventListener("click", () => openAdjust(r));
+      tr.querySelector("[data-gps]").addEventListener("click", () => openGps(r.id, r.staff, r.work_date));
     });
 
     $("tsSummary").innerHTML =
@@ -579,6 +607,48 @@
     msg($("appMsg"), "Approval undone — timesheet is pending again.", "ok");
     loadTimesheets();
   }
+
+  // ---- location / GPS modal ----
+  function mapLink(lat, lng) {
+    if (!lat || !lng) return "";
+    const q = encodeURIComponent(lat + "," + lng);
+    return ' · <a href="https://www.google.com/maps?q=' + q + '" target="_blank" rel="noopener">View on map</a>';
+  }
+  function gpsPunch(label, time, addr, lat, lng) {
+    return '<div class="gps-block">' +
+      '<div class="gps-h">' + label + '</div>' +
+      '<div>' + (time ? escapeHtml(time) : '<span class="muted">no time recorded</span>') + '</div>' +
+      (addr ? '<div class="subtle">' + escapeHtml(addr) + '</div>' : '') +
+      ((lat && lng)
+        ? '<div class="subtle">' + escapeHtml(lat) + ', ' + escapeHtml(lng) + mapLink(lat, lng) + '</div>'
+        : '<div class="subtle muted">no GPS location recorded</div>') +
+      '</div>';
+  }
+  async function openGps(id, staff, workDate) {
+    $("gpsWho").textContent = (staff || "") + (workDate ? " — " + fmtDate(workDate) : "");
+    $("gpsBody").innerHTML = "Loading…";
+    $("gpsModal").classList.add("show");
+    const { data, error } = await sb.rpc("owner_timesheet_gps", { p_id: id });
+    if (error) {
+      $("gpsBody").innerHTML = '<span style="color:var(--danger)">' + escapeHtml(error.message) + '</span>';
+      return;
+    }
+    const g = (data && data[0]) || null;
+    if (!g) { $("gpsBody").textContent = "No location details found for this timesheet."; return; }
+    const breaks =
+      '<div style="margin-top:6px; border-top:1px solid var(--line); padding-top:12px;">' +
+      '<div class="gps-h" style="margin-bottom:4px;">Breaks</div>' +
+      '<div class="subtle">Morning tea: ' + (Number(g.morning_break) || 0) + ' min (paid)</div>' +
+      '<div class="subtle">Lunch: ' + (Number(g.lunch_break) || 0) + ' min (deducted)' +
+        (g.lunch_start ? ' · started ' + escapeHtml(g.lunch_start) : '') + '</div>' +
+      '<div class="subtle">Afternoon tea: ' + (Number(g.afternoon_break) || 0) + ' min (paid)</div>' +
+      '</div>';
+    $("gpsBody").innerHTML =
+      gpsPunch("📍 Clocked in", g.clock_in_time, g.clock_in_address, g.clock_in_lat, g.clock_in_lng) +
+      gpsPunch("🏁 Clocked out", g.clock_out_time, g.clock_out_address, g.clock_out_lat, g.clock_out_lng) +
+      breaks;
+  }
+  $("gpsClose").addEventListener("click", () => $("gpsModal").classList.remove("show"));
 
   // ---- adjust timesheet modal ----
   // paid hours = (finish - start) - lunch, matching the staff app rule
