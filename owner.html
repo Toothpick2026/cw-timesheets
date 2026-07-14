@@ -76,6 +76,8 @@
   .center { max-width: 400px; margin: 8vh auto; }
   .muted { color: var(--muted); font-size: 13px; }
   .subtle { font-size: 12px; color: var(--muted); }
+  .loc { font-size: 13px; max-width: 220px; }
+  .loc a { color: var(--brand); }
   .tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
   .tab {
     background: #1a1a1a; color: var(--muted); font-weight: 600; font-size: 14px;
@@ -97,7 +99,6 @@
 </style>
 </head>
 <body>
-
 <!-- ================= LOGIN VIEW ================= -->
 <div id="loginView">
   <div class="wrap center">
@@ -112,7 +113,6 @@
     </div>
   </div>
 </div>
-
 <!-- ================= DASHBOARD VIEW ================= -->
 <div id="appView" class="hidden">
   <header>
@@ -122,10 +122,8 @@
       <button class="secondary small" id="signOutBtn" style="margin-top:4px;">Sign out</button>
     </div>
   </header>
-
   <div class="wrap">
     <div id="appMsg" class="msg"></div>
-
     <!-- Tabs -->
     <div class="tabs">
       <button class="tab on" id="tabStaff">Staff</button>
@@ -133,7 +131,6 @@
       <button class="tab" id="tabTimesheets">Timesheets</button>
       <button class="tab" id="tabReports">Reports</button>
     </div>
-
     <!-- ============ STAFF SECTION ============ -->
     <div id="staffSection">
       <div class="card">
@@ -154,7 +151,6 @@
         </div>
         <button id="addBtn" style="margin-top:16px;">Add staff member</button>
       </div>
-
       <div class="card">
         <h2>Your staff</h2>
         <div id="listStatus" class="muted">Loading…</div>
@@ -166,7 +162,6 @@
         </table>
       </div>
     </div>
-
     <!-- ============ SITES SECTION ============ -->
     <div id="sitesSection" class="hidden">
       <div class="card">
@@ -182,7 +177,6 @@
         </div>
         <p class="subtle" style="margin-top:12px;">Sites here appear in your crew's “Job / Site” dropdown in the app. <b>Deactivate</b> a finished site to hide it from the crew (you can switch it back on anytime). <b>Delete</b> removes it from the list for good — past timesheets keep their site name either way.</p>
       </div>
-
       <div class="card">
         <h2>Your job sites</h2>
         <div id="siteStatus" class="muted">Loading…</div>
@@ -194,7 +188,6 @@
         </table>
       </div>
     </div>
-
     <!-- ============ TIMESHEETS SECTION ============ -->
     <div id="timesheetsSection" class="hidden">
       <div class="card">
@@ -220,10 +213,10 @@
         <div class="row" style="margin-top:16px;">
           <button id="tsLoadBtn" style="max-width:160px;">Load timesheets</button>
           <button class="secondary" id="tsCsvBtn" style="max-width:230px;">Download payroll CSV (approved)</button>
+          <button class="secondary" id="tsLocCsvBtn" style="max-width:270px;">Download timesheets + location</button>
         </div>
-        <p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). The CSV exports only <b>approved</b> timesheets in the selected range. Tap <b>📍 Location</b> on any row to see where and when each person clocked on and off.</p>
+        <p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). The <b>Clock in</b> and <b>Clock out</b> columns show where each person started and finished (tap <b>map</b> to open it). <b>Download payroll CSV</b> exports only <b>approved</b> rows; <b>Download timesheets + location</b> exports <b>every</b> row in the range, including addresses, coordinates and map links, for a spreadsheet. Tap <b>📍 Location</b> on any row for the full clock-in/out and break detail.</p>
       </div>
-
       <div class="card">
         <div id="tsSummary" class="summary muted">Choose a date range and click “Load timesheets”.</div>
         <div style="overflow-x:auto;">
@@ -234,7 +227,9 @@
                 <th>Start</th><th>End</th>
                 <th class="num">Lunch (min)</th>
                 <th class="num">Paid hrs</th>
-                <th>Job</th><th>Status</th>
+                <th>Job</th>
+                <th>Clock in</th><th>Clock out</th>
+                <th>Status</th>
                 <th style="text-align:right;">Actions</th>
               </tr>
             </thead>
@@ -243,7 +238,6 @@
         </div>
       </div>
     </div>
-
     <!-- ============ REPORTS SECTION ============ -->
     <div id="reportsSection" class="hidden">
       <div class="card">
@@ -266,7 +260,6 @@
         </div>
         <p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). <b>Total</b> is every timesheet in the range; <b>Approved</b> and <b>Pending</b> split those hours by whether you've signed them off yet. The CSV saves the table exactly as shown, including the grand-total row.</p>
       </div>
-
       <div class="card">
         <div id="rpSummary" class="summary muted">Choose a date range and click “Load report”.</div>
         <div style="overflow-x:auto;">
@@ -287,7 +280,6 @@
     </div>
   </div>
 </div>
-
 <!-- ================= EDIT STAFF MODAL ================= -->
 <div class="modal-bg" id="editModal">
   <div class="modal">
@@ -311,7 +303,6 @@
     </div>
   </div>
 </div>
-
 <!-- ================= EDIT SITE MODAL ================= -->
 <div class="modal-bg" id="siteModal">
   <div class="modal">
@@ -330,7 +321,6 @@
     </div>
   </div>
 </div>
-
 <!-- ================= ADJUST TIMESHEET MODAL ================= -->
 <div class="modal-bg" id="adjModal">
   <div class="modal">
@@ -361,7 +351,6 @@
     </div>
   </div>
 </div>
-
 <!-- ================= GPS / LOCATION MODAL ================= -->
 <div class="modal-bg" id="gpsModal">
   <div class="modal">
@@ -373,7 +362,6 @@
     </div>
   </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // ============================================================
@@ -381,9 +369,7 @@
   // ============================================================
   const SUPABASE_URL = "https://baojgmrlwunizgcauyhl.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhb2pnbXJsd3VuaXpnY2F1eWhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDYwODAsImV4cCI6MjA5NTIyMjA4MH0.XPvjOWlgWkK5YWUax47aDvMS1V6Dbf4LERqI5Yht1r8";
-
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
   // ---- tiny helpers ----
   const $ = (id) => document.getElementById(id);
   function show(el, on) { el.classList.toggle("hidden", !on); }
@@ -427,14 +413,12 @@
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
-
   let editingId = null;     // staff edit
   let editingSiteId = null; // site edit
   let adjustingId = null;   // timesheet adjust
   let tsRows = [];          // last-loaded timesheet rows
   let rpRows = [];          // last-loaded report summary rows
   let siteRows = [];        // last-loaded site rows
-
   // ---- auth wiring ----
   async function refresh() {
     const { data: { session } } = await sb.auth.getSession();
@@ -448,7 +432,6 @@
       show($("appView"), false);
     }
   }
-
   $("sendLinkBtn").addEventListener("click", async () => {
     const email = $("email").value.trim();
     if (!email) { msg($("loginMsg"), "Please enter your email address.", "err"); return; }
@@ -461,14 +444,11 @@
     if (error) { msg($("loginMsg"), error.message, "err"); return; }
     msg($("loginMsg"), "Check your email and click the sign-in link. You can close this tab once you do.", "ok");
   });
-
   $("signOutBtn").addEventListener("click", async () => {
     await sb.auth.signOut();
     refresh();
   });
-
   sb.auth.onAuthStateChange(() => refresh());
-
   // ---- tab switching ----
   function setTab(which) {
     $("tabStaff").classList.toggle("on", which === "staff");
@@ -496,7 +476,6 @@
     if (!$("rpFrom").value) { $("rpFrom").value = isoDaysAgo(6); $("rpTo").value = isoDaysAgo(0); }
     if (rpRows.length === 0) loadSummary();
   });
-
   // ---- staff list ----
   async function loadStaff() {
     $("listStatus").textContent = "Loading…";
@@ -526,7 +505,6 @@
     });
     show($("staffTable"), true);
   }
-
   // ---- add staff ----
   $("addBtn").addEventListener("click", async () => {
     const name = $("newName").value.trim();
@@ -543,7 +521,6 @@
     msg($("appMsg"), "Staff member added.", "ok");
     loadStaff();
   });
-
   // ---- edit staff modal ----
   function openEdit(id, name, role, active) {
     editingId = id;
@@ -556,7 +533,6 @@
     $("editModal").classList.add("show");
   }
   $("editCancel").addEventListener("click", () => $("editModal").classList.remove("show"));
-
   $("editSave").addEventListener("click", async () => {
     const name = $("editName").value.trim();
     const role = $("editRole").value.trim();
@@ -578,7 +554,6 @@
     msg($("appMsg"), pin ? "Changes saved and PIN reset." : "Changes saved.", "ok");
     loadStaff();
   });
-
   // ---- sites: load / render ----
   async function loadSites() {
     $("siteStatus").textContent = "Loading…";
@@ -613,7 +588,6 @@
     });
     show($("siteTable"), true);
   }
-
   // ---- add site ----
   $("addSiteBtn").addEventListener("click", async () => {
     const name = $("newSite").value.trim();
@@ -627,7 +601,6 @@
     msg($("appMsg"), "Site added.", "ok");
     loadSites();
   });
-
   // ---- edit site modal ----
   function openSiteEdit(s) {
     editingSiteId = s.id;
@@ -638,7 +611,6 @@
     $("siteModal").classList.add("show");
   }
   $("siteCancel").addEventListener("click", () => $("siteModal").classList.remove("show"));
-
   $("siteSave").addEventListener("click", async () => {
     const name = $("editSiteName").value.trim();
     const active = $("editSiteActive").value === "true";
@@ -652,7 +624,6 @@
     msg($("appMsg"), "Site updated.", "ok");
     loadSites();
   });
-
   async function toggleSite(s) {
     clearMsg($("appMsg"));
     const { error } = await sb.rpc("owner_update_site", { p_site_id: s.id, p_name: s.name, p_active: !s.active });
@@ -660,7 +631,6 @@
     msg($("appMsg"), s.active ? "Site deactivated — hidden from the crew." : "Site activated — now shown to the crew.", "ok");
     loadSites();
   }
-
   async function deleteSite(s) {
     if (!window.confirm('Delete "' + s.name + '" permanently?\n\nIt will be removed from the list and the crew\'s dropdown. Past timesheets keep their site name. This cannot be undone.')) return;
     clearMsg($("appMsg"));
@@ -669,7 +639,6 @@
     msg($("appMsg"), "Site deleted.", "ok");
     loadSites();
   }
-
   // ---- timesheets: load / render ----
   async function loadTimesheets() {
     clearMsg($("appMsg"));
@@ -684,12 +653,50 @@
     const { data, error } = await sb.rpc("owner_list_timesheets", {
       p_from: from, p_to: to, p_status: status || null
     });
-    $("tsLoadBtn").disabled = false;
-    if (error) { $("tsSummary").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
+    if (error) { $("tsLoadBtn").disabled = false; $("tsSummary").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
     tsRows = data || [];
+    await mergeGps(from, to, status || null);   // attach clock-in/out location to each row
+    $("tsLoadBtn").disabled = false;
     renderTimesheets();
   }
-
+  // Pull location for the whole range in one call and merge onto tsRows by id.
+  // Degrades gracefully: if the owner_timesheets_gps_bulk function isn't deployed
+  // yet, we simply skip location (columns show a dash) and nothing else breaks.
+  async function mergeGps(from, to, status) {
+    const { data, error } = await sb.rpc("owner_timesheets_gps_bulk", {
+      p_from: from, p_to: to, p_status: status
+    });
+    if (error || !data) return;
+    const byId = {};
+    data.forEach((g) => { byId[g.id] = g; });
+    tsRows.forEach((r) => {
+      const g = byId[r.id];
+      if (!g) return;
+      r.clock_in_time = g.clock_in_time;
+      r.clock_out_time = g.clock_out_time;
+      r.clock_in_address = g.clock_in_address;
+      r.clock_out_address = g.clock_out_address;
+      r.clock_in_lat = g.clock_in_lat;
+      r.clock_in_lng = g.clock_in_lng;
+      r.clock_out_lat = g.clock_out_lat;
+      r.clock_out_lng = g.clock_out_lng;
+    });
+  }
+  // Build a small on-screen location cell: address + a "map" link when coords exist.
+  function locCell(addr, lat, lng) {
+    const hasCoords = lat && lng;
+    if (!addr && !hasCoords) return '<span class="muted">—</span>';
+    let h = addr ? escapeHtml(addr) : "";
+    if (hasCoords) {
+      const q = encodeURIComponent(lat + "," + lng);
+      h += (addr ? '<br>' : '') +
+        '<a href="https://www.google.com/maps?q=' + q + '" target="_blank" rel="noopener">map</a>';
+    }
+    return '<div class="loc">' + h + '</div>';
+  }
+  function mapUrl(lat, lng) {
+    return (lat && lng) ? "https://www.google.com/maps?q=" + encodeURIComponent(lat + "," + lng) : "";
+  }
   function renderTimesheets() {
     const body = $("tsBody");
     body.innerHTML = "";
@@ -702,7 +709,6 @@
     tsRows.forEach((r) => {
       if (r.status === "approved") { approvedCount++; approvedHrs += Number(r.paid_hours) || 0; }
       else pendingCount++;
-
       const tr = document.createElement("tr");
       const isApproved = r.status === "approved";
       tr.innerHTML =
@@ -714,6 +720,8 @@
         '<td class="num">' + (Number(r.lunch_break) || 0) + '</td>' +
         '<td class="num">' + hrs(r.paid_hours) + '</td>' +
         '<td>' + escapeHtml(r.job || "") + '</td>' +
+        '<td>' + locCell(r.clock_in_address, r.clock_in_lat, r.clock_in_lng) + '</td>' +
+        '<td>' + locCell(r.clock_out_address, r.clock_out_lat, r.clock_out_lng) + '</td>' +
         '<td><span class="pill ' + (isApproved ? "approved" : "pending") + '">' +
           (isApproved ? "Approved" : "Pending") + '</span></td>' +
         '<td><div class="actions">' +
@@ -724,7 +732,6 @@
             : '<button class="ok small" data-appr="' + r.id + '">Approve</button>') +
         '</div></td>';
       body.appendChild(tr);
-
       const apprBtn = tr.querySelector("[data-appr]");
       if (apprBtn) apprBtn.addEventListener("click", () => approveTs(r.id));
       const undoBtn = tr.querySelector("[data-undo]");
@@ -732,14 +739,12 @@
       tr.querySelector("[data-adj]").addEventListener("click", () => openAdjust(r));
       tr.querySelector("[data-gps]").addEventListener("click", () => openGps(r.id, r.staff, r.work_date));
     });
-
     $("tsSummary").innerHTML =
       '<b>' + tsRows.length + '</b> timesheet(s) · ' +
       '<b>' + approvedCount + '</b> approved (' + approvedHrs.toFixed(2) + ' hrs) · ' +
       '<b>' + pendingCount + '</b> pending';
     show($("tsTable"), true);
   }
-
   async function approveTs(id) {
     clearMsg($("appMsg"));
     const { error } = await sb.rpc("owner_approve_timesheet", { p_id: id });
@@ -754,7 +759,6 @@
     msg($("appMsg"), "Approval undone — timesheet is pending again.", "ok");
     loadTimesheets();
   }
-
   // ---- location / GPS modal ----
   function mapLink(lat, lng) {
     if (!lat || !lng) return "";
@@ -796,7 +800,6 @@
       breaks;
   }
   $("gpsClose").addEventListener("click", () => $("gpsModal").classList.remove("show"));
-
   // ---- adjust timesheet modal ----
   // paid hours = (finish - start) - lunch, matching the staff app rule
   function computePaid() {
@@ -812,7 +815,6 @@
     const paid = Math.max(0, (mins - lunch) / 60);
     $("adjHours").value = paid.toFixed(2);
   }
-
   function openAdjust(r) {
     adjustingId = r.id;
     clearMsg($("adjMsg"));
@@ -828,7 +830,6 @@
   ["adjStart", "adjEnd", "adjLunch"].forEach((id) =>
     $(id).addEventListener("input", computePaid));
   $("adjCancel").addEventListener("click", () => $("adjModal").classList.remove("show"));
-
   $("adjSave").addEventListener("click", async () => {
     clearMsg($("adjMsg"));
     const start = $("adjStart").value.trim();
@@ -856,10 +857,8 @@
     msg($("appMsg"), "Timesheet adjusted.", "ok");
     loadTimesheets();
   });
-
   // ---- CSV export: payroll (approved rows only) ----
   $("tsLoadBtn").addEventListener("click", loadTimesheets);
-
   $("tsCsvBtn").addEventListener("click", () => {
     clearMsg($("appMsg"));
     const approved = tsRows.filter((r) => r.status === "approved");
@@ -876,7 +875,30 @@
     downloadCsv("payroll_" + $("tsFrom").value + "_to_" + $("tsTo").value + ".csv", [header, ...rows]);
     msg($("appMsg"), "Exported " + approved.length + " approved timesheet(s) to CSV.", "ok");
   });
-
+  // ---- CSV export: all timesheets in range WITH location ----
+  $("tsLocCsvBtn").addEventListener("click", () => {
+    clearMsg($("appMsg"));
+    if (tsRows.length === 0) {
+      msg($("appMsg"), "Nothing to export yet. Click “Load timesheets” first (or there are no timesheets in this range).", "err");
+      return;
+    }
+    const header = [
+      "Staff", "Role", "Date", "Start", "End", "Lunch (min)", "Paid hours", "Job", "Status",
+      "Clock-in time", "Clock-in address", "Clock-in lat", "Clock-in lng", "Clock-in map",
+      "Clock-out time", "Clock-out address", "Clock-out lat", "Clock-out lng", "Clock-out map",
+      "Staff note", "Payroll note"
+    ];
+    const rows = tsRows.map((r) => [
+      r.staff || "", r.role || "", fmtDate(r.work_date),
+      r.start_time || "", r.end_time || "", (Number(r.lunch_break) || 0),
+      hrs(r.paid_hours), r.job || "", (r.status === "approved" ? "Approved" : "Pending"),
+      r.clock_in_time || "", r.clock_in_address || "", r.clock_in_lat || "", r.clock_in_lng || "", mapUrl(r.clock_in_lat, r.clock_in_lng),
+      r.clock_out_time || "", r.clock_out_address || "", r.clock_out_lat || "", r.clock_out_lng || "", mapUrl(r.clock_out_lat, r.clock_out_lng),
+      r.notes || "", r.payroll_note || ""
+    ]);
+    downloadCsv("timesheets_location_" + $("tsFrom").value + "_to_" + $("tsTo").value + ".csv", [header, ...rows]);
+    msg($("appMsg"), "Exported " + tsRows.length + " timesheet(s) with location to CSV.", "ok");
+  });
   // ---- reports: weekly hours by staff ----
   async function loadSummary() {
     clearMsg($("appMsg"));
@@ -893,7 +915,6 @@
     rpRows = data || [];
     renderSummary();
   }
-
   function renderSummary() {
     const body = $("rpBody");
     body.innerHTML = "";
@@ -933,7 +954,6 @@
     show($("rpTable"), true);
   }
   $("rpLoadBtn").addEventListener("click", loadSummary);
-
   $("rpCsvBtn").addEventListener("click", () => {
     clearMsg($("appMsg"));
     if (rpRows.length === 0) {
@@ -953,7 +973,6 @@
     downloadCsv("hours_summary_" + $("rpFrom").value + "_to_" + $("rpTo").value + ".csv", [header, ...rows, totalRow]);
     msg($("appMsg"), "Exported summary for " + rpRows.length + " staff to CSV.", "ok");
   });
-
   // go
   refresh();
 </script>
