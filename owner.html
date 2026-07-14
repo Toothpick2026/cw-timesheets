@@ -76,7 +76,7 @@
   .center { max-width: 400px; margin: 8vh auto; }
   .muted { color: var(--muted); font-size: 13px; }
   .subtle { font-size: 12px; color: var(--muted); }
-  .tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
   .tab {
     background: #1a1a1a; color: var(--muted); font-weight: 600; font-size: 14px;
     padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer;
@@ -129,6 +129,7 @@
     <!-- Tabs -->
     <div class="tabs">
       <button class="tab on" id="tabStaff">Staff</button>
+      <button class="tab" id="tabSites">Sites</button>
       <button class="tab" id="tabTimesheets">Timesheets</button>
       <button class="tab" id="tabReports">Reports</button>
     </div>
@@ -162,6 +163,34 @@
             <tr><th>Name</th><th>Role</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
           </thead>
           <tbody id="staffBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============ SITES SECTION ============ -->
+    <div id="sitesSection" class="hidden">
+      <div class="card">
+        <h2>Add a job site</h2>
+        <div class="row">
+          <div>
+            <label for="newSite">Site name</label>
+            <input id="newSite" type="text" placeholder="e.g. Downers – Newmarket" />
+          </div>
+          <div style="max-width:160px; display:flex; align-items:flex-end;">
+            <button id="addSiteBtn" style="width:100%;">Add site</button>
+          </div>
+        </div>
+        <p class="subtle" style="margin-top:12px;">Sites here appear in your crew's “Job / Site” dropdown in the app. <b>Deactivate</b> a finished site to hide it from the crew (you can switch it back on anytime). <b>Delete</b> removes it from the list for good — past timesheets keep their site name either way.</p>
+      </div>
+
+      <div class="card">
+        <h2>Your job sites</h2>
+        <div id="siteStatus" class="muted">Loading…</div>
+        <table id="siteTable" class="hidden">
+          <thead>
+            <tr><th>Site</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
+          </thead>
+          <tbody id="siteBody"></tbody>
         </table>
       </div>
     </div>
@@ -283,6 +312,25 @@
   </div>
 </div>
 
+<!-- ================= EDIT SITE MODAL ================= -->
+<div class="modal-bg" id="siteModal">
+  <div class="modal">
+    <h2 id="siteTitle">Edit site</h2>
+    <div id="siteMsg" class="msg"></div>
+    <label for="editSiteName">Site name</label>
+    <input id="editSiteName" type="text" />
+    <label for="editSiteActive">Status</label>
+    <select id="editSiteActive">
+      <option value="true">Active (shown to the crew)</option>
+      <option value="false">Inactive (hidden from the crew)</option>
+    </select>
+    <div class="row" style="margin-top:18px;">
+      <button class="secondary" id="siteCancel">Cancel</button>
+      <button id="siteSave">Save changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= ADJUST TIMESHEET MODAL ================= -->
 <div class="modal-bg" id="adjModal">
   <div class="modal">
@@ -380,10 +428,12 @@
     URL.revokeObjectURL(url);
   }
 
-  let editingId = null;   // staff edit
-  let adjustingId = null; // timesheet adjust
-  let tsRows = [];        // last-loaded timesheet rows
-  let rpRows = [];        // last-loaded report summary rows
+  let editingId = null;     // staff edit
+  let editingSiteId = null; // site edit
+  let adjustingId = null;   // timesheet adjust
+  let tsRows = [];          // last-loaded timesheet rows
+  let rpRows = [];          // last-loaded report summary rows
+  let siteRows = [];        // last-loaded site rows
 
   // ---- auth wiring ----
   async function refresh() {
@@ -422,14 +472,20 @@
   // ---- tab switching ----
   function setTab(which) {
     $("tabStaff").classList.toggle("on", which === "staff");
+    $("tabSites").classList.toggle("on", which === "sites");
     $("tabTimesheets").classList.toggle("on", which === "timesheets");
     $("tabReports").classList.toggle("on", which === "reports");
     show($("staffSection"), which === "staff");
+    show($("sitesSection"), which === "sites");
     show($("timesheetsSection"), which === "timesheets");
     show($("reportsSection"), which === "reports");
     clearMsg($("appMsg"));
   }
   $("tabStaff").addEventListener("click", () => setTab("staff"));
+  $("tabSites").addEventListener("click", () => {
+    setTab("sites");
+    if (siteRows.length === 0) loadSites();
+  });
   $("tabTimesheets").addEventListener("click", () => {
     setTab("timesheets");
     if (!$("tsFrom").value) { $("tsFrom").value = isoDaysAgo(6); $("tsTo").value = isoDaysAgo(0); }
@@ -522,6 +578,97 @@
     msg($("appMsg"), pin ? "Changes saved and PIN reset." : "Changes saved.", "ok");
     loadStaff();
   });
+
+  // ---- sites: load / render ----
+  async function loadSites() {
+    $("siteStatus").textContent = "Loading…";
+    show($("siteTable"), false);
+    const { data, error } = await sb.rpc("owner_list_sites");
+    if (error) { $("siteStatus").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
+    siteRows = data || [];
+    if (siteRows.length === 0) {
+      $("siteStatus").textContent = "No sites yet — add your first job site above.";
+      return;
+    }
+    $("siteStatus").textContent = "";
+    const body = $("siteBody");
+    body.innerHTML = "";
+    siteRows.forEach((s) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td>' + escapeHtml(s.name) + '</td>' +
+        '<td><span class="pill ' + (s.active ? "active" : "inactive") + '">' +
+          (s.active ? "Active" : "Inactive") + '</span></td>' +
+        '<td><div class="actions">' +
+          '<button class="secondary small" data-sedit="' + s.id + '">Edit</button>' +
+          (s.active
+            ? '<button class="secondary small" data-stoggle="' + s.id + '">Deactivate</button>'
+            : '<button class="ok small" data-stoggle="' + s.id + '">Activate</button>') +
+          '<button class="danger small" data-sdel="' + s.id + '">Delete</button>' +
+        '</div></td>';
+      body.appendChild(tr);
+      tr.querySelector("[data-sedit]").addEventListener("click", () => openSiteEdit(s));
+      tr.querySelector("[data-stoggle]").addEventListener("click", () => toggleSite(s));
+      tr.querySelector("[data-sdel]").addEventListener("click", () => deleteSite(s));
+    });
+    show($("siteTable"), true);
+  }
+
+  // ---- add site ----
+  $("addSiteBtn").addEventListener("click", async () => {
+    const name = $("newSite").value.trim();
+    clearMsg($("appMsg"));
+    if (!name) { msg($("appMsg"), "Please enter a site name.", "err"); return; }
+    $("addSiteBtn").disabled = true;
+    const { error } = await sb.rpc("owner_add_site", { p_name: name });
+    $("addSiteBtn").disabled = false;
+    if (error) { msg($("appMsg"), error.message, "err"); return; }
+    $("newSite").value = "";
+    msg($("appMsg"), "Site added.", "ok");
+    loadSites();
+  });
+
+  // ---- edit site modal ----
+  function openSiteEdit(s) {
+    editingSiteId = s.id;
+    clearMsg($("siteMsg"));
+    $("siteTitle").textContent = "Edit — " + s.name;
+    $("editSiteName").value = s.name;
+    $("editSiteActive").value = s.active ? "true" : "false";
+    $("siteModal").classList.add("show");
+  }
+  $("siteCancel").addEventListener("click", () => $("siteModal").classList.remove("show"));
+
+  $("siteSave").addEventListener("click", async () => {
+    const name = $("editSiteName").value.trim();
+    const active = $("editSiteActive").value === "true";
+    clearMsg($("siteMsg"));
+    if (!name) { msg($("siteMsg"), "Site name can't be empty.", "err"); return; }
+    $("siteSave").disabled = true;
+    const { error } = await sb.rpc("owner_update_site", { p_site_id: editingSiteId, p_name: name, p_active: active });
+    $("siteSave").disabled = false;
+    if (error) { msg($("siteMsg"), error.message, "err"); return; }
+    $("siteModal").classList.remove("show");
+    msg($("appMsg"), "Site updated.", "ok");
+    loadSites();
+  });
+
+  async function toggleSite(s) {
+    clearMsg($("appMsg"));
+    const { error } = await sb.rpc("owner_update_site", { p_site_id: s.id, p_name: s.name, p_active: !s.active });
+    if (error) { msg($("appMsg"), error.message, "err"); return; }
+    msg($("appMsg"), s.active ? "Site deactivated — hidden from the crew." : "Site activated — now shown to the crew.", "ok");
+    loadSites();
+  }
+
+  async function deleteSite(s) {
+    if (!window.confirm('Delete "' + s.name + '" permanently?\n\nIt will be removed from the list and the crew\'s dropdown. Past timesheets keep their site name. This cannot be undone.')) return;
+    clearMsg($("appMsg"));
+    const { error } = await sb.rpc("owner_delete_site", { p_site_id: s.id });
+    if (error) { msg($("appMsg"), error.message, "err"); return; }
+    msg($("appMsg"), "Site deleted.", "ok");
+    loadSites();
+  }
 
   // ---- timesheets: load / render ----
   async function loadTimesheets() {

@@ -446,6 +446,38 @@ async function loadStaffAndConfig() {
 }
 loadStaffAndConfig();
 
+// ── Job sites: live list from the database, editable in the owner portal.
+// Falls back to the built-in list if the RPC can't be reached. ──
+const DEFAULT_SITES = ['Downers – general','PAE – general','Craigs Investment Partners','One New Zealand','Cushman & Wakefield'];
+function populateJobDropdown(names){
+  const sel = document.getElementById('jobSelect');
+  if(!sel) return;
+  const chosen = sel.value;
+  sel.innerHTML = '';
+  const ph = document.createElement('option'); ph.value=''; ph.textContent='— select job or site —'; sel.appendChild(ph);
+  (names && names.length ? names : DEFAULT_SITES).forEach(n=>{
+    const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o);
+  });
+  const other=document.createElement('option'); other.value='Other / multiple sites'; other.textContent='Other / multiple sites'; sel.appendChild(other);
+  if(chosen) sel.value=chosen;
+}
+async function loadSites(){
+  let names = DEFAULT_SITES;
+  try{
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/list_sites', {
+      method:'POST',
+      headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ p_org: ORG_ID })
+    });
+    if(res.ok){
+      const rows = await res.json();
+      if(rows && rows.length){ names = rows.map(r=>String(r.name||'').trim()).filter(Boolean); }
+    }
+  }catch(e){ console.log('Using default site list — list_sites RPC not reachable yet', e); }
+  populateJobDropdown(names);
+}
+loadSites();
+
 let currentUser = null;
 let currentPin = null;
 let breakTimers = [];
