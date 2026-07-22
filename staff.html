@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="CW Time">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="manifest.json">
+<title>Knockoff — Timesheets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d; --surface: #141414; --surface2: #1a1a1a; --border: #2a2a2a;
+    --orange: #FFD000; --orange-dim: rgba(255,208,0,0.12);
+    --text: #f0f0f0; --muted: #888;
+    --green: #4CAF50; --green-dim: rgba(76,175,80,0.15);
+    --red: #ef4444; --yellow: #FFD000; --yellow-dim: rgba(255,208,0,0.12);
+    --blue: #3b82f6; --blue-dim: rgba(59,130,246,0.15);
+    --font: 'Inter', 'Segoe UI', Arial, sans-serif;
+    --heading: 'Bebas Neue', sans-serif;
+    --fs: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: var(--fs); overflow-x: hidden; }
+
+  /* LOGIN */
+  #loginScreen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+  .logo-block { text-align: center; margin-bottom: 3rem; }
+  .logo-cw { font-family: var(--heading); font-size: 2.4rem; color: var(--orange); letter-spacing: 2px; line-height: 1; }
+  .logo-sub { font-family: var(--heading); font-size: 1.1rem; letter-spacing: 6px; color: var(--muted); text-transform: uppercase; margin-top: 0.25rem; }
+  .login-card { width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 2rem; }
+  .login-card h2 { font-family: var(--heading); font-size: 1.8rem; letter-spacing: 1px; font-weight: 400; margin-bottom: 1.5rem; }
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.4rem; }
+  .field select, .field input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font); font-size: var(--fs); padding: 0.75rem 1rem; appearance: none; outline: none; transition: border-color 0.2s; }
+  .field select:focus, .field input:focus { border-color: var(--orange); }
+  .field select option { background: var(--surface2); }
+  .btn-primary { width: 100%; background: var(--orange); color: #0d0d0d; border: none; border-radius: 4px; font-family: var(--heading); font-size: 1.2rem; letter-spacing: 1px; font-weight: 400; padding: 0.85rem; cursor: pointer; margin-top: 0.5rem; transition: opacity 0.2s; }
+  .btn-primary:active { opacity: 0.8; }
+  .err { color: var(--red); font-size: 0.85rem; margin-top: 0.75rem; display: none; }
+
+  /* APP SHELL */
+  #app { display: none; min-height: 100vh; flex-direction: column; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .topbar-left { display: flex; align-items: center; gap: 0.75rem; }
+  .topbar-logo { font-family: var(--heading); color: var(--orange); font-size: 1.6rem; letter-spacing: 2px; }
+  .topbar-name { font-size: 0.9rem; color: var(--muted); }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: inline-block; margin-left: 0.4rem; }
+  .sync-dot.offline { background: var(--red); }
+
+  .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 57px; z-index: 9; }
+  .tab { flex: 1; text-align: center; padding: 0.85rem 0.5rem; font-family: var(--heading); font-size: 1.1rem; letter-spacing: 1px; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
+  .tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+  .page { display: none; padding: 1.25rem; max-width: 480px; margin: 0 auto; width: 100%; }
+  .page.active { display: block; }
+  .form-section { margin-bottom: 1.5rem; }
+  .section-label { font-family: var(--heading); font-size: 1.2rem; letter-spacing: 3px; text-transform: uppercase; color: var(--orange); margin-bottom: 0.75rem; }
+
+  /* DAY STRIP */
+  .day-strip { display: flex; flex-direction: row; justify-content: center; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; -webkit-overflow-scrolling: touch; }
+  .day-strip::-webkit-scrollbar { display: none; }
+  .day-btn { flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 1rem; padding: 1.25rem 2rem; cursor: pointer; text-align: center; transition: all 0.15s; min-width: 100px; font-family: var(--font); }
+  .day-btn span { display: block; font-family: var(--heading); font-size: 2.8rem; color: var(--text); line-height: 1; margin-bottom: 0.2rem; }
+  .day-btn.selected { border-color: var(--orange); background: var(--orange-dim); color: var(--orange); }
+  .day-btn.selected span { color: var(--orange); }
+  .day-btn.today-btn { border-color: rgba(255,208,0,0.4); }
+
+  .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font); font-size: var(--fs); padding: 0.75rem 1rem; resize: none; outline: none; min-height: 80px; transition: border-color 0.2s; }
+  textarea:focus { border-color: var(--orange); }
+
+  /* GPS */
+  .gps-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+  .gps-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .gps-btn { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .gps-btn:active { opacity: 0.8; }
+  .gps-btn.clocked { border-color: var(--green); background: var(--green-dim); }
+  .gps-btn-label { font-family: var(--heading); font-size: 0.95rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem; }
+  .gps-btn-time { font-family: var(--heading); font-size: 1.4rem; letter-spacing: 1px; color: var(--text); }
+  .gps-btn.clocked .gps-btn-time { color: var(--green); }
+  .gps-address { font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; line-height: 1.3; }
+  .gps-btn { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.75rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .gps-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* HOURS */
+  .hours-display { background: var(--orange-dim); border: 1px solid var(--orange); border-radius: 4px; padding: 1rem; text-align: center; }
+  .hours-big { font-family: var(--heading); font-size: 3.5rem; color: var(--orange); line-height: 1; letter-spacing: 2px; }
+  .hours-label { font-family: var(--heading); font-size: 1rem; letter-spacing: 4px; text-transform: uppercase; color: var(--muted); margin-top: 0.25rem; }
+  .hours-breakdown { font-size: 0.8rem; color: var(--muted); margin-top: 0.4rem; }
+
+  /* BREAKS */
+  .breaks-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+  .break-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+  .break-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+  .break-name { font-family: var(--heading); font-size: 1.3rem; letter-spacing: 1px; font-weight: 400; }
+  .break-badge { font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; }
+  .badge-fixed { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+  .badge-deducted { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+  .break-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .break-field label { display: block; font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem; }
+  .break-field input, .break-field select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--font); font-size: var(--fs); padding: 0.5rem 0.75rem; outline: none; transition: border-color 0.2s; appearance: none; }
+  .break-field input:focus, .break-field select:focus { border-color: var(--orange); }
+
+  /* LUNCH TIMER WIDGET */
+  .lunch-timer-widget { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-top: 0.75rem; }
+  .lunch-timer-display { font-family: var(--heading); font-size: 2.8rem; text-align: center; color: var(--yellow); letter-spacing: 4px; margin: 0.5rem 0; }
+  .lunch-timer-display.running { color: var(--yellow); }
+  .lunch-timer-display.over { color: var(--red); animation: flashWarn 0.5s ease infinite alternate; }
+  .lunch-timer-display.done { color: var(--green); }
+  .lunch-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.75rem; }
+  .lunch-start-btn { background: var(--yellow); color: #0d0d0d; border: none; border-radius: 4px; font-family: var(--heading); font-size: 1.1rem; letter-spacing: 1px; padding: 0.75rem; cursor: pointer; transition: opacity 0.2s; }
+  .lunch-start-btn:active { opacity: 0.8; }
+  .lunch-start-btn:disabled { opacity: 0.4; cursor: default; }
+  .lunch-end-btn { background: var(--green); color: #fff; border: none; border-radius: 4px; font-family: var(--heading); font-size: 1.1rem; letter-spacing: 1px; padding: 0.75rem; cursor: pointer; transition: opacity 0.2s; }
+  .lunch-end-btn:active { opacity: 0.8; }
+  .lunch-end-btn:disabled { opacity: 0.4; cursor: default; }
+  .lunch-status { font-size: 0.8rem; color: var(--muted); text-align: center; margin-top: 0.5rem; }
+  .break-deduct-note { font-size: 0.8rem; color: var(--yellow); margin-top: 0.5rem; }
+
+  /* BREAK TIMER BAR */
+  .break-timer-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 50; transform: translateY(-100%); transition: transform 0.4s ease; }
+  .break-timer-bar.active { transform: translateY(0); }
+  .break-timer-inner { padding: 0.85rem 1.25rem; display: flex; align-items: center; justify-content: space-between; }
+  .break-timer-inner.morning { background: var(--blue); }
+  .break-timer-inner.lunch { background: #d97706; }
+  .break-timer-inner.afternoon { background: #16a34a; }
+  .break-timer-text { font-weight: 700; font-size: 0.9rem; color: #fff; font-family: var(--font); }
+  .break-timer-countdown { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 1.2rem; color: #fff; }
+  .btn-dismiss { background: rgba(255,255,255,0.25); border: none; border-radius: 6px; color: #fff; font-family: var(--font); font-size: 0.8rem; font-weight: 600; padding: 0.3rem 0.75rem; cursor: pointer; }
+  @keyframes flashWarn { from { opacity: 1; } to { opacity: 0.5; } }
+  .break-timer-inner.warning { animation: flashWarn 0.5s ease infinite alternate; }
+
+  .submit-btn { width: 100%; background: var(--orange); color: #0d0d0d; border: none; border-radius: 4px; font-family: var(--heading); font-size: 1.4rem; letter-spacing: 2px; padding: 1rem; cursor: pointer; transition: opacity 0.2s; }
+  .submit-btn:active { opacity: 0.8; }
+  .submit-btn:disabled { opacity: 0.45; cursor: default; }
+
+  /* HISTORY */
+  .page-title { font-family: var(--heading); font-size: 2rem; letter-spacing: 2px; font-weight: 400; margin-bottom: 1.5rem; }
+  .empty-state { text-align: center; color: var(--muted); padding: 3rem 1rem; font-size: 0.9rem; }
+  .week-group { margin-bottom: 1.5rem; }
+  .week-heading { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; }
+  .entry-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 0.5rem; }
+  .entry-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; }
+  .entry-date { font-weight: 600; font-size: 1rem; }
+  .entry-hours { font-family: var(--heading); font-size: 1.4rem; letter-spacing: 1px; color: var(--orange); }
+  .entry-meta { font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
+  .entry-gps { font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; }
+  .entry-status { display: inline-block; font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 4px; margin-top: 0.4rem; font-weight: 700; }
+  .status-pending { background: rgba(224,123,60,0.15); color: var(--orange); }
+  .status-approved { background: rgba(76,175,80,0.15); color: var(--green); }
+  .status-syncing { background: rgba(59,130,246,0.15); color: var(--blue); }
+
+  /* CHANGE PIN */
+  .change-pin-link { background: none; border: none; color: var(--muted); font-family: var(--font); font-size: 0.75rem; text-decoration: underline; cursor: pointer; padding: 0.4rem; }
+  .change-pin-link:active { opacity: 0.7; }
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 1.5rem; }
+  .modal-backdrop.show { display: flex; }
+  .modal-card { width: 100%; max-width: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; }
+  .modal-card h3 { font-family: var(--heading); font-size: 1.5rem; font-weight: 400; letter-spacing: 1px; margin-bottom: 1rem; }
+  .btn-secondary { width: 100%; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; font-family: var(--heading); font-size: 1rem; letter-spacing: 1px; padding: 0.7rem; cursor: pointer; margin-top: 0.5rem; }
+  .btn-secondary:active { opacity: 0.7; }
+
+  .toast { position: fixed; bottom: 5rem; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1.25rem; font-size: 0.9rem; opacity: 0; transition: all 0.3s; z-index: 200; white-space: nowrap; pointer-events: none; max-width: 90vw; text-align: center; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--green); color: var(--green); }
+  .toast.error { border-color: var(--red); color: var(--red); }
+  .toast.warn { border-color: var(--yellow); color: var(--yellow); }
+</style>
+</head>
+<body>
+
+<!-- BREAK TIMER BAR -->
+<div class="break-timer-bar" id="breakTimerBar">
+  <div class="break-timer-inner" id="breakTimerInner">
+    <span class="break-timer-text" id="breakTimerText">Break ends in</span>
+    <span class="break-timer-countdown" id="breakTimerCountdown">02:00</span>
+    <button class="btn-dismiss" onclick="dismissTimer()">Dismiss</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="logo-block">
+    <div class="logo-cw">KNOCKOFF</div>
+    <div class="logo-sub">Timesheets</div>
+  </div>
+  <div class="login-card">
+    <h2>Who are you?</h2>
+    <div class="field">
+      <label>Select your name</label>
+      <select id="nameSelect">
+        <option value="">— pick your name —</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>PIN</label>
+      <input type="password" inputmode="numeric" maxlength="4" id="pinInput" placeholder="4-digit PIN" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Start →</button>
+    <div class="err" id="loginErr">Incorrect PIN. Try again.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">KNOCKOFF</span>
+      <span class="topbar-name" id="topbarName"></span>
+      <span class="sync-dot" id="syncDot"></span>
+    </div>
+    <button class="change-pin-link" onclick="toggleChangePin()">Change PIN</button>
+  </div>
+
+  <!-- CHANGE PIN MODAL -->
+  <div class="modal-backdrop" id="pinChangeBackdrop" onclick="if(event.target===this)toggleChangePin()">
+    <div class="modal-card">
+      <h3>Change your PIN</h3>
+      <div class="field">
+        <label>New 4-digit PIN</label>
+        <input type="password" inputmode="numeric" maxlength="4" id="newPin1" placeholder="4-digit PIN">
+      </div>
+      <div class="field">
+        <label>Confirm new PIN</label>
+        <input type="password" inputmode="numeric" maxlength="4" id="newPin2" placeholder="Re-enter PIN" onkeydown="if(event.key==='Enter')savePinChange()">
+      </div>
+      <button class="btn-primary" onclick="savePinChange()">Save PIN</button>
+      <button class="btn-secondary" onclick="toggleChangePin()">Cancel</button>
+      <div class="err" id="pinChangeErr"></div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="showPage('new',this)">New Entry</div>
+    <div class="tab" onclick="showPage('history',this)">My History</div>
+  </div>
+
+  <div class="page active" id="page-new">
+
+    <!-- GPS CLOCK IN/OUT -->
+    <div class="form-section">
+      <div class="section-label">Clock In / Out</div>
+      <div class="gps-card">
+        <div class="gps-row">
+          <div class="gps-btn" id="clockInBtn" onclick="doClockIn()">
+            <div class="gps-btn-label">📍 Clock In</div>
+            <div class="gps-btn-time" id="clockInTime">Tap to clock in</div>
+            <div class="gps-address" id="clockInAddr"></div>
+          </div>
+          <div class="gps-btn" id="clockOutBtn" onclick="doClockOut()">
+            <div class="gps-btn-label">🏁 Clock Out</div>
+            <div class="gps-btn-time" id="clockOutTime">Tap to clock out</div>
+            <div class="gps-address" id="clockOutAddr"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAY SELECT -->
+    <div class="form-section">
+      <div class="section-label">Select Day</div>
+      <div class="day-strip" id="dayStrip"></div>
+    </div>
+
+    <!-- HOURS (hidden — populated automatically by Clock In/Out) -->
+    <div style="display:none">
+      <input type="time" id="startTime" oninput="calcHours()">
+      <input type="time" id="endTime" oninput="calcHours()">
+    </div>
+
+    <!-- BREAKS -->
+    <div class="form-section">
+      <div class="section-label">Breaks</div>
+      <div class="breaks-grid">
+
+        <!-- Morning Tea -->
+        <div class="break-card">
+          <div class="break-header">
+            <div class="break-name">☕ Morning Tea</div>
+            <span class="break-badge badge-fixed">10 min · paid</span>
+          </div>
+          <div class="break-row">
+            <div class="break-field"><label>Starts</label><input type="time" id="morningStart" value="09:30" oninput="scheduleBreakTimers()"></div>
+            <div class="break-field"><label>Duration</label>
+              <select id="morningDur" onchange="scheduleBreakTimers()">
+                <option value="10" selected>10 min</option>
+                <option value="15">15 min</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- LUNCH TIMER WIDGET -->
+        <div class="break-card">
+          <div class="break-header">
+            <div class="break-name">🥪 Lunch</div>
+            <span class="break-badge badge-deducted">unpaid · deducted</span>
+          </div>
+          <div class="lunch-timer-widget">
+            <div style="text-align:center;font-size:0.8rem;color:var(--muted);">Lunch timer</div>
+            <div class="lunch-timer-display" id="lunchTimerDisplay">00:00</div>
+            <div class="lunch-btn-row">
+              <button class="lunch-start-btn" id="lunchStartBtn" onclick="startLunch()">▶ Start Lunch</button>
+              <button class="lunch-end-btn" id="lunchEndBtn" onclick="endLunch()" disabled>■ End Lunch</button>
+            </div>
+            <div class="lunch-status" id="lunchStatus">Tap "Start Lunch" when you go on break</div>
+          </div>
+          <div style="margin-top:0.5rem;">
+            <button onclick="blastHorn()" style="width:100%;background:var(--surface2);border:1px dashed var(--border);color:var(--muted);border-radius:8px;font-family:var(--font);font-size:0.8rem;padding:0.5rem;cursor:pointer;">🔔 Test Horn</button>
+          </div>
+          <div class="break-deduct-note">⚠ Lunch time deducted from paid hours</div>
+        </div>
+
+        <!-- Afternoon Tea -->
+        <div class="break-card">
+          <div class="break-header">
+            <div class="break-name">🍵 Afternoon Tea</div>
+            <span class="break-badge badge-fixed">10 min · paid</span>
+          </div>
+          <div class="break-row">
+            <div class="break-field"><label>Starts</label><input type="time" id="afternoonStart" value="14:30" oninput="scheduleBreakTimers()"></div>
+            <div class="break-field"><label>Duration</label>
+              <select id="afternoonDur" onchange="scheduleBreakTimers()">
+                <option value="10" selected>10 min</option>
+                <option value="15">15 min</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOURS TOTAL -->
+    <div class="form-section">
+      <div class="hours-display">
+        <div class="hours-big" id="hoursCalc">—</div>
+        <div class="hours-label">paid hours</div>
+        <div class="hours-breakdown" id="hoursBreakdown">Clock in and out to calculate hours</div>
+      </div>
+    </div>
+
+    <!-- JOB -->
+    <div class="form-section">
+      <div class="section-label">Job / Site</div>
+      <div class="field">
+        <select id="jobSelect">
+          <option value="">— select job or site —</option>
+          <option>Downers – general</option>
+          <option>PAE – general</option>
+          <option>Craigs Investment Partners</option>
+          <option>One New Zealand</option>
+          <option>Cushman &amp; Wakefield</option>
+          <option>Other / multiple sites</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="form-section">
+      <div class="section-label">Notes (optional)</div>
+      <textarea id="notesField" placeholder="Any notes for Monique..."></textarea>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitEntry()">Submit Timesheet</button>
+    <div style="height:2rem;"></div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="page-history">
+    <div class="page-title">My Submissions</div>
+    <div id="historyList"></div>
+    <div style="height:2rem;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://baojgmrlwunizgcauyhl.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhb2pnbXJsd3VuaXpnY2F1eWhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDYwODAsImV4cCI6MjA5NTIyMjA4MH0.XPvjOWlgWkK5YWUax47aDvMS1V6Dbf4LERqI5Yht1r8';
+const SUPABASE_AUTH_HEADERS = {'apikey':SUPABASE_KEY,'Authorization':'Bearer ' + SUPABASE_KEY};
+const PIN_FORMAT_REGEX = /^\d{4}$/;
+
+// Default/fallback PIN list — used only if the Supabase `staff` table hasn't
+// been created yet or a fetch fails. Once `staff` exists, real PINs (including
+// any staff has changed themselves) come from there instead.
+// Fallback names shown only if the server list can't be reached. The real,
+// live list comes from the list_staff RPC below and rebuilds the dropdown.
+const DEFAULT_STAFF = {
+  'Glenn Wilson': true, 'Troy Wilson': true, 'Marko Minic': true,
+  'Kylie Poultney': true, 'Sam Veltzman': true
+};
+let STAFF = {...DEFAULT_STAFF};
+
+// Build the login dropdown from whatever names are in STAFF, so the list always
+// matches the database and new staff appear automatically.
+function populateNameDropdown() {
+  const sel = document.getElementById('nameSelect');
+  if (!sel) return;
+  const chosen = sel.value;
+  sel.length = 1; // keep only the "pick your name" placeholder
+  Object.keys(STAFF).sort().forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  if (chosen) sel.value = chosen;
+}
+populateNameDropdown();
+// Master admin PIN — works for ANY name in the list regardless of that
+// person's own PIN, so Monique is never locked out of an account just
+// because a staff member changed their PIN. Loaded from Supabase `app_config`.
+let ADMIN_PIN = null;
+
+const ORG_ID = 'a0d4b1d7-05de-4623-8e40-11ad338df54a';
+
+async function loadStaffAndConfig() {
+  // Names only — the client NEVER sees PINs. The list_staff RPC returns the
+  // roster; each entry is stored as TRUE (present), never a PIN value. All PIN
+  // checking happens server-side via the verify_* RPCs.
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/list_staff', {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_org: ORG_ID })
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      if (rows && rows.length) {
+        const fresh = {};
+        rows.forEach(r => {
+          const name = String(r.name || '').trim();
+          if (name) fresh[name] = true;
+        });
+        if (Object.keys(fresh).length) STAFF = fresh;
+      }
+    }
+  } catch (e) {
+    console.log('Using default staff list — list_staff RPC not reachable yet', e);
+  }
+  populateNameDropdown(); // refresh with the live database names
+}
+loadStaffAndConfig();
+
+// ── Job sites: live list from the database, editable in the owner portal.
+// Falls back to the built-in list if the RPC can't be reached. ──
+const DEFAULT_SITES = ['Downers – general','PAE – general','Craigs Investment Partners','One New Zealand','Cushman & Wakefield'];
+function populateJobDropdown(names){
+  const sel = document.getElementById('jobSelect');
+  if(!sel) return;
+  const chosen = sel.value;
+  sel.innerHTML = '';
+  const ph = document.createElement('option'); ph.value=''; ph.textContent='— select job or site —'; sel.appendChild(ph);
+  (names && names.length ? names : DEFAULT_SITES).forEach(n=>{
+    const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o);
+  });
+  const other=document.createElement('option'); other.value='Other / multiple sites'; other.textContent='Other / multiple sites'; sel.appendChild(other);
+  if(chosen) sel.value=chosen;
+}
+async function loadSites(){
+  let names = DEFAULT_SITES;
+  try{
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/list_sites', {
+      method:'POST',
+      headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ p_org: ORG_ID })
+    });
+    if(res.ok){
+      const rows = await res.json();
+      if(rows && rows.length){ names = rows.map(r=>String(r.name||'').trim()).filter(Boolean); }
+    }
+  }catch(e){ console.log('Using default site list — list_sites RPC not reachable yet', e); }
+  populateJobDropdown(names);
+}
+loadSites();
+
+let currentUser = null;
+let currentPin = null;
+let breakTimers = [];
+let activeTimerInterval = null;
+let activeBreakEnd = null;
+let activeBreakType = null;
+
+// GPS
+let gpsData = {
+  clockInTime:null,clockInLat:null,clockInLng:null,clockInAddress:'',
+  clockOutTime:null,clockOutLat:null,clockOutLng:null,clockOutAddress:''
+};
+
+// LUNCH TIMER
+let lunchStartTime = null;
+let lunchEndTime = null;
+let lunchIntervalId = null;
+let lunchDurationMins = 0;
+let lunchHornFired = false;
+let audioCtx = null; // created on first user tap to satisfy browser autoplay policy
+
+// ── SUPABASE ──
+async function dbInsert(row) {
+  // Server-side insert via RPC. staff + status are NOT sent — the server sets
+  // them from the verified identity. Pass the authenticated name + PIN so the
+  // RPC can authorise the write.
+  const {staff, status, ...data} = row;
+  const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/submit_timesheet', {
+    method:'POST',
+    headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+    body:JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: data })
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+async function dbFetch(staff) {
+  // Server-side read via RPC — the caller only ever gets their own rows, gated
+  // by their verified name + PIN.
+  const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/my_timesheets', {
+    method:'POST',
+    headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+    body:JSON.stringify({ p_name: currentUser, p_pin: currentPin })
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+function setSyncDot(online) {
+  const dot = document.getElementById('syncDot');
+  dot.className = 'sync-dot'+(online?'':' offline');
+}
+
+// ── OFFLINE QUEUE ──
+// Rows land here when a submit fails (no connection). Previously nothing ever
+// retried them, so a failed submission stayed "syncing…" forever and any
+// repeat submit attempts piled up as separate duplicate rows in history.
+function dedupeQueue(rows) {
+  const seen = new Set();
+  return rows.filter(r => {
+    const key = [r.staff,r.date,r.start_time,r.end_time,r.job,r.morning_break,r.lunch_break,r.afternoon_break,r.notes].join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+async function flushQueue() {
+  let q = JSON.parse(localStorage.getItem('cwts_queue')||'[]');
+  q = dedupeQueue(q);
+  if (!q.length) { localStorage.removeItem('cwts_queue'); return; }
+  const stillQueued = [];
+  for (const row of q) {
+    try { await dbInsert(row); }
+    catch (e) { stillQueued.push(row); }
+  }
+  if (stillQueued.length) localStorage.setItem('cwts_queue', JSON.stringify(stillQueued));
+  else localStorage.removeItem('cwts_queue');
+  if (stillQueued.length < q.length) setSyncDot(true);
+}
+
+// ── AUTH ──
+async function doLogin() {
+  hideLoginErr();
+  const name = document.getElementById('nameSelect').value.trim();
+  const pin  = document.getElementById('pinInput').value.trim();
+  if (!name) { showLoginErr('Please select your name.'); return; }
+  // All PIN verification happens server-side. Try the personal PIN first
+  // (verify_staff_pin), then fall back to the master admin PIN
+  // (verify_admin_pin) so Monique is never locked out of an account.
+  const rpcHeaders = { apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' };
+  let ok = false;
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/verify_staff_pin', {
+      method:'POST', headers:rpcHeaders,
+      body:JSON.stringify({ p_name: name, p_pin: pin })
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      ok = Array.isArray(rows) && rows.length === 1;
+    }
+    if (!ok) {
+      const ares = await fetch(SUPABASE_URL + '/rest/v1/rpc/verify_admin_pin', {
+        method:'POST', headers:rpcHeaders,
+        body:JSON.stringify({ p_pin: pin })
+      });
+      if (ares.ok) ok = (await ares.json()) === true;
+    }
+  } catch (e) {
+    showLoginErr('Could not reach server — check connection and try again.');
+    return;
+  }
+  if (!ok) { showLoginErr('Incorrect PIN. Try again.'); return; }
+  hideLoginErr();
+  currentUser = name;
+  currentPin = pin;
+  localStorage.setItem('cwts_user', name);
+  localStorage.setItem('cwts_pin', pin);
+  bootApp();
+}
+function showLoginErr(msg) {
+  const el=document.getElementById('loginErr'); el.textContent=msg; el.style.display='block';
+}
+function hideLoginErr() {
+  document.getElementById('loginErr').style.display='none';
+}
+
+// ── CHANGE PIN ──
+function toggleChangePin() {
+  const backdrop = document.getElementById('pinChangeBackdrop');
+  backdrop.classList.toggle('show');
+  const err = document.getElementById('pinChangeErr');
+  err.style.display = 'none';
+  document.getElementById('newPin1').value = '';
+  document.getElementById('newPin2').value = '';
+}
+async function savePinChange() {
+  const p1 = document.getElementById('newPin1').value.trim();
+  const p2 = document.getElementById('newPin2').value.trim();
+  const err = document.getElementById('pinChangeErr');
+  const showErr = (msg) => { err.textContent = msg; err.style.display = 'block'; };
+  if (!PIN_FORMAT_REGEX.test(p1)) { showErr('PIN must be exactly 4 digits.'); return; }
+  if (p1 !== p2) { showErr('PINs do not match.'); return; }
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/set_staff_pin', {
+      method: 'POST',
+      headers: { apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ p_name: currentUser, p_old_pin: currentPin, p_new_pin: p1 })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    currentPin = p1;
+    localStorage.setItem('cwts_pin', p1);
+    toggleChangePin();
+    toast('PIN updated ✓', 'success');
+  } catch (e) {
+    showErr('Could not save — check connection and try again.');
+  }
+}
+function bootApp() {
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('topbarName').textContent=currentUser;
+  buildDayStrip();
+  calcHours();
+  renderHistory();
+  scheduleBreakTimers();
+  ['startTime','endTime'].forEach(id=>{
+    document.getElementById(id).addEventListener('change',()=>calcHours());
+  });
+  requestWakeLock();
+}
+
+// ── GPS ──
+async function getGPS() {
+  return new Promise((resolve,reject)=>{
+    if (!navigator.geolocation){reject('GPS not available');return;}
+    navigator.geolocation.getCurrentPosition(
+      pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude}),
+      err=>reject(err.message),
+      {enableHighAccuracy:true,timeout:10000}
+    );
+  });
+}
+async function reverseGeocode(lat,lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+    const data = await res.json();
+    const a = data.address||{};
+    return [a.road,a.suburb,a.city||a.town||a.village].filter(Boolean).join(', ')||`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  } catch { return `${lat.toFixed(4)}, ${lng.toFixed(4)}`; }
+}
+async function mockClockIn() {
+  // GPS wasn't available/granted in time — record the punch honestly instead of
+  // guessing a location. (Previously this hardcoded "Auckland, NZ" next to
+  // coordinates that were actually Wellington's, which was misleading.)
+  const now=new Date();
+  gpsData.clockInTime=now.toISOString();
+  gpsData.clockInLat=null;
+  gpsData.clockInLng=null;
+  gpsData.clockInAddress='Location unavailable';
+  document.getElementById('startTime').value=now.toTimeString().slice(0,5);
+  calcHours();
+  document.getElementById('clockInTime').textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('clockInBtn').classList.add('clocked');
+  document.getElementById('clockInAddr').textContent=gpsData.clockInAddress;
+  localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
+  toast('Clocked in ✓ (location unavailable)','warn');
+}
+async function mockClockOut() {
+  const now=new Date();
+  gpsData.clockOutTime=now.toISOString();
+  gpsData.clockOutLat=null;
+  gpsData.clockOutLng=null;
+  gpsData.clockOutAddress='Location unavailable';
+  document.getElementById('endTime').value=now.toTimeString().slice(0,5);
+  calcHours();
+  document.getElementById('clockOutTime').textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('clockOutBtn').classList.add('clocked');
+  document.getElementById('clockOutAddr').textContent=gpsData.clockOutAddress;
+  localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
+  toast('Clocked out ✓ (location unavailable)','warn');
+}
+async function doClockIn() {
+  const timeEl=document.getElementById('clockInTime');
+  const addrEl=document.getElementById('clockInAddr');
+  timeEl.innerHTML='<span class="gps-spinner"></span> Clocking in…';
+  
+  try {
+    // Try GPS with 3 second timeout (faster)
+    const gpsPromise = getGPS();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject('GPS timeout'), 3000)
+    );
+    const {lat,lng} = await Promise.race([gpsPromise, timeoutPromise]);
+    
+    const now=new Date();
+    gpsData.clockInTime=now.toISOString();
+    gpsData.clockInLat=lat; gpsData.clockInLng=lng;
+    document.getElementById('startTime').value=now.toTimeString().slice(0,5);
+    calcHours();
+    timeEl.textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('clockInBtn').classList.add('clocked');
+    addrEl.textContent='📍 Getting address…';
+    const addr=await reverseGeocode(lat,lng);
+    gpsData.clockInAddress=addr; addrEl.textContent=addr;
+    localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
+    toast('Clocked in ✓','success');
+  } catch (err) { 
+    mockClockIn();
+  }
+}
+async function doClockOut() {
+  const timeEl=document.getElementById('clockOutTime');
+  const addrEl=document.getElementById('clockOutAddr');
+  timeEl.innerHTML='<span class="gps-spinner"></span> Clocking out…';
+  
+  try {
+    // Try GPS with 3 second timeout (faster)
+    const gpsPromise = getGPS();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject('GPS timeout'), 3000)
+    );
+    const {lat,lng} = await Promise.race([gpsPromise, timeoutPromise]);
+    
+    const now=new Date();
+    gpsData.clockOutTime=now.toISOString();
+    gpsData.clockOutLat=lat; gpsData.clockOutLng=lng;
+    document.getElementById('endTime').value=now.toTimeString().slice(0,5);
+    calcHours();
+    timeEl.textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('clockOutBtn').classList.add('clocked');
+    addrEl.textContent='📍 Getting address…';
+    const addr=await reverseGeocode(lat,lng);
+    gpsData.clockOutAddress=addr; addrEl.textContent=addr;
+    localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
+    toast('Clocked out ✓','success');
+  } catch { 
+    mockClockOut();
+  }
+}
+function resetGPS() {
+  gpsData={clockInTime:null,clockInLat:null,clockInLng:null,clockInAddress:'',clockOutTime:null,clockOutLat:null,clockOutLng:null,clockOutAddress:''};
+  localStorage.removeItem('cwts_clockIn');
+  document.getElementById('clockInBtn').classList.remove('clocked');
+  document.getElementById('clockOutBtn').classList.remove('clocked');
+  document.getElementById('clockInTime').textContent='Tap to clock in';
+  document.getElementById('clockOutTime').textContent='Tap to clock out';
+  document.getElementById('clockInAddr').textContent='';
+  document.getElementById('clockOutAddr').textContent='';
+}
+
+// ── LUNCH TIMER ──
+function startLunch() {
+  if (lunchStartTime) return;
+  // Create (or resume) AudioContext NOW while we have a user gesture
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch(e) {}
+  lunchStartTime = new Date();
+  localStorage.setItem('cwts_lunchStart', lunchStartTime.toISOString()); // persist across suspension
+  lunchEndTime = null;
+  lunchHornFired = false;
+  document.getElementById('lunchStartBtn').disabled = true;
+  document.getElementById('lunchEndBtn').disabled = false;
+  document.getElementById('lunchStatus').textContent = 'Lunch started — timer running';
+  document.getElementById('lunchTimerDisplay').className = 'lunch-timer-display running';
+  lunchIntervalId = setInterval(updateLunchTimer, 1000);
+  updateLunchTimer();
+}
+
+function updateLunchTimer() {
+  if (!lunchStartTime) return;
+  const now = new Date();
+  const elapsed = Math.floor((now - lunchStartTime) / 1000);
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  const display = document.getElementById('lunchTimerDisplay');
+  display.textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+
+  // Horn at 28 minutes — 2 min warning before lunch ends
+  if (mins >= 28 && !lunchHornFired) {
+    lunchHornFired = true;
+    display.className = 'lunch-timer-display over';
+    document.getElementById('lunchStatus').textContent = '🔔 2 minutes left — head back now!';
+    blastHorn();
+    toast('🔔 2 minutes left on lunch — wrap it up!', 'warn');
+    if ('Notification' in window && Notification.permission==='granted') {
+      try { new Notification('🔔 LUNCH OVER', {body:'30 minutes is up — back to work!'}); } catch{}
+    }
+  }
+  // Keep counting over 30 mins (shows how late they are)
+  if (mins >= 30) {
+    display.className = 'lunch-timer-display over';
+  }
+}
+
+function endLunch() {
+  if (!lunchStartTime) return;
+  lunchEndTime = new Date();
+  const elapsedSecs = Math.floor((lunchEndTime - lunchStartTime) / 1000);
+  // Round to the nearest whole minute — a raw float like "0.28min" is meaningless
+  // to a tradesperson reading their own timesheet. Anyone who tapped Start/End at
+  // all gets at least 1 minute deducted rather than a confusing "0min".
+  lunchDurationMins = Math.max(1, Math.round(elapsedSecs / 60));
+  localStorage.removeItem('cwts_lunchStart');
+  stopLunchTimer();
+  document.getElementById('lunchStartBtn').disabled = false;
+  document.getElementById('lunchEndBtn').disabled = true;
+  document.getElementById('lunchTimerDisplay').className = 'lunch-timer-display done';
+  document.getElementById('lunchStatus').textContent = `✓ Lunch done — ${lunchDurationMins} min deducted`;
+  dismissTimer();
+  calcHours();
+  toast(`Lunch ended — ${lunchDurationMins} min deducted ✓`, 'success');
+}
+
+function stopLunchTimer() {
+  if (lunchIntervalId) { clearInterval(lunchIntervalId); lunchIntervalId = null; }
+}
+
+// ── CARGO SHIP HORN (Web Audio API) ──
+function blastHorn() {
+  try {
+    // Reuse existing context (created on user tap) so autoplay policy is satisfied
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx;
+
+    // Maximise volume
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -3;
+    comp.knee.value = 2;
+    comp.ratio.value = 20;
+    comp.attack.value = 0.001;
+    comp.release.value = 0.25;
+    comp.connect(ctx.destination);
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.value = 1.0;
+    masterGain.connect(comp);
+
+    function shipBlast(startAt, duration) {
+      const now = ctx.currentTime + startAt;
+
+      // Layers: [type, frequency, gain] — deep harmonics stack = massive ship horn
+      const layers = [
+        ['sawtooth', 58,  5.0],   // fundamental — earth-shaking bass
+        ['sawtooth', 116, 3.5],   // 2nd harmonic
+        ['square',   87,  3.0],   // adds thickness
+        ['sawtooth', 174, 2.0],   // 3rd harmonic — gives it that foghorn body
+        ['sawtooth', 232, 1.2],   // 4th harmonic — brightness
+        ['square',   29,  2.5],   // sub-bass rumble
+      ];
+
+      layers.forEach(([type, freq, g]) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+
+        // Slow swell in (ships horns build up), then hard cut
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(g, now + 0.3);      // build up
+        gain.gain.setValueAtTime(g, now + duration - 0.2);    // hold
+        gain.gain.linearRampToValueAtTime(0, now + duration); // cut off
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start(now);
+        osc.stop(now + duration + 0.05);
+      });
+    }
+
+    // One long blast (4s), short gap, one shorter blast (2s) — standard signal
+    shipBlast(0,   4.0);
+    shipBlast(5.0, 2.0);
+
+  } catch(e) { console.log('Audio error:', e); }
+}
+
+// ── DAY STRIP — today only ──
+function buildDayStrip() {
+  const strip = document.getElementById('dayStrip');
+  strip.innerHTML = '';
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const d = new Date();
+  const btn = document.createElement('div');
+  btn.className = 'day-btn selected today-btn';
+  btn.dataset.iso = nzDateStr(d);
+  btn.innerHTML = `<span>${d.getDate()}</span>${days[d.getDay()]}`;
+  strip.appendChild(btn);
+}
+function getSelectedDay() {
+  const sel = document.querySelector('.day-btn.selected');
+  return sel ? sel.dataset.iso : nzDateStr();
+}
+
+// ── HOURS CALC ──
+function calcHours() {
+  const s = document.getElementById('startTime').value;
+  const e = document.getElementById('endTime').value;
+  // Use actual lunch duration if timer was used, else default 30
+  const lunchMins = lunchDurationMins > 0 ? lunchDurationMins : 30;
+  
+  // Only calculate if both times are set
+  if (!s || !e) {
+    document.getElementById('hoursCalc').textContent = '—';
+    document.getElementById('hoursBreakdown').textContent = 'Clock in and out to calculate hours';
+    return;
+  }
+  
+  const [sh,sm] = s.split(':').map(Number);
+  const [eh,em] = e.split(':').map(Number);
+  let grossMins = (eh*60+em)-(sh*60+sm);
+  if (grossMins < 0) grossMins += 24*60; // overnight shift — finish is after midnight
+  const paidMins = Math.max(0, grossMins - lunchMins);
+  const paidHrs = (paidMins/60).toFixed(2);
+  const paidDisplay = parseFloat(paidHrs) === 0 ? '0' : paidHrs;
+  document.getElementById('hoursCalc').textContent = paidDisplay;
+  const lunchNum = lunchMins>=60 ? (lunchMins/60).toFixed(1).replace(/\.0$/,'')+'h' : lunchMins+'min';
+  const lunchWord = (lunchDurationMins>0) ? 'lunch' : 'lunch (assumed — use Start Lunch to log actual)';
+  document.getElementById('hoursBreakdown').textContent = `${grossMins}min on site − ${lunchNum} ${lunchWord} = ${paidDisplay}h paid`;
+}
+
+// ── BREAK TIMERS (morning + afternoon) ──
+function scheduleBreakTimers() {
+  clearAllTimers();
+  const today = getSelectedDay();
+  const now = new Date();
+  if (today !== nzDateStr(now)) return;
+  const breaks = [
+    {startId:'morningStart',durId:'morningDur',label:'Morning tea',type:'morning'},
+    {startId:'afternoonStart',durId:'afternoonDur',label:'Afternoon tea',type:'afternoon'},
+  ];
+  breaks.forEach(b=>{
+    const startVal = document.getElementById(b.startId).value;
+    const durMins  = parseInt(document.getElementById(b.durId).value)||10;
+    if (!startVal) return;
+    const [bh,bm] = startVal.split(':').map(Number);
+    const breakStart = new Date(); breakStart.setHours(bh,bm,0,0);
+    const breakEnd   = new Date(breakStart.getTime()+durMins*60000);
+    const warnAt     = new Date(breakEnd.getTime()-2*60000);
+    const msWarn     = warnAt-now;
+    const msEnd      = breakEnd-now;
+    if (msWarn>0) breakTimers.push(setTimeout(()=>showBreakTimerBar(b.label+' ends in',b.type,breakEnd),msWarn));
+    else if (msEnd>0) showBreakTimerBar(b.label+' ends in',b.type,breakEnd);
+    if (msEnd>0) breakTimers.push(setTimeout(()=>{ if(activeBreakType===b.type)dismissTimer(); toast(`${b.label} over — back to work! 💪`,'warn'); },msEnd));
+  });
+}
+
+function showBreakTimerBar(label, type, endTime) {
+  activeBreakEnd=endTime; activeBreakType=type;
+  document.getElementById('breakTimerInner').className='break-timer-inner '+type;
+  document.getElementById('breakTimerText').textContent=label;
+  document.getElementById('breakTimerBar').classList.add('active');
+  if ('Notification' in window && Notification.permission==='default') Notification.requestPermission();
+  if ('Notification' in window && Notification.permission==='granted') {
+    try { new Notification(label, {body:'Head back to work soon ⏱'}); } catch{}
+  }
+  startCountdown();
+}
+
+function startCountdown() {
+  if (activeTimerInterval) clearInterval(activeTimerInterval);
+  activeTimerInterval = setInterval(()=>{
+    if (!activeBreakEnd){clearInterval(activeTimerInterval);return;}
+    const rem = Math.max(0,activeBreakEnd-new Date());
+    const mins=Math.floor(rem/60000), secs=Math.floor((rem%60000)/1000);
+    document.getElementById('breakTimerCountdown').textContent=`${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+    const inner=document.getElementById('breakTimerInner');
+    rem<30000?inner.classList.add('warning'):inner.classList.remove('warning');
+    if(rem<=0){clearInterval(activeTimerInterval);dismissTimer();}
+  },1000);
+}
+
+function dismissTimer() {
+  document.getElementById('breakTimerBar').classList.remove('active');
+  activeBreakEnd=null; activeBreakType=null;
+  if(activeTimerInterval){clearInterval(activeTimerInterval);activeTimerInterval=null;}
+}
+
+function clearAllTimers() {
+  breakTimers.forEach(t=>clearTimeout(t)); breakTimers=[];
+  if(activeTimerInterval){clearInterval(activeTimerInterval);activeTimerInterval=null;}
+  dismissTimer();
+}
+
+// ── SUBMIT ──
+async function submitEntry() {
+  const day=getSelectedDay();
+  const start=document.getElementById('startTime').value;
+  const end=document.getElementById('endTime').value;
+  const morningDur=parseInt(document.getElementById('morningDur').value)||10;
+  const afternoonDur=parseInt(document.getElementById('afternoonDur').value)||10;
+  const job=document.getElementById('jobSelect').value;
+  const notes=document.getElementById('notesField').value.trim();
+  const paidHrs=parseFloat(document.getElementById('hoursCalc').textContent);
+  const lunchMins = lunchDurationMins>0 ? lunchDurationMins : 30;
+
+  if (!job){toast('Please select a job / site','error');return;}
+  if (paidHrs<=0){toast('Check your start / finish times','error');return;}
+
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true; btn.textContent='Submitting…';
+
+  const row={
+    id:Date.now(), staff:currentUser, date:day,
+    start_time:start, end_time:end,
+    morning_break:morningDur,
+    lunch_break:lunchMins,
+    afternoon_break:afternoonDur,
+    lunch_start: lunchStartTime ? lunchStartTime.toTimeString().slice(0,5) : null,
+    paid_hours:paidHrs, job, notes,
+    status:'pending',
+    submitted_at:new Date().toISOString(),
+    clock_in_time:gpsData.clockInTime, clock_in_lat:gpsData.clockInLat,
+    clock_in_lng:gpsData.clockInLng, clock_in_address:gpsData.clockInAddress,
+    clock_out_time:gpsData.clockOutTime, clock_out_lat:gpsData.clockOutLat,
+    clock_out_lng:gpsData.clockOutLng, clock_out_address:gpsData.clockOutAddress
+  };
+
+  try {
+    await dbInsert(row);
+    setSyncDot(true);
+    toast('Submitted ✓ — Monique can see it now','success');
+    
+    // RESET EVERYTHING
+    document.getElementById('notesField').value='';
+    document.getElementById('jobSelect').value='';
+    document.getElementById('startTime').value='';
+    document.getElementById('endTime').value='';
+    
+    // Reset lunch
+    lunchStartTime=null; lunchEndTime=null; lunchDurationMins=0; lunchHornFired=false;
+    localStorage.removeItem('cwts_lunchStart');
+    stopLunchTimer();
+    document.getElementById('lunchTimerDisplay').textContent='00:00';
+    document.getElementById('lunchTimerDisplay').className='lunch-timer-display';
+    document.getElementById('lunchStartBtn').disabled=false;
+    document.getElementById('lunchEndBtn').disabled=true;
+    document.getElementById('lunchStatus').textContent='Tap "Start Lunch" when you go on break';
+    
+    // Reset GPS & clock times
+    resetGPS();
+    
+    // Recalculate hours (should show "—")
+    calcHours();
+    
+    showPage('history',document.querySelectorAll('.tab')[1]);
+    renderHistory();
+  } catch(err) {
+    setSyncDot(false);
+    toast('Offline — saved locally','warn');
+    const q=JSON.parse(localStorage.getItem('cwts_queue')||'[]');
+    q.push(row); localStorage.setItem('cwts_queue',JSON.stringify(q));
+    renderHistory();
+  } finally {
+    btn.disabled=false; btn.textContent='Submit Timesheet';
+  }
+}
+
+// ── HISTORY ──
+async function renderHistory() {
+  const list=document.getElementById('historyList');
+  list.innerHTML='<div class="empty-state">Loading…</div>';
+  await flushQueue();
+  let entries=[];
+  try { entries=await dbFetch(currentUser); setSyncDot(true); }
+  catch { setSyncDot(false); list.innerHTML='<div class="empty-state">Offline — check connection</div>'; return; }
+  const queued=JSON.parse(localStorage.getItem('cwts_queue')||'[]').filter(r=>r.staff===currentUser).map(r=>({...r,status:'syncing'}));
+  const all=[...queued,...entries];
+  if (!all.length){list.innerHTML='<div class="empty-state">No submissions yet.<br>Fill in your first timesheet above.</div>';return;}
+  const grouped={};
+  all.forEach(e=>{
+    const wk=getMonday(new Date((e.date||'')+'T12:00:00'));
+    const wkStr=wk.toLocaleDateString('en-NZ',{day:'numeric',month:'short'});
+    if(!grouped[wkStr])grouped[wkStr]=[];
+    grouped[wkStr].push(e);
+  });
+  list.innerHTML=Object.entries(grouped).map(([wk,items])=>`
+    <div class="week-group">
+      <div class="week-heading">Week of ${wk}</div>
+      ${items.map(e=>`
+        <div class="entry-card">
+          <div class="entry-top">
+            <span class="entry-date">${fmtDate(e.date)}</span>
+            <span class="entry-hours">${e.paid_hours}h paid</span>
+          </div>
+          <div class="entry-meta">${e.start_time||'?'} – ${e.end_time||'?'} · ${e.job||'—'}</div>
+          <div class="entry-meta">☕ ${e.morning_break||10}min · 🥪 ${e.lunch_break||30}min lunch · 🍵 ${e.afternoon_break||10}min</div>
+          ${e.clock_in_address?`<div class="entry-gps">📍 In: ${e.clock_in_address}</div>`:''}
+          ${e.clock_out_address?`<div class="entry-gps">🏁 Out: ${e.clock_out_address}</div>`:''}
+          ${e.notes?`<div class="entry-meta" style="margin-top:0.3rem;font-style:italic;">${e.notes}</div>`:''}
+          <span class="entry-status status-${e.status}">${e.status==='syncing'?'⏳ syncing…':e.status}</span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function fmtDate(iso){
+  if(!iso)return'—';
+  return new Date(iso+'T12:00:00').toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'});
+}
+function getMonday(d){
+  const day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);
+  return new Date(new Date(d).setDate(diff));
+}
+function showPage(name,tab){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  tab.classList.add('active');
+  if(name==='history')renderHistory();
+}
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show'+(type?' '+type:'');
+  setTimeout(()=>el.className='toast',3500);
+}
+
+// ── RESTORE STATE after suspension/reload ──
+// ── DATE HELPERS ──
+// All "what day is it" logic must use the New Zealand calendar date, not the
+// browser's UTC date. NZ is UTC+12 (UTC+13 in daylight saving), so before local
+// noon toISOString() returns YESTERDAY's date — which previously filed morning
+// shifts under the wrong day and made the clock-in look "stale" after midday.
+function nzDateStr(dt = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland',
+    year: 'numeric', month: '2-digit', day: '2-digit' }).format(dt); // YYYY-MM-DD
+}
+function isToday(dateInput) {
+  return nzDateStr(new Date(dateInput)) === nzDateStr();
+}
+function restoreState() {
+  // Restore GPS clock-in — but only if it's from today. Previously this restored
+  // whatever was in localStorage regardless of date, so a punch from a prior day
+  // (or leftover test data) would silently reappear as if it just happened.
+  const savedClockIn = localStorage.getItem('cwts_clockIn');
+  if (savedClockIn) {
+    try {
+      const d = JSON.parse(savedClockIn);
+      const stale = (d.clockInTime && !isToday(d.clockInTime)) || (d.clockOutTime && !isToday(d.clockOutTime));
+      if (stale) {
+        localStorage.removeItem('cwts_clockIn');
+      } else {
+        gpsData = d;
+        if (d.clockInTime) {
+          const t = new Date(d.clockInTime);
+          document.getElementById('clockInTime').textContent = t.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+          document.getElementById('clockInBtn').classList.add('clocked');
+          document.getElementById('startTime').value = t.toTimeString().slice(0,5);
+          if (d.clockInAddress) document.getElementById('clockInAddr').textContent = d.clockInAddress;
+        }
+        if (d.clockOutTime) {
+          const t = new Date(d.clockOutTime);
+          document.getElementById('clockOutTime').textContent = t.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+          document.getElementById('clockOutBtn').classList.add('clocked');
+          document.getElementById('endTime').value = t.toTimeString().slice(0,5);
+          if (d.clockOutAddress) document.getElementById('clockOutAddr').textContent = d.clockOutAddress;
+        }
+        calcHours();
+      }
+    } catch(e) {}
+  }
+
+  // Restore lunch timer if it was running — same staleness check applies.
+  const savedLunch = localStorage.getItem('cwts_lunchStart');
+  if (savedLunch) {
+    try {
+      if (!isToday(savedLunch)) {
+        localStorage.removeItem('cwts_lunchStart');
+      } else {
+        lunchStartTime = new Date(savedLunch);
+        lunchEndTime = null;
+        lunchHornFired = false;
+        document.getElementById('lunchStartBtn').disabled = true;
+        document.getElementById('lunchEndBtn').disabled = false;
+        document.getElementById('lunchTimerDisplay').className = 'lunch-timer-display running';
+        // Check if horn should already have fired
+        const elapsedMins = (new Date() - lunchStartTime) / 60000;
+        if (elapsedMins >= 28) lunchHornFired = true;
+        lunchIntervalId = setInterval(updateLunchTimer, 1000);
+        updateLunchTimer();
+        document.getElementById('lunchStatus').textContent = 'Lunch timer restored — still running';
+      }
+    } catch(e) {}
+  }
+}
+
+// ── WAKE LOCK — prevent phone from killing the page ──
+let wakeLock = null;
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch(e) {}
+}
+async function reacquireWakeLock() {
+  if ('wakeLock' in navigator && (!wakeLock || wakeLock.released)) {
+    await requestWakeLock();
+  }
+}
+
+// ── PAGE VISIBILITY — re-sync when app comes back into view ──
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    reacquireWakeLock();
+    // Re-sync lunch timer display in case setInterval drifted
+    if (lunchStartTime && !lunchEndTime) {
+      updateLunchTimer();
+    }
+    calcHours();
+  }
+});
+
+// Retry any stuck offline submissions whenever connectivity comes back, and as
+// a periodic safety net every minute while the app is open — instead of only
+// ever trying once at the moment of a failed submit.
+window.addEventListener('online', () => { if (currentUser) flushQueue().then(()=>{ if(document.getElementById('page-history').classList.contains('active')) renderHistory(); }); });
+setInterval(() => { if (currentUser && navigator.onLine) flushQueue(); }, 60000);
+
+window.onload=async ()=>{
+  const savedUser = localStorage.getItem('cwts_user');
+  const savedPin = localStorage.getItem('cwts_pin');
+  if (savedUser && savedPin) {
+    // Re-verify the saved credentials server-side before auto-logging in.
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/verify_staff_pin', {
+        method:'POST',
+        headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+        body:JSON.stringify({ p_name: savedUser, p_pin: savedPin })
+      });
+      const rows = res.ok ? await res.json() : [];
+      if (Array.isArray(rows) && rows.length === 1) {
+        currentUser = savedUser;
+        currentPin = savedPin;
+        bootApp();
+        restoreState();
+        requestWakeLock();
+      } else {
+        localStorage.removeItem('cwts_user');
+        localStorage.removeItem('cwts_pin');
+      }
+    } catch (e) {
+      // Offline or unreachable — do not auto-login; leave saved creds for next try.
+      console.log('Auto-login re-verify failed', e);
+    }
+  }
+  // Register service worker for PWA
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  }
+};
+</script>
+</body>
+</html>
+×

@@ -1,7 +1,9 @@
-const CACHE = 'cw-timesheet-v1';
+const CACHE = 'cw-timesheet-v2';
 const ASSETS = [
   '/',
   '/index.html',
+  '/staff.html',
+  '/owner.html',
   '/manifest.json'
 ];
 

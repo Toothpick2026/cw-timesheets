@@ -2,7 +2,7 @@
   "name": "CW Timesheet",
   "short_name": "CW Time",
   "description": "Mobile timesheet app for CorpWorks staff - clock in/out, track breaks, log hours with GPS",
-  "start_url": "/",
+  "start_url": "/staff.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -28,14 +28,14 @@
       "name": "Clock In",
       "short_name": "Clock In",
       "description": "Quickly clock in to work",
-      "url": "/?action=clock-in",
+      "url": "/staff.html?action=clock-in",
       "icons": []
     },
     {
       "name": "View History",
       "short_name": "History",
       "description": "View submitted timesheets",
-      "url": "/?action=history",
+      "url": "/staff.html?action=history",
       "icons": []
     }
   ]

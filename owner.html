@@ -29,7 +29,7 @@
   header h1 { font-family: var(--heading); font-weight: 400; font-size: 26px; letter-spacing: 1px; margin: 0; }
   header h1 .mark { color: var(--brand); }
   header .who { font-size: 13px; color: var(--muted); }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
   .card {
     background: var(--card); border: 1px solid var(--line); border-radius: 12px;
     padding: 22px; margin-bottom: 18px;
@@ -392,7 +392,9 @@
   function isoDaysAgo(n) {
     const d = new Date();
     d.setDate(d.getDate() - n);
-    return d.toISOString().slice(0, 10);
+    // Use the NZ calendar date, not UTC (see note in the staff app):
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland',
+      year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
   }
   function hrs(v) { return (v == null || v === "") ? "" : Number(v).toFixed(2); }
   // Shared CSV cell escaper (quotes values containing commas, quotes, or newlines)
