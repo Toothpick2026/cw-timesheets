@@ -737,12 +737,16 @@
       show($("tsTable"), false);
       return;
     }
-    let approvedCount = 0, approvedHrs = 0, pendingCount = 0;
+    let approvedCount = 0, approvedHrs = 0, pendingCount = 0, activeCount = 0;
     tsRows.forEach((r) => {
       if (r.status === "approved") { approvedCount++; approvedHrs += Number(r.paid_hours) || 0; }
+      else if (r.status === "active") { activeCount++; }
       else pendingCount++;
       const tr = document.createElement("tr");
       const isApproved = r.status === "approved";
+      const isActive = r.status === "active";
+      const statusTxt = isApproved ? "Approved" : (isActive ? (r.end_time ? "Clocked out" : "🟢 On site") : "Pending");
+      const statusCls = isApproved ? "approved" : (isActive ? "active" : "pending");
       tr.innerHTML =
         '<td>' + escapeHtml(r.staff) + '</td>' +
         '<td>' + escapeHtml(r.role || "") + '</td>' +
@@ -755,14 +759,15 @@
         '<td>' + noteCell(r.notes) + '</td>' +
         '<td>' + locCell(r.clock_in_address, r.clock_in_lat, r.clock_in_lng) + '</td>' +
         '<td>' + locCell(r.clock_out_address, r.clock_out_lat, r.clock_out_lng) + '</td>' +
-        '<td><span class="pill ' + (isApproved ? "approved" : "pending") + '">' +
-          (isApproved ? "Approved" : "Pending") + '</span></td>' +
+        '<td><span class="pill ' + statusCls + '">' + statusTxt + '</span></td>' +
         '<td><div class="actions">' +
           '<button class="secondary small" data-gps="' + r.id + '">📍 Location</button>' +
           '<button class="secondary small" data-adj="' + r.id + '">Adjust</button>' +
-          (isApproved
-            ? '<button class="danger small" data-undo="' + r.id + '">Undo</button>'
-            : '<button class="ok small" data-appr="' + r.id + '">Approve</button>') +
+          (isActive
+            ? ''
+            : isApproved
+              ? '<button class="danger small" data-undo="' + r.id + '">Undo</button>'
+              : '<button class="ok small" data-appr="' + r.id + '">Approve</button>') +
         '</div></td>';
       body.appendChild(tr);
       const apprBtn = tr.querySelector("[data-appr]");
@@ -775,7 +780,8 @@
     $("tsSummary").innerHTML =
       '<b>' + tsRows.length + '</b> timesheet(s) · ' +
       '<b>' + approvedCount + '</b> approved (' + approvedHrs.toFixed(2) + ' hrs) · ' +
-      '<b>' + pendingCount + '</b> pending';
+      '<b>' + pendingCount + '</b> pending' +
+      (activeCount ? ' · <b>' + activeCount + '</b> on site now' : '');
     show($("tsTable"), true);
   }
   async function approveTs(id) {

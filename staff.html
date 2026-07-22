@@ -528,6 +528,56 @@ function setSyncDot(online) {
   dot.className = 'sync-dot'+(online?'':' offline');
 }
 
+// ── LIVE CLOCK EVENTS ──
+// Record clock-in / clock-out to the server the moment they happen so the owner
+// can see who's on site before end-of-day submit. Best-effort with an offline
+// queue; the full timesheet still submits normally either way.
+function clockPayload(){
+  return {
+    date: getSelectedDay(),
+    start_time: gpsData.clockInTime ? new Date(gpsData.clockInTime).toTimeString().slice(0,5) : null,
+    end_time:   gpsData.clockOutTime ? new Date(gpsData.clockOutTime).toTimeString().slice(0,5) : null,
+    clock_in_time: gpsData.clockInTime, clock_out_time: gpsData.clockOutTime,
+    clock_in_lat: gpsData.clockInLat, clock_in_lng: gpsData.clockInLng, clock_in_address: gpsData.clockInAddress,
+    clock_out_lat: gpsData.clockOutLat, clock_out_lng: gpsData.clockOutLng, clock_out_address: gpsData.clockOutAddress
+  };
+}
+async function serverClock(kind){
+  if(!currentUser || !currentPin) return;
+  const fn = kind==='in' ? 'clock_in' : 'clock_out';
+  const payload = clockPayload();
+  try{
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+      method:'POST',
+      headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: payload })
+    });
+    if(!res.ok) throw new Error(await res.text());
+    setSyncDot(true);
+  }catch(e){
+    const q = JSON.parse(localStorage.getItem('cwts_clockQueue')||'[]');
+    q.push({ fn, payload }); localStorage.setItem('cwts_clockQueue', JSON.stringify(q));
+    setSyncDot(false);
+  }
+}
+async function flushClockQueue(){
+  let q = JSON.parse(localStorage.getItem('cwts_clockQueue')||'[]');
+  if(!q.length || !currentUser || !currentPin) return;
+  const remain=[];
+  for(const item of q){
+    try{
+      const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + item.fn, {
+        method:'POST',
+        headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+        body: JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: item.payload })
+      });
+      if(!res.ok) throw new Error();
+    }catch(e){ remain.push(item); }
+  }
+  if(remain.length) localStorage.setItem('cwts_clockQueue', JSON.stringify(remain));
+  else localStorage.removeItem('cwts_clockQueue');
+}
+
 // ── OFFLINE QUEUE ──
 // Rows land here when a submit fails (no connection). Previously nothing ever
 // retried them, so a failed submission stayed "syncing…" forever and any
@@ -680,7 +730,7 @@ async function mockClockIn() {
   document.getElementById('clockInBtn').classList.add('clocked');
   document.getElementById('clockInAddr').textContent=gpsData.clockInAddress;
   localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
-  toast('Clocked in ✓ (location unavailable)','warn');
+  toast('Clocked in ✓ (location unavailable)','warn'); serverClock('in');
 }
 async function mockClockOut() {
   const now=new Date();
@@ -694,7 +744,7 @@ async function mockClockOut() {
   document.getElementById('clockOutBtn').classList.add('clocked');
   document.getElementById('clockOutAddr').textContent=gpsData.clockOutAddress;
   localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
-  toast('Clocked out ✓ (location unavailable)','warn');
+  toast('Clocked out ✓ (location unavailable)','warn'); serverClock('out');
 }
 async function doClockIn() {
   const timeEl=document.getElementById('clockInTime');
@@ -720,7 +770,7 @@ async function doClockIn() {
     const addr=await reverseGeocode(lat,lng);
     gpsData.clockInAddress=addr; addrEl.textContent=addr;
     localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
-    toast('Clocked in ✓','success');
+    toast('Clocked in ✓','success'); serverClock('in');
   } catch (err) { 
     mockClockIn();
   }
@@ -749,7 +799,7 @@ async function doClockOut() {
     const addr=await reverseGeocode(lat,lng);
     gpsData.clockOutAddress=addr; addrEl.textContent=addr;
     localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
-    toast('Clocked out ✓','success');
+    toast('Clocked out ✓','success'); serverClock('out');
   } catch { 
     mockClockOut();
   }
@@ -1234,8 +1284,8 @@ document.addEventListener('visibilitychange', () => {
 // Retry any stuck offline submissions whenever connectivity comes back, and as
 // a periodic safety net every minute while the app is open — instead of only
 // ever trying once at the moment of a failed submit.
-window.addEventListener('online', () => { if (currentUser) flushQueue().then(()=>{ if(document.getElementById('page-history').classList.contains('active')) renderHistory(); }); });
-setInterval(() => { if (currentUser && navigator.onLine) flushQueue(); }, 60000);
+window.addEventListener('online', () => { if (currentUser) flushClockQueue(); if (currentUser) flushQueue().then(()=>{ if(document.getElementById('page-history').classList.contains('active')) renderHistory(); }); });
+setInterval(() => { if (currentUser && navigator.onLine) { flushQueue(); flushClockQueue(); } }, 60000);
 
 window.onload=async ()=>{
   const savedUser = localStorage.getItem('cwts_user');
