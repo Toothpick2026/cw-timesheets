@@ -1030,9 +1030,9 @@ async function submitEntry() {
   const row={
     id:Date.now(), staff:currentUser, date:day,
     start_time:start, end_time:end,
-    morning_break:morningDur,
-    lunch_break:lunchMins,
-    afternoon_break:afternoonDur,
+    morning_break:Math.round(morningDur),
+    lunch_break:Math.round(lunchMins),
+    afternoon_break:Math.round(afternoonDur),
     lunch_start: lunchStartTime ? lunchStartTime.toTimeString().slice(0,5) : null,
     paid_hours:paidHrs, job, notes,
     status:'pending',
