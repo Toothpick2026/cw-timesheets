@@ -199,7 +199,7 @@
     </div>
     <div class="field">
       <label>PIN</label>
-      <input type="password" inputmode="numeric" maxlength="6" id="pinInput" placeholder="PIN" onkeydown="if(event.key==='Enter')doLogin()">
+      <input type="password" inputmode="numeric" maxlength="6" id="pinInput" placeholder="PIN (4–6 digits)" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <button class="btn-primary" onclick="doLogin()">Start →</button>
     <div class="err" id="loginErr">Incorrect PIN. Try again.</div>
@@ -222,8 +222,8 @@
     <div class="modal-card">
       <h3>Change your PIN</h3>
       <div class="field">
-        <label>New PIN (4–6 digits)</label>
-        <input type="password" inputmode="numeric" maxlength="6" id="newPin1" placeholder="4–6 digit PIN">
+        <label>New 4-digit PIN</label>
+        <input type="password" inputmode="numeric" maxlength="6" id="newPin1" placeholder="PIN (4–6 digits)">
       </div>
       <div class="field">
         <label>Confirm new PIN</label>
@@ -615,43 +615,40 @@ async function doLogin() {
   // (verify_staff_pin), then fall back to the master admin PIN
   // (verify_admin_pin) so Monique is never locked out of an account.
   const rpcHeaders = { apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' };
-  let ok = false, locked = false, lockedWait = 5;
+  let ok = false;
   try {
     const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/verify_staff_pin', {
       method:'POST', headers:rpcHeaders,
       body:JSON.stringify({ p_name: name, p_pin: pin })
     });
+    let staffStatus = null, waitMin = 5;
     if (res.ok) {
       const rows = await res.json();
-      const row = Array.isArray(rows) ? rows[0] : null;
-      // verify_staff_pin returns a row only for a correct PIN.
-      if (row && (row.status === 'ok' || (row.id && !row.status))) ok = true;
+      const row = Array.isArray(rows) && rows.length ? rows[0] : null;
+      if (row) {
+        staffStatus = row.status;
+        if (row.wait_min != null) waitMin = row.wait_min;
+      }
+      ok = staffStatus === 'ok';
     }
     if (!ok) {
-      // Master admin PIN fallback — lets Monique into any account even if that
-      // name is currently rate-limited, so the owner is never locked out.
+      // Master admin PIN gets Monique into any account, even one in cooldown.
       const ares = await fetch(SUPABASE_URL + '/rest/v1/rpc/verify_admin_pin', {
         method:'POST', headers:rpcHeaders,
         body:JSON.stringify({ p_pin: pin })
       });
-      if (ares.ok && (await ares.json()) === true) { ok = true; locked = false; }
+      if (ares.ok) ok = (await ares.json()) === true;
     }
     if (!ok) {
-      // Not the personal PIN and not the admin PIN — is this name rate-limited?
-      try {
-        const lres = await fetch(SUPABASE_URL + '/rest/v1/rpc/pin_lock_status', {
-          method:'POST', headers:rpcHeaders, body:JSON.stringify({ p_name: name })
-        });
-        if (lres.ok) { const mins = await lres.json(); if (typeof mins === 'number' && mins > 0) { locked = true; lockedWait = mins; } }
-      } catch (e) { /* ignore; generic message below */ }
+      if (staffStatus === 'locked') {
+        showLoginErr('Too many incorrect attempts. Please wait about ' + waitMin + ' minute' + (waitMin === 1 ? '' : 's') + ' and try again.');
+      } else {
+        showLoginErr('Incorrect PIN. Try again.');
+      }
+      return;
     }
   } catch (e) {
     showLoginErr('Could not reach server — check connection and try again.');
-    return;
-  }
-  if (!ok) {
-    if (locked) showLoginErr('Too many incorrect PIN attempts. Please wait about ' + lockedWait + ' minute(s), then try again.');
-    else showLoginErr('Incorrect PIN. Try again.');
     return;
   }
   hideLoginErr();
@@ -1316,31 +1313,19 @@ window.onload=async ()=>{
         body:JSON.stringify({ p_name: savedUser, p_pin: savedPin })
       });
       const rows = res.ok ? await res.json() : [];
-      const row = Array.isArray(rows) ? rows[0] : null;
-      const okAuto = !!(row && (row.status === 'ok' || (row.id && !row.status)));
-      if (okAuto) {
+      const st = Array.isArray(rows) && rows.length ? rows[0].status : null;
+      if (st === 'ok') {
         currentUser = savedUser;
         currentPin = savedPin;
         bootApp();
         restoreState();
         requestWakeLock();
-      } else {
-        // Distinguish a temporary rate-limit lock from a genuinely wrong saved PIN.
-        let lockedNow = false;
-        try {
-          const lres = await fetch(SUPABASE_URL + '/rest/v1/rpc/pin_lock_status', {
-            method:'POST',
-            headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
-            body:JSON.stringify({ p_name: savedUser })
-          });
-          if (lres.ok) { const mins = await lres.json(); lockedNow = (typeof mins === 'number' && mins > 0); }
-        } catch (e) {}
-        if (!lockedNow) {
-          localStorage.removeItem('cwts_user');
-          localStorage.removeItem('cwts_pin');
-        }
-        // If locked, keep saved creds so auto-login resumes after the cooldown.
+      } else if (st === 'wrong') {
+        // PIN is genuinely invalid (e.g. changed) — clear saved creds.
+        localStorage.removeItem('cwts_user');
+        localStorage.removeItem('cwts_pin');
       }
+      // st === 'locked' or null (offline): keep saved creds and retry later.
     } catch (e) {
       // Offline or unreachable — do not auto-login; leave saved creds for next try.
       console.log('Auto-login re-verify failed', e);
@@ -1354,4 +1339,3 @@ window.onload=async ()=>{
 </script>
 </body>
 </html>
-×
