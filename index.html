@@ -188,6 +188,7 @@
   <div class="logo-block">
     <div class="logo-cw">KNOCKOFF</div>
     <div class="logo-sub">Timesheets</div>
+    <div class="logo-sub" id="loginOrgName" style="font-weight:600;margin-top:4px;"></div>
   </div>
   <div class="login-card">
     <h2>Who are you?</h2>
@@ -201,7 +202,7 @@
       <label>PIN</label>
       <input type="password" inputmode="numeric" maxlength="4" id="pinInput" placeholder="4-digit PIN" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <button class="btn-primary" onclick="doLogin()">Start →</button>
+    <button class="btn-primary" id="loginBtn" onclick="doLogin()">Start →</button>
     <div class="err" id="loginErr">Incorrect PIN. Try again.</div>
   </div>
 </div>
@@ -377,8 +378,11 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const SUPABASE_URL = 'https://baojgmrlwunizgcauyhl.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhb2pnbXJsd3VuaXpnY2F1eWhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDYwODAsImV4cCI6MjA5NTIyMjA4MH0.XPvjOWlgWkK5YWUax47aDvMS1V6Dbf4LERqI5Yht1r8';
+// ── SANDBOX (multi-tenant build) — NOT the live crew's database. ──
+// Live is baojgmrlwunizgcauyhl; this branch points at the cw-timesheets-sandbox
+// project so the multi-tenant wiring can be proven without touching live.
+const SUPABASE_URL = 'https://deghlwobdzyxkbzflmch.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlZ2hsd29iZHp5eGtiemZsbWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNzU2MjgsImV4cCI6MjA5ODk1MTYyOH0.kZXnEE0sB9A4vcLEHeaG0q8tDS_-QYzE4FqG6qPEqYk';
 const SUPABASE_AUTH_HEADERS = {'apikey':SUPABASE_KEY,'Authorization':'Bearer ' + SUPABASE_KEY};
 const PIN_FORMAT_REGEX = /^\d{4}$/;
 
@@ -413,7 +417,37 @@ populateNameDropdown();
 // because a staff member changed their PIN. Loaded from Supabase `app_config`.
 let ADMIN_PIN = null;
 
-const ORG_ID = 'a0d4b1d7-05de-4623-8e40-11ad338df54a';
+// ── MULTI-TENANT: the org is resolved from the company slug in the URL ──
+// Link shape: app.knockoff.co.nz/<slug>  (e.g. /sandbox-test). Also accepts
+// ?org=<slug> as a fallback. org_by_slug() returns only active/past-due orgs.
+let ORG_ID = null;
+let ORG_NAME = null;
+
+function readSlugFromUrl() {
+  const q = new URLSearchParams(location.search).get('org');
+  if (q) return q.trim().toLowerCase();
+  const seg = location.pathname.split('/').filter(Boolean)[0] || '';
+  // ignore known asset/file paths so only a real company slug is used
+  if (!seg || seg.includes('.') || seg === 'owner') return '';
+  return decodeURIComponent(seg).trim().toLowerCase();
+}
+
+async function resolveOrg() {
+  const slug = readSlugFromUrl();
+  if (!slug) return false;
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/org_by_slug', {
+      method:'POST',
+      headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ p_slug: slug })
+    });
+    if (!res.ok) return false;
+    const rows = await res.json();
+    const org = Array.isArray(rows) ? rows[0] : rows;
+    if (org && org.id) { ORG_ID = org.id; ORG_NAME = org.name || null; return true; }
+  } catch (e) { console.log('org_by_slug failed', e); }
+  return false;
+}
 
 async function loadStaffAndConfig() {
   // Names only — the client NEVER sees PINs. The list_staff RPC returns the
@@ -441,7 +475,7 @@ async function loadStaffAndConfig() {
   }
   populateNameDropdown(); // refresh with the live database names
 }
-loadStaffAndConfig();
+// loadStaffAndConfig() is invoked from init() after the org is resolved.
 
 // ── Job sites: live list from the database, editable in the owner portal.
 // Falls back to the built-in list if the RPC can't be reached. ──
@@ -461,7 +495,7 @@ function populateJobDropdown(names){
 async function loadSites(){
   let names = DEFAULT_SITES;
   try{
-    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/list_sites', {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/list_jobs', {
       method:'POST',
       headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
       body: JSON.stringify({ p_org: ORG_ID })
@@ -470,10 +504,10 @@ async function loadSites(){
       const rows = await res.json();
       if(rows && rows.length){ names = rows.map(r=>String(r.name||'').trim()).filter(Boolean); }
     }
-  }catch(e){ console.log('Using default site list — list_sites RPC not reachable yet', e); }
+  }catch(e){ console.log('Using default job list — list_jobs RPC not reachable yet', e); }
   populateJobDropdown(names);
 }
-loadSites();
+// loadSites() is invoked from init() after the org is resolved.
 
 let currentUser = null;
 let currentPin = null;
@@ -505,7 +539,7 @@ async function dbInsert(row) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/submit_timesheet', {
     method:'POST',
     headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
-    body:JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: data })
+    body:JSON.stringify({ p_org: ORG_ID, p_name: currentUser, p_pin: currentPin, p_data: data })
   });
   if (!res.ok) throw new Error(await res.text());
 }
@@ -515,7 +549,7 @@ async function dbFetch(staff) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/my_timesheets', {
     method:'POST',
     headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
-    body:JSON.stringify({ p_name: currentUser, p_pin: currentPin })
+    body:JSON.stringify({ p_org: ORG_ID, p_name: currentUser, p_pin: currentPin })
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
@@ -566,7 +600,7 @@ async function doLogin() {
   try {
     const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/verify_staff_pin', {
       method:'POST', headers:rpcHeaders,
-      body:JSON.stringify({ p_name: name, p_pin: pin })
+      body:JSON.stringify({ p_org: ORG_ID, p_name: name, p_pin: pin })
     });
     if (res.ok) {
       const rows = await res.json();
@@ -618,7 +652,7 @@ async function savePinChange() {
     const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/set_staff_pin', {
       method: 'POST',
       headers: { apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
-      body: JSON.stringify({ p_name: currentUser, p_old_pin: currentPin, p_new_pin: p1 })
+      body: JSON.stringify({ p_org: ORG_ID, p_name: currentUser, p_old_pin: currentPin, p_new_pin: p1 })
     });
     if (!res.ok) throw new Error(await res.text());
     currentPin = p1;
@@ -1238,6 +1272,23 @@ window.addEventListener('online', () => { if (currentUser) flushQueue().then(()=
 setInterval(() => { if (currentUser && navigator.onLine) flushQueue(); }, 60000);
 
 window.onload=async ()=>{
+  // Resolve the company from the URL slug BEFORE anything else — every staff
+  // RPC is org-scoped and needs the org id first. Without a valid slug the app
+  // cannot operate, so we tell the user rather than silently failing.
+  const orgOk = await resolveOrg();
+  if (orgOk) {
+    const nameEl = document.getElementById('loginOrgName');
+    if (nameEl && ORG_NAME) nameEl.textContent = ORG_NAME;
+    if (ORG_NAME) document.title = ORG_NAME + ' — Timesheets';
+    loadStaffAndConfig();
+    loadSites();
+  } else {
+    showLoginErr('This timesheet link is missing or has an invalid company code. Please use the link your employer gave you.');
+    const btn = document.getElementById('loginBtn'); if (btn) btn.disabled = true;
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    return;
+  }
+
   const savedUser = localStorage.getItem('cwts_user');
   const savedPin = localStorage.getItem('cwts_pin');
   if (savedUser && savedPin) {
@@ -1246,7 +1297,7 @@ window.onload=async ()=>{
       const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/verify_staff_pin', {
         method:'POST',
         headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
-        body:JSON.stringify({ p_name: savedUser, p_pin: savedPin })
+        body:JSON.stringify({ p_org: ORG_ID, p_name: savedUser, p_pin: savedPin })
       });
       const rows = res.ok ? await res.json() : [];
       if (Array.isArray(rows) && rows.length === 1) {
