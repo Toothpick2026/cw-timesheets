@@ -8,1067 +8,1165 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    color-scheme: dark;
-    --bg: #0d0d0d; --card: #1a1a1a; --ink: #f0f0f0; --muted: #888888;
-    --line: #2a2a2a; --field: #141414;
-    --brand: #FFD000; --brand-dark: #e6bb00; --accent: #FF5C00;
-    --danger: #ef4444; --ok: #4CAF50; --warn-bg: rgba(255,208,0,.12);
-    --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    --heading: 'Bebas Neue', sans-serif;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; font-family: var(--font);
-    background: var(--bg); color: var(--ink); font-size: 16px; line-height: 1.45;
-  }
-  header {
-    background: var(--card); border-bottom: 1px solid var(--line);
-    padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
-  }
-  header h1 { font-family: var(--heading); font-weight: 400; font-size: 26px; letter-spacing: 1px; margin: 0; }
-  header h1 .mark { color: var(--brand); }
-  header .who { font-size: 13px; color: var(--muted); }
-  .wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
-  .card {
-    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
-    padding: 22px; margin-bottom: 18px;
-  }
-  h2 { font-size: 16px; font-weight: 600; margin: 0 0 14px; }
-  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
-  input, select {
-    width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px;
-    font-size: 15px; background: var(--field); color: var(--ink); font-family: var(--font);
-  }
-  input:focus, select:focus { outline: none; border-color: var(--brand); }
-  input::placeholder { color: #5a5a5a; }
-  button {
-    font-size: 15px; font-weight: 700; border: none; border-radius: 4px;
-    padding: 11px 16px; cursor: pointer; background: var(--brand); color: #0d0d0d; font-family: var(--font);
-  }
-  button:hover { background: var(--brand-dark); }
-  button.secondary { background: #242424; color: var(--ink); border: 1px solid var(--line); }
-  button.secondary:hover { background: #2e2e2e; }
-  button.ok { background: var(--ok); color: #0d0d0d; }
-  button.ok:hover { background: #43a047; }
-  button.danger { background: transparent; color: var(--danger); border: 1px solid rgba(239,68,68,.45); }
-  button.danger:hover { background: rgba(239,68,68,.12); }
-  button.small { padding: 7px 11px; font-size: 13px; }
-  button:disabled { opacity: .5; cursor: default; }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; }
-  .row > * { flex: 1; min-width: 140px; }
-  table { width: 100%; border-collapse: collapse; }
-  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
-  td.num, th.num { text-align: right; white-space: nowrap; }
-  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
-  tfoot td { border-top: 2px solid var(--line); border-bottom: none; font-size: 14px; }
-  .pill { display: inline-block; padding: 3px 9px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-  .pill.active, .pill.approved { background: rgba(76,175,80,.15); color: #7bd67f; }
-  .pill.inactive { background: #242424; color: var(--muted); }
-  .pill.pending { background: var(--warn-bg); color: var(--brand); }
-  .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-  .msg { padding: 11px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 14px; display: none; }
-  .msg.show { display: block; }
-  .msg.err { background: rgba(239,68,68,.12); color: #fca5a5; }
-  .msg.ok { background: rgba(76,175,80,.15); color: #86efac; }
-  .msg.info { background: var(--warn-bg); color: var(--brand); }
-  .hidden { display: none !important; }
-  .center { max-width: 400px; margin: 8vh auto; }
-  .muted { color: var(--muted); font-size: 13px; }
-  .subtle { font-size: 12px; color: var(--muted); }
-  .loc { font-size: 13px; max-width: 220px; }
-  .loc a { color: var(--brand); }
-  .tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
-  .tab {
-    background: #1a1a1a; color: var(--muted); font-weight: 600; font-size: 14px;
-    padding: 9px 16px; border-radius: 4px; border: 1px solid var(--line); cursor: pointer;
-  }
-  .tab.on { background: var(--brand); color: #0d0d0d; border-color: var(--brand); }
-  .summary { font-size: 14px; color: var(--ink); margin: 0 0 12px; }
-  .summary b { font-size: 16px; }
-  .modal-bg {
-    position: fixed; inset: 0; background: rgba(0,0,0,.66);
-    display: none; align-items: center; justify-content: center; padding: 20px;
-  }
-  .modal-bg.show { display: flex; }
-  .modal { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 22px; width: 100%; max-width: 440px; }
-  .brand-wordmark { font-family: var(--heading); font-weight: 400; letter-spacing: 2px; color: var(--brand); font-size: 44px; line-height: 1; margin: 0 0 4px; }
-  .gps-block { margin-bottom: 14px; }
-  .gps-block .gps-h { font-weight: 600; }
-  .gps-block a { color: var(--brand); }
+:root {
+color-scheme: dark;
+--bg: #0d0d0d; --card: #1a1a1a; --ink: #f0f0f0; --muted: #888888;
+--line: #2a2a2a; --field: #141414;
+--brand: #FFD000; --brand-dark: #e6bb00; --accent: #FF5C00;
+--danger: #ef4444; --ok: #4CAF50; --warn-bg: rgba(255,208,0,.12);
+--font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+--heading: 'Bebas Neue', sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+margin: 0; font-family: var(--font);
+background: var(--bg); color: var(--ink); font-size: 16px; line-height: 1.45;
+}
+header {
+background: var(--card); border-bottom: 1px solid var(--line);
+padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+}
+header h1 { font-family: var(--heading); font-weight: 400; font-size: 26px; letter-spacing: 1px; margin: 0; }
+header h1 .mark { color: var(--brand); }
+header .who { font-size: 13px; color: var(--muted); }
+header .plan { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
+.card {
+background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+padding: 22px; margin-bottom: 18px;
+}
+h2 { font-size: 16px; font-weight: 600; margin: 0 0 14px; }
+label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+input, select {
+width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px;
+font-size: 15px; background: var(--field); color: var(--ink); font-family: var(--font);
+}
+input:focus, select:focus { outline: none; border-color: var(--brand); }
+input::placeholder { color: #5a5a5a; }
+button {
+font-size: 15px; font-weight: 700; border: none; border-radius: 4px;
+padding: 11px 16px; cursor: pointer; background: var(--brand); color: #0d0d0d; font-family: var(--font);
+}
+button:hover { background: var(--brand-dark); }
+button.secondary { background: #242424; color: var(--ink); border: 1px solid var(--line); }
+button.secondary:hover { background: #2e2e2e; }
+button.ok { background: var(--ok); color: #0d0d0d; }
+button.ok:hover { background: #43a047; }
+button.danger { background: transparent; color: var(--danger); border: 1px solid rgba(239,68,68,.45); }
+button.danger:hover { background: rgba(239,68,68,.12); }
+button.small { padding: 7px 11px; font-size: 13px; }
+button:disabled { opacity: .5; cursor: default; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > * { flex: 1; min-width: 140px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+tfoot td { border-top: 2px solid var(--line); border-bottom: none; font-size: 14px; }
+.pill { display: inline-block; padding: 3px 9px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.pill.active, .pill.approved { background: rgba(76,175,80,.15); color: #7bd67f; }
+.pill.inactive { background: #242424; color: var(--muted); }
+.pill.pending { background: var(--warn-bg); color: var(--brand); }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.msg { padding: 11px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 14px; display: none; }
+.msg.show { display: block; }
+.msg.err { background: rgba(239,68,68,.12); color: #fca5a5; }
+.msg.ok { background: rgba(76,175,80,.15); color: #86efac; }
+.msg.info { background: var(--warn-bg); color: var(--brand); }
+.hidden { display: none !important; }
+.center { max-width: 400px; margin: 8vh auto; }
+.muted { color: var(--muted); font-size: 13px; }
+.subtle { font-size: 12px; color: var(--muted); }
+.loc { font-size: 13px; max-width: 220px; }
+.loc a { color: var(--brand); }
+.tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+.tab {
+background: #1a1a1a; color: var(--muted); font-weight: 600; font-size: 14px;
+padding: 9px 16px; border-radius: 4px; border: 1px solid var(--line); cursor: pointer;
+}
+.tab.on { background: var(--brand); color: #0d0d0d; border-color: var(--brand); }
+.summary { font-size: 14px; color: var(--ink); margin: 0 0 12px; }
+.summary b { font-size: 16px; }
+.banner { padding: 11px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; background: rgba(255,92,0,.1); border: 1px solid rgba(255,92,0,.4); color: #fdba74; }
+.issue { display: flex; gap: 10px; padding: 9px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 6px; border: 1px solid var(--line); background: var(--field); }
+.issue .sev { font-family: var(--heading); letter-spacing: 1px; flex: 0 0 auto; }
+.issue.blocker { border-color: rgba(239,68,68,.4); } .issue.blocker .sev { color: var(--danger); }
+.issue.warning { border-color: rgba(255,208,0,.35); } .issue.warning .sev { color: var(--brand); }
+.issue.info .sev { color: var(--muted); }
+.issue b { color: var(--ink); }
+.modal-bg {
+position: fixed; inset: 0; background: rgba(0,0,0,.66);
+display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-bg.show { display: flex; }
+.modal { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 22px; width: 100%; max-width: 440px; }
+.brand-wordmark { font-family: var(--heading); font-weight: 400; letter-spacing: 2px; color: var(--brand); font-size: 44px; line-height: 1; margin: 0 0 4px; }
+.gps-block { margin-bottom: 14px; }
+.gps-block .gps-h { font-weight: 600; }
+.gps-block a { color: var(--brand); }
 </style>
 </head>
 <body>
 <!-- ================= LOGIN VIEW ================= -->
 <div id="loginView">
-  <div class="wrap center">
-    <div class="card">
-      <h1 class="brand-wordmark">KNOCKOFF</h1>
-      <p class="muted" style="margin:0 0 18px;">Owner sign-in</p>
-      <div id="loginMsg" class="msg"></div>
-      <label for="email">Your email address</label>
-      <input id="email" type="email" placeholder="you@business.com" autocomplete="email" />
-      <button id="sendLinkBtn" style="width:100%; margin-top:16px;">Email me a sign-in link</button>
-      <p class="muted" style="margin-top:14px;">We'll email you a secure link — no password to remember. Click it and you'll be signed in.</p>
-    </div>
-  </div>
+<div class="wrap center">
+<div class="card">
+<h1 class="brand-wordmark">KNOCKOFF</h1>
+<p class="muted" style="margin:0 0 18px;">Owner sign-in</p>
+<div id="loginMsg" class="msg"></div>
+<label for="email">Your email address</label>
+<input id="email" type="email" placeholder="you@business.com" autocomplete="email" />
+<label for="bizname">Business name <span class="subtle">(only if signing up for the first time)</span></label>
+<input id="bizname" type="text" placeholder="e.g. CorpWorks Ltd" autocomplete="organization" />
+<button id="sendLinkBtn" style="width:100%; margin-top:16px;">Email me a sign-in link</button>
+<p class="muted" style="margin-top:14px;">We'll email you a secure link — no password to remember. Click it and you'll be signed in.</p>
+</div>
+</div>
 </div>
 <!-- ================= DASHBOARD VIEW ================= -->
 <div id="appView" class="hidden">
-  <header>
-    <h1><span class="mark">KNOCKOFF</span> — Owner</h1>
-    <div style="text-align:right;">
-      <div class="who" id="whoami"></div>
-      <button class="secondary small" id="signOutBtn" style="margin-top:4px;">Sign out</button>
-    </div>
-  </header>
-  <div class="wrap">
-    <div id="appMsg" class="msg"></div>
-    <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab on" id="tabStaff">Staff</button>
-      <button class="tab" id="tabSites">Sites</button>
-      <button class="tab" id="tabTimesheets">Timesheets</button>
-      <button class="tab" id="tabReports">Reports</button>
-    </div>
-    <!-- ============ STAFF SECTION ============ -->
-    <div id="staffSection">
-      <div class="card">
-        <h2>Add a staff member</h2>
-        <div class="row">
-          <div>
-            <label for="newName">Full name</label>
-            <input id="newName" type="text" placeholder="e.g. Jane Smith" />
-          </div>
-          <div>
-            <label for="newRole">Role</label>
-            <input id="newRole" type="text" placeholder="e.g. Field Tech" />
-          </div>
-          <div style="max-width:160px;">
-            <label for="newPin">Starting PIN</label>
-            <input id="newPin" type="text" inputmode="numeric" placeholder="4–6 digits" />
-          </div>
-        </div>
-        <button id="addBtn" style="margin-top:16px;">Add staff member</button>
-      </div>
-      <div class="card">
-        <h2>Your staff</h2>
-        <div id="listStatus" class="muted">Loading…</div>
-        <table id="staffTable" class="hidden">
-          <thead>
-            <tr><th>Name</th><th>Role</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
-          </thead>
-          <tbody id="staffBody"></tbody>
-        </table>
-      </div>
-    </div>
-    <!-- ============ SITES SECTION ============ -->
-    <div id="sitesSection" class="hidden">
-      <div class="card">
-        <h2>Add a job site</h2>
-        <div class="row">
-          <div>
-            <label for="newSite">Site name</label>
-            <input id="newSite" type="text" placeholder="e.g. Downers – Newmarket" />
-          </div>
-          <div style="max-width:160px; display:flex; align-items:flex-end;">
-            <button id="addSiteBtn" style="width:100%;">Add site</button>
-          </div>
-        </div>
-        <p class="subtle" style="margin-top:12px;">Sites here appear in your crew's “Job / Site” dropdown in the app. <b>Deactivate</b> a finished site to hide it from the crew (you can switch it back on anytime). <b>Delete</b> removes it from the list for good — past timesheets keep their site name either way.</p>
-      </div>
-      <div class="card">
-        <h2>Your job sites</h2>
-        <div id="siteStatus" class="muted">Loading…</div>
-        <table id="siteTable" class="hidden">
-          <thead>
-            <tr><th>Site</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
-          </thead>
-          <tbody id="siteBody"></tbody>
-        </table>
-      </div>
-    </div>
-    <!-- ============ TIMESHEETS SECTION ============ -->
-    <div id="timesheetsSection" class="hidden">
-      <div class="card">
-        <h2>Review timesheets</h2>
-        <div class="row">
-          <div>
-            <label for="tsFrom">From</label>
-            <input id="tsFrom" type="date" />
-          </div>
-          <div>
-            <label for="tsTo">To</label>
-            <input id="tsTo" type="date" />
-          </div>
-          <div style="max-width:200px;">
-            <label for="tsStatus">Show</label>
-            <select id="tsStatus">
-              <option value="">All</option>
-              <option value="pending">Pending only</option>
-              <option value="approved">Approved only</option>
-            </select>
-          </div>
-        </div>
-        <div class="row" style="margin-top:16px;">
-          <button id="tsLoadBtn" style="max-width:160px;">Load timesheets</button>
-          <button id="tsAddBtn" style="max-width:150px;">➕ Add entry</button>
-          <button class="secondary" id="tsCsvBtn" style="max-width:230px;">Download payroll CSV (approved)</button>
-          <button class="secondary" id="tsLocCsvBtn" style="max-width:270px;">Download timesheets + location</button>
-        </div>
-        <p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). The <b>Clock in</b> and <b>Clock out</b> columns show where each person started and finished (tap <b>map</b> to open it). <b>Download payroll CSV</b> exports only <b>approved</b> rows; <b>Download timesheets + location</b> exports <b>every</b> row in the range, including addresses, coordinates and map links, for a spreadsheet. Tap <b>📍 Location</b> on any row for the full clock-in/out and break detail.</p>
-      </div>
-      <div class="card">
-        <div id="tsSummary" class="summary muted">Choose a date range and click “Load timesheets”.</div>
-        <div style="overflow-x:auto;">
-          <table id="tsTable" class="hidden">
-            <thead>
-              <tr>
-                <th>Staff</th><th>Role</th><th>Date</th>
-                <th>Start</th><th>End</th>
-                <th class="num">Lunch (min)</th>
-                <th class="num">Paid hrs</th>
-                <th>Job</th>
-                <th>Notes</th>
-                <th>Clock in</th><th>Clock out</th>
-                <th>Status</th>
-                <th style="text-align:right;">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="tsBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <!-- ============ REPORTS SECTION ============ -->
-    <div id="reportsSection" class="hidden">
-      <div class="card">
-        <h2>Weekly hours by staff</h2>
-        <div class="row">
-          <div>
-            <label for="rpFrom">From</label>
-            <input id="rpFrom" type="date" />
-          </div>
-          <div>
-            <label for="rpTo">To</label>
-            <input id="rpTo" type="date" />
-          </div>
-          <div style="max-width:160px; display:flex; align-items:flex-end;">
-            <button id="rpLoadBtn" style="width:100%;">Load report</button>
-          </div>
-        </div>
-        <div class="row" style="margin-top:16px;">
-          <button class="secondary" id="rpCsvBtn" style="max-width:230px;">Download summary CSV</button>
-        </div>
-        <p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). <b>Total</b> is every timesheet in the range; <b>Approved</b> and <b>Pending</b> split those hours by whether you've signed them off yet. The CSV saves the table exactly as shown, including the grand-total row.</p>
-      </div>
-      <div class="card">
-        <div id="rpSummary" class="summary muted">Choose a date range and click “Load report”.</div>
-        <div style="overflow-x:auto;">
-          <table id="rpTable" class="hidden">
-            <thead>
-              <tr>
-                <th>Staff</th><th>Role</th>
-                <th class="num">Total hrs</th>
-                <th class="num">Approved hrs</th>
-                <th class="num">Pending hrs</th>
-              </tr>
-            </thead>
-            <tbody id="rpBody"></tbody>
-            <tfoot id="rpFoot"></tfoot>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
+<header>
+<h1><span class="mark">KNOCKOFF</span> — <span id="coName">Owner</span> <span class="plan" id="coPlan"></span></h1>
+<div style="text-align:right;">
+<div class="who" id="whoami"></div>
+<button class="secondary small" id="signOutBtn" style="margin-top:4px;">Sign out</button>
+</div>
+</header>
+<div class="wrap">
+<div id="billingBanner" class="banner hidden"></div>
+<div id="appMsg" class="msg"></div>
+<!-- Tabs -->
+<div class="tabs">
+<button class="tab on" id="tabStaff">Staff</button>
+<button class="tab" id="tabSites">Sites</button>
+<button class="tab" id="tabTimesheets">Timesheets</button>
+<button class="tab" id="tabReports">Reports</button>
+</div>
+<!-- ============ STAFF SECTION ============ -->
+<div id="staffSection">
+<div class="card">
+<h2>Add a staff member</h2>
+<div class="row">
+<div>
+<label for="newName">Full name</label>
+<input id="newName" type="text" placeholder="e.g. Jane Smith" />
+</div>
+<div>
+<label for="newRole">Role</label>
+<input id="newRole" type="text" placeholder="e.g. Field Tech" />
+</div>
+<div style="max-width:160px;">
+<label for="newPin">Starting PIN</label>
+<input id="newPin" type="text" inputmode="numeric" placeholder="4–6 digits" />
+</div>
+</div>
+<button id="addBtn" style="margin-top:16px;">Add staff member</button>
+</div>
+<div class="card">
+<h2>Your staff</h2>
+<p class="subtle" style="margin-top:-6px;">The <b>Payroll ID</b> and <b>Rate</b> are what Smartly uses to pay each person — set them via <b>Edit</b> so they appear in the Smartly export.</p>
+<div id="listStatus" class="muted">Loading…</div>
+<table id="staffTable" class="hidden">
+<thead>
+<tr><th>Name</th><th>Role</th><th>Status</th><th>Payroll ID</th><th class="num">Rate</th><th style="text-align:right;">Manage</th></tr>
+</thead>
+<tbody id="staffBody"></tbody>
+</table>
+</div>
+</div>
+<!-- ============ SITES SECTION ============ -->
+<div id="sitesSection" class="hidden">
+<div class="card">
+<h2>Add a job site</h2>
+<div class="row">
+<div>
+<label for="newSite">Site name</label>
+<input id="newSite" type="text" placeholder="e.g. Downers – Newmarket" />
+</div>
+<div style="max-width:160px; display:flex; align-items:flex-end;">
+<button id="addSiteBtn" style="width:100%;">Add site</button>
+</div>
+</div>
+<p class="subtle" style="margin-top:12px;">Sites here appear in your crew's “Job / Site” dropdown in the app. <b>Deactivate</b> a finished site to hide it from the crew (you can switch it back on anytime). Past timesheets keep their site name either way.</p>
+</div>
+<div class="card">
+<h2>Your job sites</h2>
+<div id="siteStatus" class="muted">Loading…</div>
+<table id="siteTable" class="hidden">
+<thead>
+<tr><th>Site</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
+</thead>
+<tbody id="siteBody"></tbody>
+</table>
+</div>
+</div>
+<!-- ============ TIMESHEETS SECTION ============ -->
+<div id="timesheetsSection" class="hidden">
+<div class="card">
+<h2>Review timesheets &amp; run payroll</h2>
+<div class="row">
+<div>
+<label for="tsStaffSearch">Staff</label>
+<input id="tsStaffSearch" list="staffDatalist" placeholder="All staff — type a name" autocomplete="off" />
+<datalist id="staffDatalist"></datalist>
+</div>
+<div>
+<label for="tsFrom">From</label>
+<input id="tsFrom" type="date" />
+</div>
+<div>
+<label for="tsTo">To</label>
+<input id="tsTo" type="date" />
+</div>
+<div style="max-width:180px;">
+<label for="tsStatus">Show</label>
+<select id="tsStatus">
+<option value="">All</option>
+<option value="pending">Pending only</option>
+<option value="approved">Approved only</option>
+<option value="active">On site now</option>
+</select>
+</div>
+</div>
+<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px;">
+<button class="secondary small" data-range="thisweek">This week</button>
+<button class="secondary small" data-range="lastweek">Last week</button>
+<button class="secondary small" data-range="fortnight">Last 2 weeks</button>
+<button class="secondary small" data-range="thismonth">This month</button>
+<span class="subtle">Weeks run Mon–Sun</span>
+</div>
+<div class="row" style="margin-top:16px;">
+<button id="tsLoadBtn" style="max-width:160px;">Load timesheets</button>
+<button id="tsAddBtn" class="secondary" style="max-width:150px;">➕ Add entry</button>
+<button id="tsSmartlyBtn" style="max-width:210px;">⬇ Smartly payroll file</button>
+<button class="secondary" id="tsCsvBtn" style="max-width:230px;">Payroll CSV (spreadsheet)</button>
+<button class="secondary" id="tsLocCsvBtn" style="max-width:250px;">Timesheets + location CSV</button>
+</div>
+<p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). Edit a shift with <b>Adjust</b>; editing an <b>approved</b> shift sends it back to pending so it must be re-approved before it can be paid. <b>Smartly payroll file</b> is the proper import for Smartly (approved shifts only) — the pre-flight check below flags anything that would be missed. The two <b>CSV</b> buttons are plain spreadsheets for your own records.</p>
+</div>
+<div id="issuesCard" class="card hidden">
+<h2>Smartly pre-flight check</h2>
+<div id="issuesBox"></div>
+</div>
+<div class="card">
+<div id="tsSummary" class="summary muted">Choose a date range and click “Load timesheets”.</div>
+<div style="overflow-x:auto;">
+<table id="tsTable" class="hidden">
+<thead>
+<tr>
+<th>Staff</th><th>Role</th><th>Date</th>
+<th>Start</th><th>End</th>
+<th class="num">Lunch (min)</th>
+<th class="num">Paid hrs</th>
+<th>Job</th>
+<th>Notes</th>
+<th>Clock in</th><th>Clock out</th>
+<th>Status</th>
+<th style="text-align:right;">Actions</th>
+</tr>
+</thead>
+<tbody id="tsBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- ============ REPORTS SECTION ============ -->
+<div id="reportsSection" class="hidden">
+<div class="card">
+<h2>Weekly hours by staff</h2>
+<div class="row">
+<div>
+<label for="rpFrom">From</label>
+<input id="rpFrom" type="date" />
+</div>
+<div>
+<label for="rpTo">To</label>
+<input id="rpTo" type="date" />
+</div>
+<div style="max-width:160px; display:flex; align-items:flex-end;">
+<button id="rpLoadBtn" style="width:100%;">Load report</button>
+</div>
+</div>
+<div class="row" style="margin-top:16px;">
+<button class="secondary" id="rpCsvBtn" style="max-width:230px;">Download summary CSV</button>
+</div>
+<p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). <b>Total</b> is every timesheet in the range; <b>Approved</b> and <b>Pending</b> split those hours by whether you've signed them off yet. The CSV saves the table exactly as shown, including the grand-total row.</p>
+</div>
+<div class="card">
+<div id="rpSummary" class="summary muted">Choose a date range and click “Load report”.</div>
+<div style="overflow-x:auto;">
+<table id="rpTable" class="hidden">
+<thead>
+<tr>
+<th>Staff</th><th>Role</th>
+<th class="num">Total hrs</th>
+<th class="num">Approved hrs</th>
+<th class="num">Pending hrs</th>
+</tr>
+</thead>
+<tbody id="rpBody"></tbody>
+<tfoot id="rpFoot"></tfoot>
+</table>
+</div>
+</div>
+</div>
+</div>
 </div>
 <!-- ================= EDIT STAFF MODAL ================= -->
 <div class="modal-bg" id="editModal">
-  <div class="modal">
-    <h2 id="editTitle">Edit staff member</h2>
-    <div id="editMsg" class="msg"></div>
-    <label for="editName">Full name</label>
-    <input id="editName" type="text" />
-    <label for="editRole">Role</label>
-    <input id="editRole" type="text" />
-    <label for="editActive">Status</label>
-    <select id="editActive">
-      <option value="true">Active</option>
-      <option value="false">Inactive (deactivated)</option>
-    </select>
-    <hr style="border:none; border-top:1px solid var(--line); margin:18px 0;" />
-    <label for="editPin">Reset PIN (optional — leave blank to keep current)</label>
-    <input id="editPin" type="text" inputmode="numeric" placeholder="New 4–6 digit PIN" />
-    <div class="row" style="margin-top:18px;">
-      <button class="secondary" id="editCancel">Cancel</button>
-      <button id="editSave">Save changes</button>
-    </div>
-  </div>
+<div class="modal">
+<h2 id="editTitle">Edit staff member</h2>
+<div id="editMsg" class="msg"></div>
+<label for="editName">Full name</label>
+<input id="editName" type="text" />
+<label for="editRole">Role</label>
+<input id="editRole" type="text" />
+<label for="editActive">Status</label>
+<select id="editActive">
+<option value="true">Active</option>
+<option value="false">Inactive (deactivated)</option>
+</select>
+<div class="row" style="margin-top:4px;">
+<div>
+<label for="editPayroll">Smartly payroll ID</label>
+<input id="editPayroll" type="text" placeholder="1–5 letters/numbers" />
+</div>
+<div style="max-width:120px;">
+<label for="editRate">Pay rate</label>
+<select id="editRate"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+</div>
+</div>
+<hr style="border:none; border-top:1px solid var(--line); margin:18px 0;" />
+<label for="editPin">Reset PIN (optional — leave blank to keep current)</label>
+<input id="editPin" type="text" inputmode="numeric" placeholder="New 4–6 digit PIN" />
+<div class="row" style="margin-top:18px;">
+<button class="secondary" id="editCancel">Cancel</button>
+<button id="editSave">Save changes</button>
+</div>
+</div>
 </div>
 <!-- ================= EDIT SITE MODAL ================= -->
 <div class="modal-bg" id="siteModal">
-  <div class="modal">
-    <h2 id="siteTitle">Edit site</h2>
-    <div id="siteMsg" class="msg"></div>
-    <label for="editSiteName">Site name</label>
-    <input id="editSiteName" type="text" />
-    <label for="editSiteActive">Status</label>
-    <select id="editSiteActive">
-      <option value="true">Active (shown to the crew)</option>
-      <option value="false">Inactive (hidden from the crew)</option>
-    </select>
-    <div class="row" style="margin-top:18px;">
-      <button class="secondary" id="siteCancel">Cancel</button>
-      <button id="siteSave">Save changes</button>
-    </div>
-  </div>
+<div class="modal">
+<h2 id="siteTitle">Edit site</h2>
+<div id="siteMsg" class="msg"></div>
+<label for="editSiteName">Site name</label>
+<input id="editSiteName" type="text" />
+<label for="editSiteActive">Status</label>
+<select id="editSiteActive">
+<option value="true">Active (shown to the crew)</option>
+<option value="false">Inactive (hidden from the crew)</option>
+</select>
+<div class="row" style="margin-top:18px;">
+<button class="secondary" id="siteCancel">Cancel</button>
+<button id="siteSave">Save changes</button>
+</div>
+</div>
 </div>
 <!-- ================= ADJUST TIMESHEET MODAL ================= -->
 <div class="modal-bg" id="adjModal">
-  <div class="modal">
-    <h2 id="adjTitle">Adjust timesheet</h2>
-    <div id="adjMsg" class="msg"></div>
-    <p class="subtle" id="adjWho" style="margin-top:0;"></p>
-    <div class="row">
-      <div>
-        <label for="adjStart">Start time <span class="subtle">(24h, e.g. 07:30)</span></label>
-        <input id="adjStart" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" />
-      </div>
-      <div>
-        <label for="adjEnd">Finish time <span class="subtle">(24h, e.g. 16:15)</span></label>
-        <input id="adjEnd" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" />
-      </div>
-      <div style="max-width:130px;">
-        <label for="adjLunch">Lunch (min)</label>
-        <input id="adjLunch" type="number" step="1" min="0" max="600" />
-      </div>
-    </div>
-    <label for="adjHours">Paid hours <span class="subtle">(auto-calculated — edit to override)</span></label>
-    <input id="adjHours" type="number" step="0.01" min="0" max="24" />
-    <label for="adjNote">Payroll note (optional — visible to you, not staff)</label>
-    <input id="adjNote" type="text" placeholder="e.g. forgot to clock in, fixed start time" />
-    <div class="row" style="margin-top:18px;">
-      <button class="secondary" id="adjCancel">Cancel</button>
-      <button id="adjSave">Save adjustment</button>
-    </div>
-  </div>
+<div class="modal">
+<h2 id="adjTitle">Adjust timesheet</h2>
+<div id="adjMsg" class="msg"></div>
+<p class="subtle" id="adjWho" style="margin-top:0;"></p>
+<div class="row">
+<div>
+<label for="adjStart">Start time <span class="subtle">(24h, e.g. 07:30)</span></label>
+<input id="adjStart" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" />
+</div>
+<div>
+<label for="adjEnd">Finish time <span class="subtle">(24h, e.g. 16:15)</span></label>
+<input id="adjEnd" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" />
+</div>
+<div style="max-width:130px;">
+<label for="adjLunch">Lunch (min)</label>
+<input id="adjLunch" type="number" step="1" min="0" max="600" />
+</div>
+</div>
+<label for="adjHours">Paid hours <span class="subtle">(auto-calculated — edit to override)</span></label>
+<input id="adjHours" type="number" step="0.01" min="0" max="24" />
+<label for="adjNote">Payroll note (optional — visible to you, not staff)</label>
+<input id="adjNote" type="text" placeholder="e.g. forgot to clock in, fixed start time" />
+<div class="row" style="margin-top:18px;">
+<button class="secondary" id="adjCancel">Cancel</button>
+<button id="adjSave">Save adjustment</button>
+</div>
+</div>
 </div>
 
 <div class="modal-bg" id="addModal">
-  <div class="modal">
-    <h2>Add timesheet entry</h2>
-    <div id="addMsg" class="msg"></div>
-    <p class="subtle" style="margin-top:0;">Manually add a shift (e.g. someone forgot to clock in). It's tagged &ldquo;Added by owner&rdquo; and lands as pending for you to approve.</p>
-    <label for="addStaff">Staff member</label>
-    <select id="addStaff"></select>
-    <div class="row" style="margin-top:10px;">
-      <div><label for="addDate">Date</label><input id="addDate" type="date" /></div>
-      <div style="max-width:130px;"><label for="addLunch">Lunch (min)</label><input id="addLunch" type="number" step="1" min="0" max="600" value="30" /></div>
-    </div>
-    <div class="row" style="margin-top:10px;">
-      <div><label for="addStart">Start time <span class="subtle">(24h, e.g. 07:30)</span></label><input id="addStart" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" /></div>
-      <div><label for="addEnd">Finish time <span class="subtle">(24h, e.g. 16:15)</span></label><input id="addEnd" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" /></div>
-    </div>
-    <label for="addJob" style="margin-top:10px;">Job / site</label>
-    <select id="addJob"></select>
-    <label for="addHours">Paid hours <span class="subtle">(auto-calculated — edit to override)</span></label>
-    <input id="addHours" type="number" step="0.01" min="0" max="24" />
-    <label for="addNote">Note (optional)</label>
-    <input id="addNote" type="text" placeholder="e.g. forgot to clock in" />
-    <div class="row" style="margin-top:18px;">
-      <button class="secondary" id="addCancel">Cancel</button>
-      <button id="addSave">Add entry</button>
-    </div>
-  </div>
+<div class="modal">
+<h2>Add timesheet entry</h2>
+<div id="addMsg" class="msg"></div>
+<p class="subtle" style="margin-top:0;">Manually add a shift (e.g. someone forgot to clock in). It lands as pending for you to approve.</p>
+<label for="addStaff">Staff member</label>
+<select id="addStaff"></select>
+<div class="row" style="margin-top:10px;">
+<div><label for="addDate">Date</label><input id="addDate" type="date" /></div>
+<div style="max-width:130px;"><label for="addLunch">Lunch (min)</label><input id="addLunch" type="number" step="1" min="0" max="600" value="30" /></div>
+</div>
+<div class="row" style="margin-top:10px;">
+<div><label for="addStart">Start time <span class="subtle">(24h, e.g. 07:30)</span></label><input id="addStart" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" /></div>
+<div><label for="addEnd">Finish time <span class="subtle">(24h, e.g. 16:15)</span></label><input id="addEnd" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" /></div>
+</div>
+<label for="addJob" style="margin-top:10px;">Job / site</label>
+<select id="addJob"></select>
+<label for="addHours">Paid hours <span class="subtle">(auto-calculated — edit to override)</span></label>
+<input id="addHours" type="number" step="0.01" min="0" max="24" />
+<label for="addNote">Note (optional)</label>
+<input id="addNote" type="text" placeholder="e.g. forgot to clock in" />
+<div class="row" style="margin-top:18px;">
+<button class="secondary" id="addCancel">Cancel</button>
+<button id="addSave">Add entry</button>
+</div>
+</div>
 </div>
 <!-- ================= GPS / LOCATION MODAL ================= -->
 <div class="modal-bg" id="gpsModal">
-  <div class="modal">
-    <h2>📍 Clock-in location</h2>
-    <p class="subtle" id="gpsWho" style="margin-top:0;"></p>
-    <div id="gpsBody" class="muted">Loading…</div>
-    <div class="row" style="margin-top:18px;">
-      <button class="secondary" id="gpsClose">Close</button>
-    </div>
-  </div>
+<div class="modal">
+<h2>📍 Clock-in location</h2>
+<p class="subtle" id="gpsWho" style="margin-top:0;"></p>
+<div id="gpsBody" class="muted">Loading…</div>
+<div class="row" style="margin-top:18px;">
+<button class="secondary" id="gpsClose">Close</button>
+</div>
+</div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // ============================================================
-  // CONFIG — same public project + anon key as index.html.
-  // ============================================================
-  const SUPABASE_URL = "https://baojgmrlwunizgcauyhl.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJhb2pnbXJsd3VuaXpnY2F1eWhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDYwODAsImV4cCI6MjA5NTIyMjA4MH0.XPvjOWlgWkK5YWUax47aDvMS1V6Dbf4LERqI5Yht1r8";
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  // ---- tiny helpers ----
-  const $ = (id) => document.getElementById(id);
-  function show(el, on) { el.classList.toggle("hidden", !on); }
-  function msg(el, text, kind) {
-    el.textContent = text;
-    el.className = "msg show " + (kind || "info");
-    if (!text) el.className = "msg";
-  }
-  function clearMsg(el) { el.className = "msg"; el.textContent = ""; }
-  function escapeHtml(str) {
-    return String(str == null ? "" : str).replace(/[&<>"']/g, (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  }
-  function fmtDate(iso) {
-    if (!iso) return "";
-    const p = String(iso).slice(0, 10).split("-");
-    if (p.length !== 3) return iso;
-    return p[2] + "/" + p[1] + "/" + p[0]; // DD/MM/YYYY
-  }
-  function isoDaysAgo(n) {
-    const d = new Date();
-    d.setDate(d.getDate() - n);
-    // Use the NZ calendar date, not UTC (see note in the staff app):
-    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland',
-      year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
-  }
-  function hrs(v) { return (v == null || v === "") ? "" : Number(v).toFixed(2); }
-  // Shared CSV cell escaper (quotes values containing commas, quotes, or newlines)
-  function csvEsc(v) {
-    const s = String(v == null ? "" : v);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  }
-  // Build a CSV string and trigger a download
-  function downloadCsv(filename, rows) {
-    const csv = rows.map((row) => row.map(csvEsc).join(",")).join("\r\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-  let editingId = null;     // staff edit
-  let editingSiteId = null; // site edit
-  let adjustingId = null;   // timesheet adjust
-  let tsRows = [];          // last-loaded timesheet rows
-  let rpRows = [];          // last-loaded report summary rows
-  let siteRows = [];        // last-loaded site rows
-  // ---- auth wiring ----
-  async function refresh() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-      show($("loginView"), false);
-      show($("appView"), true);
-      $("whoami").textContent = session.user.email;
-      loadStaff();
-    } else {
-      show($("loginView"), true);
-      show($("appView"), false);
-    }
-  }
-  $("sendLinkBtn").addEventListener("click", async () => {
-    const email = $("email").value.trim();
-    if (!email) { msg($("loginMsg"), "Please enter your email address.", "err"); return; }
-    $("sendLinkBtn").disabled = true;
-    const { error } = await sb.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.href }
-    });
-    $("sendLinkBtn").disabled = false;
-    if (error) { msg($("loginMsg"), error.message, "err"); return; }
-    msg($("loginMsg"), "Check your email and click the sign-in link. You can close this tab once you do.", "ok");
-  });
-  $("signOutBtn").addEventListener("click", async () => {
-    await sb.auth.signOut();
-    refresh();
-  });
-  sb.auth.onAuthStateChange(() => refresh());
-  // ---- tab switching ----
-  function setTab(which) {
-    $("tabStaff").classList.toggle("on", which === "staff");
-    $("tabSites").classList.toggle("on", which === "sites");
-    $("tabTimesheets").classList.toggle("on", which === "timesheets");
-    $("tabReports").classList.toggle("on", which === "reports");
-    show($("staffSection"), which === "staff");
-    show($("sitesSection"), which === "sites");
-    show($("timesheetsSection"), which === "timesheets");
-    show($("reportsSection"), which === "reports");
-    clearMsg($("appMsg"));
-  }
-  $("tabStaff").addEventListener("click", () => setTab("staff"));
-  $("tabSites").addEventListener("click", () => {
-    setTab("sites");
-    if (siteRows.length === 0) loadSites();
-  });
-  $("tabTimesheets").addEventListener("click", () => {
-    setTab("timesheets");
-    if (!$("tsFrom").value) { $("tsFrom").value = isoDaysAgo(6); $("tsTo").value = isoDaysAgo(0); }
-    if (tsRows.length === 0) loadTimesheets();
-  });
-  $("tabReports").addEventListener("click", () => {
-    setTab("reports");
-    if (!$("rpFrom").value) { $("rpFrom").value = isoDaysAgo(6); $("rpTo").value = isoDaysAgo(0); }
-    if (rpRows.length === 0) loadSummary();
-  });
-  // ---- staff list ----
-  async function loadStaff() {
-    $("listStatus").textContent = "Loading…";
-    show($("staffTable"), false);
-    const { data, error } = await sb.rpc("owner_list_staff");
-    if (error) { $("listStatus").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
-    if (!data || data.length === 0) {
-      $("listStatus").innerHTML = "No staff found yet. If you just signed in for the first time and expected to see staff, your owner account may not be linked to the business yet — let Claude know.";
-      return;
-    }
-    $("listStatus").textContent = "";
-    const body = $("staffBody");
-    body.innerHTML = "";
-    data.forEach((s) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML =
-        '<td>' + escapeHtml(s.name) + '</td>' +
-        '<td>' + escapeHtml(s.role || "") + '</td>' +
-        '<td><span class="pill ' + (s.active ? "active" : "inactive") + '">' +
-          (s.active ? "Active" : "Inactive") + '</span></td>' +
-        '<td><div class="actions">' +
-          '<button class="secondary small" data-edit="' + s.id + '">Edit</button>' +
-        '</div></td>';
-      body.appendChild(tr);
-      tr.querySelector("[data-edit]").addEventListener("click", () =>
-        openEdit(s.id, s.name, s.role, s.active));
-    });
-    show($("staffTable"), true);
-  }
-  // ---- add staff ----
-  $("addBtn").addEventListener("click", async () => {
-    const name = $("newName").value.trim();
-    const role = $("newRole").value.trim();
-    const pin  = $("newPin").value.trim();
-    clearMsg($("appMsg"));
-    if (!name)  { msg($("appMsg"), "Please enter a name.", "err"); return; }
-    if (!/^\d{4,6}$/.test(pin)) { msg($("appMsg"), "PIN must be 4 to 6 digits.", "err"); return; }
-    $("addBtn").disabled = true;
-    const { error } = await sb.rpc("owner_add_staff", { p_name: name, p_role: role, p_pin: pin });
-    $("addBtn").disabled = false;
-    if (error) { msg($("appMsg"), error.message, "err"); return; }
-    $("newName").value = ""; $("newRole").value = ""; $("newPin").value = "";
-    msg($("appMsg"), "Staff member added.", "ok");
-    loadStaff();
-  });
-  // ---- edit staff modal ----
-  function openEdit(id, name, role, active) {
-    editingId = id;
-    clearMsg($("editMsg"));
-    $("editTitle").textContent = "Edit — " + name;
-    $("editName").value = name;
-    $("editRole").value = role || "";
-    $("editActive").value = active ? "true" : "false";
-    $("editPin").value = "";
-    $("editModal").classList.add("show");
-  }
-  $("editCancel").addEventListener("click", () => $("editModal").classList.remove("show"));
-  $("editSave").addEventListener("click", async () => {
-    const name = $("editName").value.trim();
-    const role = $("editRole").value.trim();
-    const active = $("editActive").value === "true";
-    const pin = $("editPin").value.trim();
-    clearMsg($("editMsg"));
-    if (!name) { msg($("editMsg"), "Name can't be empty.", "err"); return; }
-    if (pin && !/^\d{4,6}$/.test(pin)) { msg($("editMsg"), "PIN must be 4 to 6 digits.", "err"); return; }
-    $("editSave").disabled = true;
-    const up = await sb.rpc("owner_update_staff",
-      { p_staff_id: editingId, p_name: name, p_role: role, p_active: active });
-    if (up.error) { $("editSave").disabled = false; msg($("editMsg"), up.error.message, "err"); return; }
-    if (pin) {
-      const rp = await sb.rpc("owner_reset_staff_pin", { p_staff_id: editingId, p_new_pin: pin });
-      if (rp.error) { $("editSave").disabled = false; msg($("editMsg"), rp.error.message, "err"); return; }
-    }
-    $("editSave").disabled = false;
-    $("editModal").classList.remove("show");
-    msg($("appMsg"), pin ? "Changes saved and PIN reset." : "Changes saved.", "ok");
-    loadStaff();
-  });
-  // ---- sites: load / render ----
-  async function loadSites() {
-    $("siteStatus").textContent = "Loading…";
-    show($("siteTable"), false);
-    const { data, error } = await sb.rpc("owner_list_sites");
-    if (error) { $("siteStatus").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
-    siteRows = data || [];
-    if (siteRows.length === 0) {
-      $("siteStatus").textContent = "No sites yet — add your first job site above.";
-      return;
-    }
-    $("siteStatus").textContent = "";
-    const body = $("siteBody");
-    body.innerHTML = "";
-    siteRows.forEach((s) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML =
-        '<td>' + escapeHtml(s.name) + '</td>' +
-        '<td><span class="pill ' + (s.active ? "active" : "inactive") + '">' +
-          (s.active ? "Active" : "Inactive") + '</span></td>' +
-        '<td><div class="actions">' +
-          '<button class="secondary small" data-sedit="' + s.id + '">Edit</button>' +
-          (s.active
-            ? '<button class="secondary small" data-stoggle="' + s.id + '">Deactivate</button>'
-            : '<button class="ok small" data-stoggle="' + s.id + '">Activate</button>') +
-          '<button class="danger small" data-sdel="' + s.id + '">Delete</button>' +
-        '</div></td>';
-      body.appendChild(tr);
-      tr.querySelector("[data-sedit]").addEventListener("click", () => openSiteEdit(s));
-      tr.querySelector("[data-stoggle]").addEventListener("click", () => toggleSite(s));
-      tr.querySelector("[data-sdel]").addEventListener("click", () => deleteSite(s));
-    });
-    show($("siteTable"), true);
-  }
-  // ---- add site ----
-  $("addSiteBtn").addEventListener("click", async () => {
-    const name = $("newSite").value.trim();
-    clearMsg($("appMsg"));
-    if (!name) { msg($("appMsg"), "Please enter a site name.", "err"); return; }
-    $("addSiteBtn").disabled = true;
-    const { error } = await sb.rpc("owner_add_site", { p_name: name });
-    $("addSiteBtn").disabled = false;
-    if (error) { msg($("appMsg"), error.message, "err"); return; }
-    $("newSite").value = "";
-    msg($("appMsg"), "Site added.", "ok");
-    loadSites();
-  });
-  // ---- edit site modal ----
-  function openSiteEdit(s) {
-    editingSiteId = s.id;
-    clearMsg($("siteMsg"));
-    $("siteTitle").textContent = "Edit — " + s.name;
-    $("editSiteName").value = s.name;
-    $("editSiteActive").value = s.active ? "true" : "false";
-    $("siteModal").classList.add("show");
-  }
-  $("siteCancel").addEventListener("click", () => $("siteModal").classList.remove("show"));
-  $("siteSave").addEventListener("click", async () => {
-    const name = $("editSiteName").value.trim();
-    const active = $("editSiteActive").value === "true";
-    clearMsg($("siteMsg"));
-    if (!name) { msg($("siteMsg"), "Site name can't be empty.", "err"); return; }
-    $("siteSave").disabled = true;
-    const { error } = await sb.rpc("owner_update_site", { p_site_id: editingSiteId, p_name: name, p_active: active });
-    $("siteSave").disabled = false;
-    if (error) { msg($("siteMsg"), error.message, "err"); return; }
-    $("siteModal").classList.remove("show");
-    msg($("appMsg"), "Site updated.", "ok");
-    loadSites();
-  });
-  async function toggleSite(s) {
-    clearMsg($("appMsg"));
-    const { error } = await sb.rpc("owner_update_site", { p_site_id: s.id, p_name: s.name, p_active: !s.active });
-    if (error) { msg($("appMsg"), error.message, "err"); return; }
-    msg($("appMsg"), s.active ? "Site deactivated — hidden from the crew." : "Site activated — now shown to the crew.", "ok");
-    loadSites();
-  }
-  async function deleteSite(s) {
-    if (!window.confirm('Delete "' + s.name + '" permanently?\n\nIt will be removed from the list and the crew\'s dropdown. Past timesheets keep their site name. This cannot be undone.')) return;
-    clearMsg($("appMsg"));
-    const { error } = await sb.rpc("owner_delete_site", { p_site_id: s.id });
-    if (error) { msg($("appMsg"), error.message, "err"); return; }
-    msg($("appMsg"), "Site deleted.", "ok");
-    loadSites();
-  }
-  // ---- timesheets: load / render ----
-  async function loadTimesheets() {
-    clearMsg($("appMsg"));
-    const from = $("tsFrom").value;
-    const to = $("tsTo").value;
-    const status = $("tsStatus").value; // "" | pending | approved
-    if (!from || !to) { msg($("appMsg"), "Please choose both a From and To date.", "err"); return; }
-    if (from > to) { msg($("appMsg"), "The From date can't be after the To date.", "err"); return; }
-    $("tsSummary").textContent = "Loading…";
-    show($("tsTable"), false);
-    $("tsLoadBtn").disabled = true;
-    const { data, error } = await sb.rpc("owner_list_timesheets", {
-      p_from: from, p_to: to, p_status: status || null
-    });
-    if (error) { $("tsLoadBtn").disabled = false; $("tsSummary").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
-    tsRows = data || [];
-    await mergeGps(from, to, status || null);   // attach clock-in/out location to each row
-    $("tsLoadBtn").disabled = false;
-    renderTimesheets();
-  }
-  // Pull location for the whole range in one call and merge onto tsRows by id.
-  // Degrades gracefully: if the owner_timesheets_gps_bulk function isn't deployed
-  // yet, we simply skip location (columns show a dash) and nothing else breaks.
-  async function mergeGps(from, to, status) {
-    const { data, error } = await sb.rpc("owner_timesheets_gps_bulk", {
-      p_from: from, p_to: to, p_status: status
-    });
-    if (error || !data) return;
-    const byId = {};
-    data.forEach((g) => { byId[g.id] = g; });
-    tsRows.forEach((r) => {
-      const g = byId[r.id];
-      if (!g) return;
-      r.clock_in_time = g.clock_in_time;
-      r.clock_out_time = g.clock_out_time;
-      r.clock_in_address = g.clock_in_address;
-      r.clock_out_address = g.clock_out_address;
-      r.clock_in_lat = g.clock_in_lat;
-      r.clock_in_lng = g.clock_in_lng;
-      r.clock_out_lat = g.clock_out_lat;
-      r.clock_out_lng = g.clock_out_lng;
-    });
-  }
-  // Build a small on-screen location cell: address + a "map" link when coords exist.
-  function locCell(addr, lat, lng) {
-    const hasCoords = lat && lng;
-    if (!addr && !hasCoords) return '<span class="muted">—</span>';
-    let h = addr ? escapeHtml(addr) : "";
-    if (hasCoords) {
-      const q = encodeURIComponent(lat + "," + lng);
-      h += (addr ? '<br>' : '') +
-        '<a href="https://www.google.com/maps?q=' + q + '" target="_blank" rel="noopener">map</a>';
-    }
-    return '<div class="loc">' + h + '</div>';
-  }
-  function mapUrl(lat, lng) {
-    return (lat && lng) ? "https://www.google.com/maps?q=" + encodeURIComponent(lat + "," + lng) : "";
-  }
-  function renderTimesheets() {
-    const body = $("tsBody");
-    body.innerHTML = "";
-    if (tsRows.length === 0) {
-      $("tsSummary").textContent = "No timesheets found for this range.";
-      show($("tsTable"), false);
-      return;
-    }
-    let approvedCount = 0, approvedHrs = 0, pendingCount = 0, activeCount = 0;
-    tsRows.forEach((r) => {
-      if (r.status === "approved") { approvedCount++; approvedHrs += Number(r.paid_hours) || 0; }
-      else if (r.status === "active") { activeCount++; }
-      else pendingCount++;
-      const tr = document.createElement("tr");
-      const isApproved = r.status === "approved";
-      const isActive = r.status === "active";
-      const statusTxt = isApproved ? "Approved" : (isActive ? (r.end_time ? "Clocked out" : "🟢 On site") : "Pending");
-      const statusCls = isApproved ? "approved" : (isActive ? "active" : "pending");
-      tr.innerHTML =
-        '<td>' + escapeHtml(r.staff) + '</td>' +
-        '<td>' + escapeHtml(r.role || "") + '</td>' +
-        '<td>' + fmtDate(r.work_date) + '</td>' +
-        '<td>' + escapeHtml(r.start_time || "") + '</td>' +
-        '<td>' + escapeHtml(r.end_time || "") + '</td>' +
-        '<td class="num">' + (Number(r.lunch_break) || 0) + '</td>' +
-        '<td class="num">' + hrs(r.paid_hours) + '</td>' +
-        '<td>' + escapeHtml(r.job || "") + '</td>' +
-        '<td>' + noteCell(r.notes) + '</td>' +
-        '<td>' + locCell(r.clock_in_address, r.clock_in_lat, r.clock_in_lng) + '</td>' +
-        '<td>' + locCell(r.clock_out_address, r.clock_out_lat, r.clock_out_lng) + '</td>' +
-        '<td><span class="pill ' + statusCls + '">' + statusTxt + '</span></td>' +
-        '<td><div class="actions">' +
-          '<button class="secondary small" data-gps="' + r.id + '">📍 Location</button>' +
-          '<button class="secondary small" data-adj="' + r.id + '">Adjust</button>' +
-          (isActive
-            ? ''
-            : isApproved
-              ? '<button class="danger small" data-undo="' + r.id + '">Undo</button>'
-              : '<button class="ok small" data-appr="' + r.id + '">Approve</button>') +
-        '</div></td>';
-      body.appendChild(tr);
-      const apprBtn = tr.querySelector("[data-appr]");
-      if (apprBtn) apprBtn.addEventListener("click", () => approveTs(r.id));
-      const undoBtn = tr.querySelector("[data-undo]");
-      if (undoBtn) undoBtn.addEventListener("click", () => unapproveTs(r.id));
-      tr.querySelector("[data-adj]").addEventListener("click", () => openAdjust(r));
-      tr.querySelector("[data-gps]").addEventListener("click", () => openGps(r.id, r.staff, r.work_date));
-    });
-    $("tsSummary").innerHTML =
-      '<b>' + tsRows.length + '</b> timesheet(s) · ' +
-      '<b>' + approvedCount + '</b> approved (' + approvedHrs.toFixed(2) + ' hrs) · ' +
-      '<b>' + pendingCount + '</b> pending' +
-      (activeCount ? ' · <b>' + activeCount + '</b> on site now' : '');
-    show($("tsTable"), true);
-  }
-  async function approveTs(id) {
-    clearMsg($("appMsg"));
-    const { error } = await sb.rpc("owner_approve_timesheet", { p_id: id });
-    if (error) { msg($("appMsg"), error.message, "err"); return; }
-    msg($("appMsg"), "Timesheet approved.", "ok");
-    loadTimesheets();
-  }
-  async function unapproveTs(id) {
-    clearMsg($("appMsg"));
-    const { error } = await sb.rpc("owner_unapprove_timesheet", { p_id: id });
-    if (error) { msg($("appMsg"), error.message, "err"); return; }
-    msg($("appMsg"), "Approval undone — timesheet is pending again.", "ok");
-    loadTimesheets();
-  }
-  // ---- location / GPS modal ----
-  function mapLink(lat, lng) {
-    if (!lat || !lng) return "";
-    const q = encodeURIComponent(lat + "," + lng);
-    return ' · <a href="https://www.google.com/maps?q=' + q + '" target="_blank" rel="noopener">View on map</a>';
-  }
-  function gpsPunch(label, time, addr, lat, lng) {
-    return '<div class="gps-block">' +
-      '<div class="gps-h">' + label + '</div>' +
-      '<div>' + (time ? escapeHtml(time) : '<span class="muted">no time recorded</span>') + '</div>' +
-      (addr ? '<div class="subtle">' + escapeHtml(addr) + '</div>' : '') +
-      ((lat && lng)
-        ? '<div class="subtle">' + escapeHtml(lat) + ', ' + escapeHtml(lng) + mapLink(lat, lng) + '</div>'
-        : '<div class="subtle muted">no GPS location recorded</div>') +
-      '</div>';
-  }
-  async function openGps(id, staff, workDate) {
-    $("gpsWho").textContent = (staff || "") + (workDate ? " — " + fmtDate(workDate) : "");
-    $("gpsBody").innerHTML = "Loading…";
-    $("gpsModal").classList.add("show");
-    const { data, error } = await sb.rpc("owner_timesheet_gps", { p_id: id });
-    if (error) {
-      $("gpsBody").innerHTML = '<span style="color:var(--danger)">' + escapeHtml(error.message) + '</span>';
-      return;
-    }
-    const g = (data && data[0]) || null;
-    if (!g) { $("gpsBody").textContent = "No location details found for this timesheet."; return; }
-    const breaks =
-      '<div style="margin-top:6px; border-top:1px solid var(--line); padding-top:12px;">' +
-      '<div class="gps-h" style="margin-bottom:4px;">Breaks</div>' +
-      '<div class="subtle">Morning tea: ' + (Number(g.morning_break) || 0) + ' min (paid)</div>' +
-      '<div class="subtle">Lunch: ' + (Number(g.lunch_break) || 0) + ' min (deducted)' +
-        (g.lunch_start ? ' · started ' + escapeHtml(g.lunch_start) : '') + '</div>' +
-      '<div class="subtle">Afternoon tea: ' + (Number(g.afternoon_break) || 0) + ' min (paid)</div>' +
-      '</div>';
-    $("gpsBody").innerHTML =
-      gpsPunch("📍 Clocked in", g.clock_in_time, g.clock_in_address, g.clock_in_lat, g.clock_in_lng) +
-      gpsPunch("🏁 Clocked out", g.clock_out_time, g.clock_out_address, g.clock_out_lat, g.clock_out_lng) +
-      breaks;
-  }
-  $("gpsClose").addEventListener("click", () => $("gpsModal").classList.remove("show"));
-  // ---- adjust timesheet modal ----
-  // paid hours = (finish - start) - lunch, matching the staff app rule
-  function computePaid() {
-    const s = $("adjStart").value.trim();   // "HH:MM" (24-hour)
-    const e = $("adjEnd").value.trim();
-    const lunch = Number($("adjLunch").value) || 0;
-    const re = /^([01]?\d|2[0-3]):[0-5]\d$/;
-    if (!re.test(s) || !re.test(e)) return;
-    const [sh, sm] = s.split(":").map(Number);
-    const [eh, em] = e.split(":").map(Number);
-    let mins = (eh * 60 + em) - (sh * 60 + sm);
-    if (mins < 0) mins += 24 * 60;           // overnight shift
-    const paid = Math.max(0, (mins - lunch) / 60);
-    $("adjHours").value = paid.toFixed(2);
-  }
-  function openAdjust(r) {
-    adjustingId = r.id;
-    clearMsg($("adjMsg"));
-    $("adjTitle").textContent = "Adjust timesheet";
-    $("adjWho").textContent = r.staff + " — " + fmtDate(r.work_date);
-    $("adjStart").value = r.start_time || "";
-    $("adjEnd").value = r.end_time || "";
-    $("adjLunch").value = (Number(r.lunch_break) || 0);
-    $("adjHours").value = (r.paid_hours == null ? "" : Number(r.paid_hours));
-    $("adjNote").value = r.payroll_note || "";
-    $("adjModal").classList.add("show");
-  }
-  ["adjStart", "adjEnd", "adjLunch"].forEach((id) =>
-    $(id).addEventListener("input", computePaid));
-  $("adjCancel").addEventListener("click", () => $("adjModal").classList.remove("show"));
-  $("adjSave").addEventListener("click", async () => {
-    clearMsg($("adjMsg"));
-    const start = $("adjStart").value.trim();
-    const end = $("adjEnd").value.trim();
-    const lunch = parseInt($("adjLunch").value, 10);
-    const h = parseFloat($("adjHours").value);
-    const note = $("adjNote").value.trim();
-    const timeRe = /^([01]?\d|2[0-3]):[0-5]\d$/; // 24-hour HH:MM
-    if (!start || !end) { msg($("adjMsg"), "Please enter both a start and finish time.", "err"); return; }
-    if (!timeRe.test(start) || !timeRe.test(end)) { msg($("adjMsg"), "Times must be 24-hour, like 07:30 or 16:15.", "err"); return; }
-    if (isNaN(lunch) || lunch < 0 || lunch > 600) { msg($("adjMsg"), "Lunch minutes must be between 0 and 600.", "err"); return; }
-    if (isNaN(h) || h < 0 || h > 24) { msg($("adjMsg"), "Paid hours must be a number between 0 and 24.", "err"); return; }
-    $("adjSave").disabled = true;
-    const { error } = await sb.rpc("owner_adjust_timesheet", {
-      p_id: adjustingId,
-      p_start_time: start,
-      p_end_time: end,
-      p_lunch_break: lunch,
-      p_paid_hours: h,
-      p_payroll_note: note || null
-    });
-    $("adjSave").disabled = false;
-    if (error) { msg($("adjMsg"), error.message, "err"); return; }
-    $("adjModal").classList.remove("show");
-    msg($("appMsg"), "Timesheet adjusted.", "ok");
-    loadTimesheets();
-  });
-  // ---- CSV export: payroll (approved rows only) ----
-  $("tsLoadBtn").addEventListener("click", loadTimesheets);
-  $("tsCsvBtn").addEventListener("click", () => {
-    clearMsg($("appMsg"));
-    const approved = tsRows.filter((r) => r.status === "approved");
-    if (approved.length === 0) {
-      msg($("appMsg"), "No approved timesheets in this range to export. Approve some first, or adjust the date range.", "err");
-      return;
-    }
-    const header = ["Staff", "Role", "Date", "Start", "End", "Lunch (min)", "Paid hours", "Job", "Staff note", "Payroll note"];
-    const rows = approved.map((r) => [
-      r.staff || "", r.role || "", fmtDate(r.work_date),
-      r.start_time || "", r.end_time || "", (Number(r.lunch_break) || 0),
-      hrs(r.paid_hours), r.job || "", r.notes || "", r.payroll_note || ""
-    ]);
-    downloadCsv("payroll_" + $("tsFrom").value + "_to_" + $("tsTo").value + ".csv", [header, ...rows]);
-    msg($("appMsg"), "Exported " + approved.length + " approved timesheet(s) to CSV.", "ok");
-  });
-  // ---- CSV export: all timesheets in range WITH location ----
-  $("tsLocCsvBtn").addEventListener("click", () => {
-    clearMsg($("appMsg"));
-    if (tsRows.length === 0) {
-      msg($("appMsg"), "Nothing to export yet. Click “Load timesheets” first (or there are no timesheets in this range).", "err");
-      return;
-    }
-    const header = [
-      "Staff", "Role", "Date", "Start", "End", "Lunch (min)", "Paid hours", "Job", "Status",
-      "Clock-in time", "Clock-in address", "Clock-in lat", "Clock-in lng", "Clock-in map",
-      "Clock-out time", "Clock-out address", "Clock-out lat", "Clock-out lng", "Clock-out map",
-      "Staff note", "Payroll note"
-    ];
-    const rows = tsRows.map((r) => [
-      r.staff || "", r.role || "", fmtDate(r.work_date),
-      r.start_time || "", r.end_time || "", (Number(r.lunch_break) || 0),
-      hrs(r.paid_hours), r.job || "", (r.status === "approved" ? "Approved" : "Pending"),
-      r.clock_in_time || "", r.clock_in_address || "", r.clock_in_lat || "", r.clock_in_lng || "", mapUrl(r.clock_in_lat, r.clock_in_lng),
-      r.clock_out_time || "", r.clock_out_address || "", r.clock_out_lat || "", r.clock_out_lng || "", mapUrl(r.clock_out_lat, r.clock_out_lng),
-      r.notes || "", r.payroll_note || ""
-    ]);
-    downloadCsv("timesheets_location_" + $("tsFrom").value + "_to_" + $("tsTo").value + ".csv", [header, ...rows]);
-    msg($("appMsg"), "Exported " + tsRows.length + " timesheet(s) with location to CSV.", "ok");
-  });
-  // ---- reports: weekly hours by staff ----
-  async function loadSummary() {
-    clearMsg($("appMsg"));
-    const from = $("rpFrom").value;
-    const to = $("rpTo").value;
-    if (!from || !to) { msg($("appMsg"), "Please choose both a From and To date.", "err"); return; }
-    if (from > to) { msg($("appMsg"), "The From date can't be after the To date.", "err"); return; }
-    $("rpSummary").textContent = "Loading…";
-    show($("rpTable"), false);
-    $("rpLoadBtn").disabled = true;
-    const { data, error } = await sb.rpc("owner_timesheet_summary", { p_from: from, p_to: to });
-    $("rpLoadBtn").disabled = false;
-    if (error) { $("rpSummary").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
-    rpRows = data || [];
-    renderSummary();
-  }
-  function renderSummary() {
-    const body = $("rpBody");
-    body.innerHTML = "";
-    $("rpFoot").innerHTML = "";
-    if (rpRows.length === 0) {
-      $("rpSummary").textContent = "No timesheets found for this range.";
-      show($("rpTable"), false);
-      return;
-    }
-    let totAll = 0, totAppr = 0, totPend = 0;
-    rpRows.forEach((r) => {
-      const total = Number(r.total_hours) || 0;
-      const appr = Number(r.approved_hours) || 0;
-      const pend = Number(r.pending_hours) || 0;
-      totAll += total; totAppr += appr; totPend += pend;
-      const tr = document.createElement("tr");
-      tr.innerHTML =
-        '<td>' + escapeHtml(r.staff) + '</td>' +
-        '<td>' + escapeHtml(r.role || "") + '</td>' +
-        '<td class="num">' + total.toFixed(2) + '</td>' +
-        '<td class="num">' + appr.toFixed(2) + '</td>' +
-        '<td class="num">' + pend.toFixed(2) + '</td>';
-      body.appendChild(tr);
-    });
-    $("rpFoot").innerHTML =
-      '<tr>' +
-        '<td><b>Total</b></td><td></td>' +
-        '<td class="num"><b>' + totAll.toFixed(2) + '</b></td>' +
-        '<td class="num"><b>' + totAppr.toFixed(2) + '</b></td>' +
-        '<td class="num"><b>' + totPend.toFixed(2) + '</b></td>' +
-      '</tr>';
-    $("rpSummary").innerHTML =
-      '<b>' + rpRows.length + '</b> staff · ' +
-      '<b>' + totAll.toFixed(2) + '</b> total hrs · ' +
-      '<b>' + totAppr.toFixed(2) + '</b> approved · ' +
-      '<b>' + totPend.toFixed(2) + '</b> pending';
-    show($("rpTable"), true);
-  }
-  $("rpLoadBtn").addEventListener("click", loadSummary);
-  $("rpCsvBtn").addEventListener("click", () => {
-    clearMsg($("appMsg"));
-    if (rpRows.length === 0) {
-      msg($("appMsg"), "Nothing to export yet. Click “Load report” first (or there are no timesheets in this range).", "err");
-      return;
-    }
-    const header = ["Staff", "Role", "Total hours", "Approved hours", "Pending hours"];
-    let totAll = 0, totAppr = 0, totPend = 0;
-    const rows = rpRows.map((r) => {
-      const total = Number(r.total_hours) || 0;
-      const appr = Number(r.approved_hours) || 0;
-      const pend = Number(r.pending_hours) || 0;
-      totAll += total; totAppr += appr; totPend += pend;
-      return [r.staff || "", r.role || "", total.toFixed(2), appr.toFixed(2), pend.toFixed(2)];
-    });
-    const totalRow = ["Total", "", totAll.toFixed(2), totAppr.toFixed(2), totPend.toFixed(2)];
-    downloadCsv("hours_summary_" + $("rpFrom").value + "_to_" + $("rpTo").value + ".csv", [header, ...rows, totalRow]);
-    msg($("appMsg"), "Exported summary for " + rpRows.length + " staff to CSV.", "ok");
-  });
-  // ---- staff notes cell (crew note, shown in the Timesheets tab) ----
-  function noteCell(note){
-    const t = (note==null?"":String(note)).trim();
-    if(!t) return '<span class="muted">—</span>';
-    return '<div style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="'+escapeHtml(t)+'">'+escapeHtml(t)+'</div>';
-  }
+// ============================================================
+// CONFIG — SANDBOX project (multi-tenant). Public anon key. NOT live.
+// ============================================================
+const SUPABASE_URL = "https://deghlwobdzyxkbzflmch.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlZ2hsd29iZHp5eGtiemZsbWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNzU2MjgsImV4cCI6MjA5ODk1MTYyOH0.kZXnEE0sB9A4vcLEHeaG0q8tDS_-QYzE4FqG6qPEqYk";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ---- tiny helpers ----
+const $ = (id) => document.getElementById(id);
+function show(el, on) { el.classList.toggle("hidden", !on); }
+function msg(el, text, kind) {
+el.textContent = text;
+el.className = "msg show " + (kind || "info");
+if (!text) el.className = "msg";
+}
+function clearMsg(el) { el.className = "msg"; el.textContent = ""; }
+function escapeHtml(str) {
+return String(str == null ? "" : str).replace(/[&<>"']/g, (c) =>
+({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function fmtDate(iso) {
+if (!iso) return "";
+const p = String(iso).slice(0, 10).split("-");
+if (p.length !== 3) return iso;
+return p[2] + "/" + p[1] + "/" + p[0]; // DD/MM/YYYY
+}
+function fmtTime(ts) {
+if (!ts) return "";
+try { return new Date(ts).toLocaleTimeString('en-NZ', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Pacific/Auckland' }); }
+catch (e) { return String(ts); }
+}
+function isoDaysAgo(n) {
+const d = new Date();
+d.setDate(d.getDate() - n);
+return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland',
+year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+}
+function hrs(v) { return (v == null || v === "") ? "" : Number(v).toFixed(2); }
+function csvEsc(v) {
+const s = String(v == null ? "" : v);
+return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function downloadCsv(filename, rows) {
+const csv = rows.map((row) => row.map(csvEsc).join(",")).join("\r\n");
+const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+const url = URL.createObjectURL(blob);
+const a = document.createElement("a");
+a.href = url; a.download = filename;
+document.body.appendChild(a); a.click(); document.body.removeChild(a);
+URL.revokeObjectURL(url);
+}
+function downloadText(filename, text, mime) {
+const blob = new Blob([text], { type: (mime || "text/plain") + ";charset=utf-8;" });
+const url = URL.createObjectURL(blob);
+const a = document.createElement("a");
+a.href = url; a.download = filename;
+document.body.appendChild(a); a.click(); document.body.removeChild(a);
+URL.revokeObjectURL(url);
+}
+let editingId = null; // staff edit
+let editingSiteId = null; // site edit
+let adjustingId = null; // timesheet adjust
+let tsRows = []; // last-loaded timesheet rows (all statuses in range)
+let rpRows = []; // last-loaded report summary rows
+let siteRows = []; // last-loaded site rows
+let roleByName = {}; // staff name -> role (timesheets rows have no role column)
+// ---- auth wiring ----
+async function refresh() {
+const { data: { session } } = await sb.auth.getSession();
+if (session) {
+show($("loginView"), false);
+show($("appView"), true);
+$("whoami").textContent = session.user.email;
+loadOrg();
+loadStaff();
+} else {
+show($("loginView"), true);
+show($("appView"), false);
+}
+}
+$("sendLinkBtn").addEventListener("click", async () => {
+const email = $("email").value.trim();
+const biz = $("bizname").value.trim();
+if (!email) { msg($("loginMsg"), "Please enter your email address.", "err"); return; }
+$("sendLinkBtn").disabled = true;
+const opts = { emailRedirectTo: window.location.href };
+if (biz) opts.data = { business_name: biz };
+const { error } = await sb.auth.signInWithOtp({ email, options: opts });
+$("sendLinkBtn").disabled = false;
+if (error) { msg($("loginMsg"), error.message, "err"); return; }
+msg($("loginMsg"), "Check your email and click the sign-in link. You can close this tab once you do.", "ok");
+});
+$("signOutBtn").addEventListener("click", async () => {
+await sb.auth.signOut();
+refresh();
+});
+sb.auth.onAuthStateChange(() => refresh());
+async function loadOrg() {
+const { data, error } = await sb.rpc("owner_get_org");
+if (error || !data || !data.length) {
+$("coName").textContent = "Owner";
+return;
+}
+const o = data[0];
+$("coName").textContent = o.name || "Owner";
+$("coPlan").textContent = (o.plan ? o.plan : "") + (o.status ? " · " + o.status : "");
+const { data: b } = await sb.rpc("owner_billing_status");
+const st = (b && b[0]) ? b[0].status : o.status;
+if (st && st !== "active") {
+show($("billingBanner"), true);
+$("billingBanner").textContent = (st === "incomplete")
+? "Your account isn't active yet — complete signup/billing to unlock everything. (Payroll review still works for testing.)"
+: "Billing status: " + st + ".";
+} else show($("billingBanner"), false);
+}
+// ---- tab switching ----
+function setTab(which) {
+$("tabStaff").classList.toggle("on", which === "staff");
+$("tabSites").classList.toggle("on", which === "sites");
+$("tabTimesheets").classList.toggle("on", which === "timesheets");
+$("tabReports").classList.toggle("on", which === "reports");
+show($("staffSection"), which === "staff");
+show($("sitesSection"), which === "sites");
+show($("timesheetsSection"), which === "timesheets");
+show($("reportsSection"), which === "reports");
+clearMsg($("appMsg"));
+}
+$("tabStaff").addEventListener("click", () => setTab("staff"));
+$("tabSites").addEventListener("click", () => {
+setTab("sites");
+if (siteRows.length === 0) loadSites();
+});
+$("tabTimesheets").addEventListener("click", () => {
+setTab("timesheets");
+if (!$("tsFrom").value) { $("tsFrom").value = isoDaysAgo(6); $("tsTo").value = isoDaysAgo(0); }
+if (tsRows.length === 0) loadTimesheets();
+});
+$("tabReports").addEventListener("click", () => {
+setTab("reports");
+if (!$("rpFrom").value) { $("rpFrom").value = isoDaysAgo(6); $("rpTo").value = isoDaysAgo(0); }
+if (rpRows.length === 0) loadSummary();
+});
+// ---- staff list ----
+async function loadStaff() {
+$("listStatus").textContent = "Loading…";
+show($("staffTable"), false);
+const { data, error } = await sb.rpc("owner_list_staff");
+if (error) { $("listStatus").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
+window.staffAll = data || [];
+roleByName = {};
+window.staffAll.forEach((s) => { roleByName[s.name] = s.role || ""; });
+const dl = $("staffDatalist");
+if (dl) dl.innerHTML = window.staffAll.map((s) => '<option value="' + escapeHtml(s.name) + '"></option>').join("");
+if (!data || data.length === 0) {
+$("listStatus").innerHTML = "No staff found yet. If you just signed in for the first time and expected to see staff, your owner account may not be linked to a business yet — let Claude know.";
+return;
+}
+$("listStatus").textContent = "";
+const body = $("staffBody");
+body.innerHTML = "";
+data.forEach((s) => {
+const tr = document.createElement("tr");
+tr.innerHTML =
+'<td>' + escapeHtml(s.name) + '</td>' +
+'<td>' + escapeHtml(s.role || "") + '</td>' +
+'<td><span class="pill ' + (s.active ? "active" : "inactive") + '">' +
+(s.active ? "Active" : "Inactive") + '</span></td>' +
+'<td>' + (s.payroll_id ? escapeHtml(s.payroll_id) : '<span class="muted">—</span>') + '</td>' +
+'<td class="num">' + (s.pay_rate_id != null ? s.pay_rate_id : 1) + '</td>' +
+'<td><div class="actions">' +
+'<button class="secondary small" data-edit="' + s.id + '">Edit</button>' +
+'</div></td>';
+body.appendChild(tr);
+tr.querySelector("[data-edit]").addEventListener("click", () => openEdit(s));
+});
+show($("staffTable"), true);
+}
+// ---- add staff ----
+$("addBtn").addEventListener("click", async () => {
+const name = $("newName").value.trim();
+const role = $("newRole").value.trim();
+const pin = $("newPin").value.trim();
+clearMsg($("appMsg"));
+if (!name) { msg($("appMsg"), "Please enter a name.", "err"); return; }
+if (!/^\d{4,6}$/.test(pin)) { msg($("appMsg"), "PIN must be 4 to 6 digits.", "err"); return; }
+$("addBtn").disabled = true;
+const { error } = await sb.rpc("owner_add_staff", { p_name: name, p_role: role, p_pin: pin });
+$("addBtn").disabled = false;
+if (error) { msg($("appMsg"), error.message, "err"); return; }
+$("newName").value = ""; $("newRole").value = ""; $("newPin").value = "";
+msg($("appMsg"), "Staff member added.", "ok");
+loadStaff();
+});
+// ---- edit staff modal ----
+function openEdit(s) {
+editingId = s.id;
+clearMsg($("editMsg"));
+$("editTitle").textContent = "Edit — " + s.name;
+$("editName").value = s.name;
+$("editRole").value = s.role || "";
+$("editActive").value = s.active ? "true" : "false";
+$("editPayroll").value = s.payroll_id || "";
+$("editRate").value = s.pay_rate_id != null ? s.pay_rate_id : 1;
+$("editPin").value = "";
+$("editModal").classList.add("show");
+}
+$("editCancel").addEventListener("click", () => $("editModal").classList.remove("show"));
+$("editSave").addEventListener("click", async () => {
+const name = $("editName").value.trim();
+const role = $("editRole").value.trim();
+const active = $("editActive").value === "true";
+const pin = $("editPin").value.trim();
+const payroll = $("editPayroll").value.trim();
+const rate = parseInt($("editRate").value, 10) || 1;
+clearMsg($("editMsg"));
+if (!name) { msg($("editMsg"), "Name can't be empty.", "err"); return; }
+if (pin && !/^\d{4,6}$/.test(pin)) { msg($("editMsg"), "PIN must be 4 to 6 digits.", "err"); return; }
+$("editSave").disabled = true;
+try {
+let r = await sb.rpc("owner_update_staff", { p_id: editingId, p_name: name, p_role: role, p_active: active });
+if (r.error) throw r.error;
+r = await sb.rpc("owner_set_staff_payroll", { p_staff: editingId, p_payroll_id: payroll, p_pay_rate_id: rate });
+if (r.error) throw r.error;
+if (pin) {
+r = await sb.rpc("owner_reset_staff_pin", { p_id: editingId, p_new_pin: pin });
+if (r.error) throw r.error;
+}
+$("editModal").classList.remove("show");
+msg($("appMsg"), pin ? "Changes saved and PIN reset." : "Changes saved.", "ok");
+loadStaff();
+} catch (e) { msg($("editMsg"), e.message || String(e), "err"); }
+finally { $("editSave").disabled = false; }
+});
+// ---- sites (jobs) ----
+async function loadSites() {
+$("siteStatus").textContent = "Loading…";
+show($("siteTable"), false);
+const { data, error } = await sb.rpc("owner_list_jobs");
+if (error) { $("siteStatus").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
+siteRows = data || [];
+if (siteRows.length === 0) {
+$("siteStatus").textContent = "No sites yet — add your first job site above.";
+return;
+}
+$("siteStatus").textContent = "";
+const body = $("siteBody");
+body.innerHTML = "";
+siteRows.forEach((s) => {
+const tr = document.createElement("tr");
+tr.innerHTML =
+'<td>' + escapeHtml(s.name) + '</td>' +
+'<td><span class="pill ' + (s.active ? "active" : "inactive") + '">' +
+(s.active ? "Active" : "Inactive") + '</span></td>' +
+'<td><div class="actions">' +
+'<button class="secondary small" data-sedit="' + s.id + '">Edit</button>' +
+(s.active
+? '<button class="secondary small" data-stoggle="' + s.id + '">Deactivate</button>'
+: '<button class="ok small" data-stoggle="' + s.id + '">Activate</button>') +
+'</div></td>';
+body.appendChild(tr);
+tr.querySelector("[data-sedit]").addEventListener("click", () => openSiteEdit(s));
+tr.querySelector("[data-stoggle]").addEventListener("click", () => toggleSite(s));
+});
+show($("siteTable"), true);
+}
+$("addSiteBtn").addEventListener("click", async () => {
+const name = $("newSite").value.trim();
+clearMsg($("appMsg"));
+if (!name) { msg($("appMsg"), "Please enter a site name.", "err"); return; }
+$("addSiteBtn").disabled = true;
+const { error } = await sb.rpc("owner_add_job", { p_name: name });
+$("addSiteBtn").disabled = false;
+if (error) { msg($("appMsg"), error.message, "err"); return; }
+$("newSite").value = "";
+msg($("appMsg"), "Site added.", "ok");
+loadSites();
+});
+function openSiteEdit(s) {
+editingSiteId = s.id;
+clearMsg($("siteMsg"));
+$("siteTitle").textContent = "Edit — " + s.name;
+$("editSiteName").value = s.name;
+$("editSiteActive").value = s.active ? "true" : "false";
+$("siteModal").classList.add("show");
+}
+$("siteCancel").addEventListener("click", () => $("siteModal").classList.remove("show"));
+$("siteSave").addEventListener("click", async () => {
+const name = $("editSiteName").value.trim();
+const active = $("editSiteActive").value === "true";
+clearMsg($("siteMsg"));
+if (!name) { msg($("siteMsg"), "Site name can't be empty.", "err"); return; }
+$("siteSave").disabled = true;
+const { error } = await sb.rpc("owner_update_job", { p_id: editingSiteId, p_name: name, p_active: active });
+$("siteSave").disabled = false;
+if (error) { msg($("siteMsg"), error.message, "err"); return; }
+$("siteModal").classList.remove("show");
+msg($("appMsg"), "Site updated.", "ok");
+loadSites();
+});
+async function toggleSite(s) {
+clearMsg($("appMsg"));
+const { error } = await sb.rpc("owner_update_job", { p_id: s.id, p_name: s.name, p_active: !s.active });
+if (error) { msg($("appMsg"), error.message, "err"); return; }
+msg($("appMsg"), s.active ? "Site deactivated — hidden from the crew." : "Site activated — now shown to the crew.", "ok");
+loadSites();
+}
+// ---- timesheets: load / render ----
+async function loadTimesheets() {
+clearMsg($("appMsg"));
+const from = $("tsFrom").value;
+const to = $("tsTo").value;
+if (!from || !to) { msg($("appMsg"), "Please choose both a From and To date.", "err"); return; }
+if (from > to) { msg($("appMsg"), "The From date can't be after the To date.", "err"); return; }
+$("tsSummary").textContent = "Loading…";
+show($("tsTable"), false);
+$("tsLoadBtn").disabled = true;
+const { data, error } = await sb.rpc("owner_list_timesheets", { p_from: from, p_to: to });
+$("tsLoadBtn").disabled = false;
+if (error) { $("tsSummary").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
+tsRows = data || [];
+renderTimesheets();
+loadIssues();
+}
+$("tsStatus").addEventListener("change", renderTimesheets);
+$("tsStaffSearch").addEventListener("input", renderTimesheets);
+// week helpers — weeks run Monday..Sunday, in the browser's local (NZ) date
+function isoLocal(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return y+'-'+m+'-'+day; }
+function mondayOf(d){ const x=new Date(d); const wd=(x.getDay()+6)%7; x.setDate(x.getDate()-wd); return x; }
+function setTsRange(which){
+  const now=new Date(); let from, to;
+  if(which==='thisweek'){ from=mondayOf(now); to=new Date(from); to.setDate(from.getDate()+6); }
+  else if(which==='lastweek'){ const m=mondayOf(now); to=new Date(m); to.setDate(m.getDate()-1); from=new Date(to); from.setDate(to.getDate()-6); }
+  else if(which==='fortnight'){ const m=mondayOf(now); from=new Date(m); from.setDate(m.getDate()-7); to=new Date(m); to.setDate(m.getDate()+6); }
+  else { from=new Date(now.getFullYear(), now.getMonth(), 1); to=now; }
+  $("tsFrom").value=isoLocal(from); $("tsTo").value=isoLocal(to); loadTimesheets();
+}
+document.querySelectorAll("[data-range]").forEach((b)=> b.addEventListener("click", ()=> setTsRange(b.dataset.range)));
+function locCell(addr, lat, lng) {
+const hasCoords = lat && lng;
+if (!addr && !hasCoords) return '<span class="muted">—</span>';
+let h = addr ? escapeHtml(addr) : "";
+if (hasCoords) {
+const q = encodeURIComponent(lat + "," + lng);
+h += (addr ? '<br>' : '') +
+'<a href="https://www.google.com/maps?q=' + q + '" target="_blank" rel="noopener">map</a>';
+}
+return '<div class="loc">' + h + '</div>';
+}
+function mapUrl(lat, lng) {
+return (lat && lng) ? "https://www.google.com/maps?q=" + encodeURIComponent(lat + "," + lng) : "";
+}
+function noteCell(note) {
+const t = (note == null ? "" : String(note)).trim();
+if (!t) return '<span class="muted">—</span>';
+return '<div style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="' + escapeHtml(t) + '">' + escapeHtml(t) + '</div>';
+}
+function tsFiltered() {
+const st = $("tsStatus").value;
+const q = ($("tsStaffSearch").value || "").trim().toLowerCase();
+return tsRows.filter((r) =>
+  (!st || r.status === st) &&
+  (!q || String(r.staff || "").toLowerCase().includes(q))
+);
+}
+function renderTimesheets() {
+const body = $("tsBody");
+body.innerHTML = "";
+const rows = tsFiltered();
+if (rows.length === 0) {
+$("tsSummary").textContent = tsRows.length ? "No timesheets match this filter." : "No timesheets found for this range.";
+show($("tsTable"), tsRows.length > 0 ? false : false);
+return;
+}
+let approvedCount = 0, approvedHrs = 0, pendingCount = 0, activeCount = 0;
+rows.forEach((r) => {
+if (r.status === "approved") { approvedCount++; approvedHrs += Number(r.paid_hours) || 0; }
+else if (r.status === "active") { activeCount++; }
+else pendingCount++;
+const tr = document.createElement("tr");
+const isApproved = r.status === "approved";
+const isActive = r.status === "active";
+const statusTxt = isApproved ? "Approved" : (isActive ? (r.end_time ? "Clocked out" : "🟢 On site") : "Pending");
+const statusCls = isApproved ? "approved" : (isActive ? "active" : "pending");
+tr.innerHTML =
+'<td>' + escapeHtml(r.staff) + '</td>' +
+'<td>' + escapeHtml(roleByName[r.staff] || "") + '</td>' +
+'<td>' + fmtDate(r.date) + '</td>' +
+'<td>' + escapeHtml(r.start_time || "") + '</td>' +
+'<td>' + escapeHtml(r.end_time || "") + '</td>' +
+'<td class="num">' + (Number(r.lunch_break) || 0) + '</td>' +
+'<td class="num">' + hrs(r.paid_hours) + '</td>' +
+'<td>' + escapeHtml(r.job || "") + '</td>' +
+'<td>' + noteCell(r.notes) + '</td>' +
+'<td>' + locCell(r.clock_in_address, r.clock_in_lat, r.clock_in_lng) + '</td>' +
+'<td>' + locCell(r.clock_out_address, r.clock_out_lat, r.clock_out_lng) + '</td>' +
+'<td><span class="pill ' + statusCls + '">' + statusTxt + '</span></td>' +
+'<td><div class="actions">' +
+'<button class="secondary small" data-gps="' + r.id + '">📍</button>' +
+'<button class="secondary small" data-adj="' + r.id + '">Adjust</button>' +
+(isActive
+? ''
+: isApproved
+? '<button class="danger small" data-undo="' + r.id + '">Undo</button>'
+: '<button class="ok small" data-appr="' + r.id + '">Approve</button>') +
+'<button class="danger small" data-del="' + r.id + '">🗑</button>' +
+'</div></td>';
+body.appendChild(tr);
+const apprBtn = tr.querySelector("[data-appr]");
+if (apprBtn) apprBtn.addEventListener("click", () => setStatus(r.id, "approved"));
+const undoBtn = tr.querySelector("[data-undo]");
+if (undoBtn) undoBtn.addEventListener("click", () => setStatus(r.id, "pending"));
+tr.querySelector("[data-adj]").addEventListener("click", () => openAdjust(r));
+tr.querySelector("[data-gps]").addEventListener("click", () => openGps(r.id));
+tr.querySelector("[data-del]").addEventListener("click", () => delSheet(r.id));
+});
+$("tsSummary").innerHTML =
+'<b>' + rows.length + '</b> timesheet(s) · ' +
+'<b>' + approvedCount + '</b> approved (' + approvedHrs.toFixed(2) + ' hrs) · ' +
+'<b>' + pendingCount + '</b> pending' +
+(activeCount ? ' · <b>' + activeCount + '</b> on site now' : '');
+show($("tsTable"), true);
+}
+async function setStatus(id, status) {
+clearMsg($("appMsg"));
+const { error } = await sb.rpc("owner_set_timesheet_status", { p_id: id, p_status: status });
+if (error) { msg($("appMsg"), error.message, "err"); return; }
+const r = tsRows.find((x) => x.id == id);
+if (r) { r.status = status; r.approved_at = status === "approved" ? new Date().toISOString() : null; }
+renderTimesheets(); loadIssues();
+msg($("appMsg"), status === "approved" ? "Timesheet approved." : "Approval undone — pending again.", "ok");
+}
+async function delSheet(id) {
+const r = tsRows.find((x) => x.id == id);
+if (!window.confirm("Delete " + (r ? escapeHtml(r.staff) + " on " + fmtDate(r.date) : "this entry") + "?\n\nThis cannot be undone.")) return;
+clearMsg($("appMsg"));
+const { error } = await sb.rpc("owner_delete_timesheet", { p_id: id });
+if (error) { msg($("appMsg"), error.message, "err"); return; }
+tsRows = tsRows.filter((x) => x.id != id);
+renderTimesheets(); loadIssues();
+msg($("appMsg"), "Timesheet deleted.", "ok");
+}
+// ---- location / GPS modal (built from the already-loaded row) ----
+function mapLink(lat, lng) {
+if (!lat || !lng) return "";
+const q = encodeURIComponent(lat + "," + lng);
+return ' · <a href="https://www.google.com/maps?q=' + q + '" target="_blank" rel="noopener">View on map</a>';
+}
+function gpsPunch(label, time, addr, lat, lng) {
+return '<div class="gps-block">' +
+'<div class="gps-h">' + label + '</div>' +
+'<div>' + (time ? escapeHtml(fmtTime(time)) : '<span class="muted">no time recorded</span>') + '</div>' +
+(addr ? '<div class="subtle">' + escapeHtml(addr) + '</div>' : '') +
+((lat && lng)
+? '<div class="subtle">' + escapeHtml(lat) + ', ' + escapeHtml(lng) + mapLink(lat, lng) + '</div>'
+: '<div class="subtle muted">no GPS location recorded</div>') +
+'</div>';
+}
+function openGps(id) {
+const g = tsRows.find((x) => x.id == id);
+if (!g) return;
+$("gpsWho").textContent = (g.staff || "") + (g.date ? " — " + fmtDate(g.date) : "");
+$("gpsModal").classList.add("show");
+const breaks =
+'<div style="margin-top:6px; border-top:1px solid var(--line); padding-top:12px;">' +
+'<div class="gps-h" style="margin-bottom:4px;">Breaks</div>' +
+'<div class="subtle">Morning tea: ' + (Number(g.morning_break) || 0) + ' min (paid)</div>' +
+'<div class="subtle">Lunch: ' + (Number(g.lunch_break) || 0) + ' min (deducted)' +
+(g.lunch_start ? ' · started ' + escapeHtml(g.lunch_start) : '') + '</div>' +
+'<div class="subtle">Afternoon tea: ' + (Number(g.afternoon_break) || 0) + ' min (paid)</div>' +
+'</div>';
+$("gpsBody").innerHTML =
+gpsPunch("📍 Clocked in", g.clock_in_time, g.clock_in_address, g.clock_in_lat, g.clock_in_lng) +
+gpsPunch("🏁 Clocked out", g.clock_out_time, g.clock_out_address, g.clock_out_lat, g.clock_out_lng) +
+breaks;
+}
+$("gpsClose").addEventListener("click", () => $("gpsModal").classList.remove("show"));
+// ---- adjust timesheet modal ----
+function computePaid() {
+const s = $("adjStart").value.trim();
+const e = $("adjEnd").value.trim();
+const lunch = Number($("adjLunch").value) || 0;
+const re = /^([01]?\d|2[0-3]):[0-5]\d$/;
+if (!re.test(s) || !re.test(e)) return;
+const [sh, sm] = s.split(":").map(Number);
+const [eh, em] = e.split(":").map(Number);
+let mins = (eh * 60 + em) - (sh * 60 + sm);
+if (mins < 0) mins += 24 * 60;
+const paid = Math.max(0, (mins - lunch) / 60);
+$("adjHours").value = paid.toFixed(2);
+}
+function openAdjust(r) {
+adjustingId = r.id;
+clearMsg($("adjMsg"));
+$("adjTitle").textContent = "Adjust timesheet";
+$("adjWho").textContent = r.staff + " — " + fmtDate(r.date) + (r.status === "approved" ? " (approved — saving will send it back to pending)" : "");
+$("adjStart").value = r.start_time || "";
+$("adjEnd").value = r.end_time || "";
+$("adjLunch").value = (Number(r.lunch_break) || 0);
+$("adjHours").value = (r.paid_hours == null ? "" : Number(r.paid_hours));
+$("adjNote").value = r.payroll_note || "";
+$("adjModal").classList.add("show");
+}
+["adjStart", "adjEnd", "adjLunch"].forEach((id) =>
+$(id).addEventListener("input", computePaid));
+$("adjCancel").addEventListener("click", () => $("adjModal").classList.remove("show"));
+$("adjSave").addEventListener("click", async () => {
+clearMsg($("adjMsg"));
+const start = $("adjStart").value.trim();
+const end = $("adjEnd").value.trim();
+const lunch = parseInt($("adjLunch").value, 10);
+const h = parseFloat($("adjHours").value);
+const note = $("adjNote").value.trim();
+const timeRe = /^([01]?\d|2[0-3]):[0-5]\d$/;
+if (!start || !end) { msg($("adjMsg"), "Please enter both a start and finish time.", "err"); return; }
+if (!timeRe.test(start) || !timeRe.test(end)) { msg($("adjMsg"), "Times must be 24-hour, like 07:30 or 16:15.", "err"); return; }
+if (isNaN(lunch) || lunch < 0 || lunch > 600) { msg($("adjMsg"), "Lunch minutes must be between 0 and 600.", "err"); return; }
+if (isNaN(h) || h < 0 || h > 24) { msg($("adjMsg"), "Paid hours must be a number between 0 and 24.", "err"); return; }
+$("adjSave").disabled = true;
+const { error } = await sb.rpc("owner_update_timesheet", {
+p_id: adjustingId,
+p_start: start,
+p_end: end,
+p_lunch_break: lunch,
+p_paid_hours: h,
+p_payroll_note: note || null
+});
+$("adjSave").disabled = false;
+if (error) { msg($("adjMsg"), error.message, "err"); return; }
+$("adjModal").classList.remove("show");
+msg($("appMsg"), "Timesheet adjusted.", "ok");
+loadTimesheets();
+});
+// ---- Smartly payroll file (proper #50 import) ----
+async function loadIssues() {
+const from = $("tsFrom").value, to = $("tsTo").value;
+const { data, error } = await sb.rpc("owner_export_smartly_issues", { p_from: from, p_to: to });
+const box = $("issuesBox");
+if (error || !data || !data.length) { show($("issuesCard"), false); box.innerHTML = ""; return; }
+box.innerHTML = data.map((i) =>
+'<div class="issue ' + escapeHtml(i.severity) + '">' +
+'<span class="sev">' + escapeHtml(String(i.severity).toUpperCase()) + '</span>' +
+'<span><b>' + escapeHtml(i.subject) + '</b> — ' + escapeHtml(i.detail) + '</span></div>'
+).join("");
+show($("issuesCard"), true);
+}
+$("tsSmartlyBtn").addEventListener("click", async () => {
+clearMsg($("appMsg"));
+const from = $("tsFrom").value, to = $("tsTo").value;
+if (!from || !to) { msg($("appMsg"), "Please choose both a From and To date.", "err"); return; }
+$("tsSmartlyBtn").disabled = true;
+await loadIssues();
+const { data, error } = await sb.rpc("owner_export_smartly_csv", { p_from: from, p_to: to });
+$("tsSmartlyBtn").disabled = false;
+if (error) { msg($("appMsg"), error.message, "err"); return; }
+if (!data || !String(data).trim()) { msg($("appMsg"), "No approved shifts with a payroll ID to export in this range — check the pre-flight list above.", "err"); return; }
+downloadText("smartly_" + from + "_to_" + to + ".csv", data, "text/csv");
+const lines = String(data).trim().split(/\r?\n/).length;
+msg($("appMsg"), "Smartly file downloaded (" + lines + " line(s)). Review the pre-flight check above before importing.", "ok");
+});
+// ---- CSV export: payroll spreadsheet (approved rows only) ----
+$("tsLoadBtn").addEventListener("click", loadTimesheets);
+$("tsCsvBtn").addEventListener("click", () => {
+clearMsg($("appMsg"));
+const approved = tsRows.filter((r) => r.status === "approved");
+if (approved.length === 0) {
+msg($("appMsg"), "No approved timesheets in this range to export. Approve some first, or adjust the date range.", "err");
+return;
+}
+const header = ["Staff", "Role", "Date", "Start", "End", "Lunch (min)", "Paid hours", "Job", "Staff note", "Payroll note"];
+const rows = approved.map((r) => [
+r.staff || "", roleByName[r.staff] || "", fmtDate(r.date),
+r.start_time || "", r.end_time || "", (Number(r.lunch_break) || 0),
+hrs(r.paid_hours), r.job || "", r.notes || "", r.payroll_note || ""
+]);
+downloadCsv("payroll_" + $("tsFrom").value + "_to_" + $("tsTo").value + ".csv", [header, ...rows]);
+msg($("appMsg"), "Exported " + approved.length + " approved timesheet(s) to CSV.", "ok");
+});
+// ---- CSV export: all timesheets in range WITH location ----
+$("tsLocCsvBtn").addEventListener("click", () => {
+clearMsg($("appMsg"));
+if (tsRows.length === 0) {
+msg($("appMsg"), "Nothing to export yet. Click “Load timesheets” first (or there are no timesheets in this range).", "err");
+return;
+}
+const header = [
+"Staff", "Role", "Date", "Start", "End", "Lunch (min)", "Paid hours", "Job", "Status",
+"Clock-in time", "Clock-in address", "Clock-in lat", "Clock-in lng", "Clock-in map",
+"Clock-out time", "Clock-out address", "Clock-out lat", "Clock-out lng", "Clock-out map",
+"Staff note", "Payroll note"
+];
+const rows = tsRows.map((r) => [
+r.staff || "", roleByName[r.staff] || "", fmtDate(r.date),
+r.start_time || "", r.end_time || "", (Number(r.lunch_break) || 0),
+hrs(r.paid_hours), r.job || "", r.status,
+r.clock_in_time || "", r.clock_in_address || "", r.clock_in_lat || "", r.clock_in_lng || "", mapUrl(r.clock_in_lat, r.clock_in_lng),
+r.clock_out_time || "", r.clock_out_address || "", r.clock_out_lat || "", r.clock_out_lng || "", mapUrl(r.clock_out_lat, r.clock_out_lng),
+r.notes || "", r.payroll_note || ""
+]);
+downloadCsv("timesheets_location_" + $("tsFrom").value + "_to_" + $("tsTo").value + ".csv", [header, ...rows]);
+msg($("appMsg"), "Exported " + tsRows.length + " timesheet(s) with location to CSV.", "ok");
+});
+// ---- reports: weekly hours by staff (computed client-side from timesheets) ----
+async function loadSummary() {
+clearMsg($("appMsg"));
+const from = $("rpFrom").value;
+const to = $("rpTo").value;
+if (!from || !to) { msg($("appMsg"), "Please choose both a From and To date.", "err"); return; }
+if (from > to) { msg($("appMsg"), "The From date can't be after the To date.", "err"); return; }
+$("rpSummary").textContent = "Loading…";
+show($("rpTable"), false);
+$("rpLoadBtn").disabled = true;
+const { data, error } = await sb.rpc("owner_list_timesheets", { p_from: from, p_to: to });
+$("rpLoadBtn").disabled = false;
+if (error) { $("rpSummary").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
+const byStaff = {};
+(data || []).forEach((r) => {
+const k = r.staff || "";
+if (!byStaff[k]) byStaff[k] = { staff: k, role: roleByName[k] || "", total_hours: 0, approved_hours: 0, pending_hours: 0 };
+const h = Number(r.paid_hours) || 0;
+byStaff[k].total_hours += h;
+if (r.status === "approved") byStaff[k].approved_hours += h;
+else byStaff[k].pending_hours += h;
+});
+rpRows = Object.values(byStaff).sort((a, b) => a.staff.localeCompare(b.staff));
+renderSummary();
+}
+function renderSummary() {
+const body = $("rpBody");
+body.innerHTML = "";
+$("rpFoot").innerHTML = "";
+if (rpRows.length === 0) {
+$("rpSummary").textContent = "No timesheets found for this range.";
+show($("rpTable"), false);
+return;
+}
+let totAll = 0, totAppr = 0, totPend = 0;
+rpRows.forEach((r) => {
+const total = Number(r.total_hours) || 0;
+const appr = Number(r.approved_hours) || 0;
+const pend = Number(r.pending_hours) || 0;
+totAll += total; totAppr += appr; totPend += pend;
+const tr = document.createElement("tr");
+tr.innerHTML =
+'<td>' + escapeHtml(r.staff) + '</td>' +
+'<td>' + escapeHtml(r.role || "") + '</td>' +
+'<td class="num">' + total.toFixed(2) + '</td>' +
+'<td class="num">' + appr.toFixed(2) + '</td>' +
+'<td class="num">' + pend.toFixed(2) + '</td>';
+body.appendChild(tr);
+});
+$("rpFoot").innerHTML =
+'<tr>' +
+'<td><b>Total</b></td><td></td>' +
+'<td class="num"><b>' + totAll.toFixed(2) + '</b></td>' +
+'<td class="num"><b>' + totAppr.toFixed(2) + '</b></td>' +
+'<td class="num"><b>' + totPend.toFixed(2) + '</b></td>' +
+'</tr>';
+$("rpSummary").innerHTML =
+'<b>' + rpRows.length + '</b> staff · ' +
+'<b>' + totAll.toFixed(2) + '</b> total hrs · ' +
+'<b>' + totAppr.toFixed(2) + '</b> approved · ' +
+'<b>' + totPend.toFixed(2) + '</b> pending';
+show($("rpTable"), true);
+}
+$("rpLoadBtn").addEventListener("click", loadSummary);
+$("rpCsvBtn").addEventListener("click", () => {
+clearMsg($("appMsg"));
+if (rpRows.length === 0) {
+msg($("appMsg"), "Nothing to export yet. Click “Load report” first (or there are no timesheets in this range).", "err");
+return;
+}
+const header = ["Staff", "Role", "Total hours", "Approved hours", "Pending hours"];
+let totAll = 0, totAppr = 0, totPend = 0;
+const rows = rpRows.map((r) => {
+const total = Number(r.total_hours) || 0;
+const appr = Number(r.approved_hours) || 0;
+const pend = Number(r.pending_hours) || 0;
+totAll += total; totAppr += appr; totPend += pend;
+return [r.staff || "", r.role || "", total.toFixed(2), appr.toFixed(2), pend.toFixed(2)];
+});
+const totalRow = ["Total", "", totAll.toFixed(2), totAppr.toFixed(2), totPend.toFixed(2)];
+downloadCsv("hours_summary_" + $("rpFrom").value + "_to_" + $("rpTo").value + ".csv", [header, ...rows, totalRow]);
+msg($("appMsg"), "Exported summary for " + rpRows.length + " staff to CSV.", "ok");
+});
+// ---- add timesheet entry (manual, owner-created) ----
+function computeAddPaid() {
+const s = $("addStart").value.trim(), e = $("addEnd").value.trim();
+const lunch = Number($("addLunch").value) || 0;
+const re = /^([01]?\d|2[0-3]):[0-5]\d$/;
+if (!re.test(s) || !re.test(e)) return;
+const [sh, sm] = s.split(":").map(Number), [eh, em] = e.split(":").map(Number);
+let mins = (eh * 60 + em) - (sh * 60 + sm); if (mins < 0) mins += 24 * 60;
+$("addHours").value = Math.max(0, (mins - lunch) / 60).toFixed(2);
+}
+async function openAddEntry() {
+clearMsg($("addMsg"));
+const staff = window.staffAll || (await sb.rpc("owner_list_staff")).data || [];
+const ssel = $("addStaff"); ssel.innerHTML = '<option value="">— select staff —</option>';
+staff.filter((s) => s.active).forEach((s) => { const o = document.createElement("option"); o.value = s.name; o.textContent = s.name; ssel.appendChild(o); });
+let sites = siteRows;
+if (!sites || !sites.length) { const r = await sb.rpc("owner_list_jobs"); sites = r.data || []; }
+const jsel = $("addJob"); jsel.innerHTML = '<option value="">— select job or site —</option>';
+(sites || []).filter((s) => s.active !== false).forEach((s) => { const o = document.createElement("option"); o.value = s.name; o.textContent = s.name; jsel.appendChild(o); });
+const other = document.createElement("option"); other.value = "Other / multiple sites"; other.textContent = "Other / multiple sites"; jsel.appendChild(other);
+$("addDate").value = isoDaysAgo(0);
+$("addStart").value = ""; $("addEnd").value = ""; $("addLunch").value = 30; $("addHours").value = ""; $("addNote").value = "";
+$("addModal").classList.add("show");
+}
+$("tsAddBtn").addEventListener("click", openAddEntry);
+$("addCancel").addEventListener("click", () => $("addModal").classList.remove("show"));
+["addStart", "addEnd", "addLunch"].forEach((id) => $(id).addEventListener("input", computeAddPaid));
+$("addSave").addEventListener("click", async () => {
+clearMsg($("addMsg"));
+const staff = $("addStaff").value, date = $("addDate").value, start = $("addStart").value.trim(), end = $("addEnd").value.trim();
+const lunch = parseInt($("addLunch").value, 10), job = $("addJob").value, note = $("addNote").value.trim();
+const h = parseFloat($("addHours").value);
+const timeRe = /^([01]?\d|2[0-3]):[0-5]\d$/;
+if (!staff) { msg($("addMsg"), "Please choose a staff member.", "err"); return; }
+if (!date) { msg($("addMsg"), "Please choose a date.", "err"); return; }
+if (!timeRe.test(start) || !timeRe.test(end)) { msg($("addMsg"), "Times must be 24-hour, like 07:30 or 16:15.", "err"); return; }
+if (isNaN(lunch) || lunch < 0 || lunch > 600) { msg($("addMsg"), "Lunch minutes must be between 0 and 600.", "err"); return; }
+if (!job) { msg($("addMsg"), "Please choose a job / site.", "err"); return; }
+if (isNaN(h) || h < 0 || h > 24) { msg($("addMsg"), "Paid hours must be between 0 and 24.", "err"); return; }
+$("addSave").disabled = true;
+const { error } = await sb.rpc("owner_add_timesheet", { p_staff: staff, p_date: date, p_start: start, p_end: end, p_lunch: lunch, p_job: job, p_paid_hours: h, p_note: note || null });
+$("addSave").disabled = false;
+if (error) { msg($("addMsg"), error.message, "err"); return; }
+$("addModal").classList.remove("show");
+msg($("appMsg"), "Entry added — it's pending your approval.", "ok");
+loadTimesheets();
+});
 
-  // ---- add timesheet entry (manual, owner-created) ----
-  function computeAddPaid(){
-    const s=$("addStart").value.trim(), e=$("addEnd").value.trim();
-    const lunch=Number($("addLunch").value)||0;
-    const re=/^([01]?\d|2[0-3]):[0-5]\d$/;
-    if(!re.test(s)||!re.test(e)) return;
-    const [sh,sm]=s.split(":").map(Number), [eh,em]=e.split(":").map(Number);
-    let mins=(eh*60+em)-(sh*60+sm); if(mins<0) mins+=24*60;
-    $("addHours").value=Math.max(0,(mins-lunch)/60).toFixed(2);
-  }
-  async function openAddEntry(){
-    clearMsg($("addMsg"));
-    const sres = await sb.rpc("owner_list_staff");
-    const ssel=$("addStaff"); ssel.innerHTML='<option value="">— select staff —</option>';
-    (sres.data||[]).filter(s=>s.active).forEach(s=>{const o=document.createElement("option");o.value=s.name;o.textContent=s.name;ssel.appendChild(o);});
-    let sites=siteRows;
-    if(!sites||!sites.length){ const r=await sb.rpc("owner_list_sites"); sites=r.data||[]; }
-    const jsel=$("addJob"); jsel.innerHTML='<option value="">— select job or site —</option>';
-    (sites||[]).filter(s=>s.active!==false).forEach(s=>{const o=document.createElement("option");o.value=s.name;o.textContent=s.name;jsel.appendChild(o);});
-    const other=document.createElement("option"); other.value="Other / multiple sites"; other.textContent="Other / multiple sites"; jsel.appendChild(other);
-    $("addDate").value=isoDaysAgo(0);
-    $("addStart").value=""; $("addEnd").value=""; $("addLunch").value=30; $("addHours").value=""; $("addNote").value="";
-    $("addModal").classList.add("show");
-  }
-  $("tsAddBtn").addEventListener("click", openAddEntry);
-  $("addCancel").addEventListener("click", ()=>$("addModal").classList.remove("show"));
-  ["addStart","addEnd","addLunch"].forEach(id=>$(id).addEventListener("input",computeAddPaid));
-  $("addSave").addEventListener("click", async ()=>{
-    clearMsg($("addMsg"));
-    const staff=$("addStaff").value, date=$("addDate").value, start=$("addStart").value.trim(), end=$("addEnd").value.trim();
-    const lunch=parseInt($("addLunch").value,10), job=$("addJob").value, note=$("addNote").value.trim();
-    const h=parseFloat($("addHours").value);
-    const timeRe=/^([01]?\d|2[0-3]):[0-5]\d$/;
-    if(!staff){msg($("addMsg"),"Please choose a staff member.","err");return;}
-    if(!date){msg($("addMsg"),"Please choose a date.","err");return;}
-    if(!timeRe.test(start)||!timeRe.test(end)){msg($("addMsg"),"Times must be 24-hour, like 07:30 or 16:15.","err");return;}
-    if(isNaN(lunch)||lunch<0||lunch>600){msg($("addMsg"),"Lunch minutes must be between 0 and 600.","err");return;}
-    if(!job){msg($("addMsg"),"Please choose a job / site.","err");return;}
-    if(isNaN(h)||h<0||h>24){msg($("addMsg"),"Paid hours must be between 0 and 24.","err");return;}
-    $("addSave").disabled=true;
-    const { error } = await sb.rpc("owner_add_timesheet",{p_staff:staff,p_date:date,p_start:start,p_end:end,p_lunch:lunch,p_job:job,p_paid_hours:h,p_note:note||null});
-    $("addSave").disabled=false;
-    if(error){msg($("addMsg"),error.message,"err");return;}
-    $("addModal").classList.remove("show");
-    msg($("appMsg"),"Entry added — it's pending your approval.","ok");
-    loadTimesheets();
-  });
-
-  // go
-  refresh();
+// go
+refresh();
 </script>
 </body>
 </html>
