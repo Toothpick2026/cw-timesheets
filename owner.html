@@ -206,6 +206,11 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <h2>Review timesheets &amp; run payroll</h2>
 <div class="row">
 <div>
+<label for="tsStaffSearch">Staff</label>
+<input id="tsStaffSearch" list="staffDatalist" placeholder="All staff — type a name" autocomplete="off" />
+<datalist id="staffDatalist"></datalist>
+</div>
+<div>
 <label for="tsFrom">From</label>
 <input id="tsFrom" type="date" />
 </div>
@@ -213,7 +218,7 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <label for="tsTo">To</label>
 <input id="tsTo" type="date" />
 </div>
-<div style="max-width:200px;">
+<div style="max-width:180px;">
 <label for="tsStatus">Show</label>
 <select id="tsStatus">
 <option value="">All</option>
@@ -222,6 +227,13 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <option value="active">On site now</option>
 </select>
 </div>
+</div>
+<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px;">
+<button class="secondary small" data-range="thisweek">This week</button>
+<button class="secondary small" data-range="lastweek">Last week</button>
+<button class="secondary small" data-range="fortnight">Last 2 weeks</button>
+<button class="secondary small" data-range="thismonth">This month</button>
+<span class="subtle">Weeks run Mon–Sun</span>
 </div>
 <div class="row" style="margin-top:16px;">
 <button id="tsLoadBtn" style="max-width:160px;">Load timesheets</button>
@@ -572,6 +584,8 @@ if (error) { $("listStatus").textContent = ""; msg($("appMsg"), error.message, "
 window.staffAll = data || [];
 roleByName = {};
 window.staffAll.forEach((s) => { roleByName[s.name] = s.role || ""; });
+const dl = $("staffDatalist");
+if (dl) dl.innerHTML = window.staffAll.map((s) => '<option value="' + escapeHtml(s.name) + '"></option>').join("");
 if (!data || data.length === 0) {
 $("listStatus").innerHTML = "No staff found yet. If you just signed in for the first time and expected to see staff, your owner account may not be linked to a business yet — let Claude know.";
 return;
@@ -743,6 +757,19 @@ renderTimesheets();
 loadIssues();
 }
 $("tsStatus").addEventListener("change", renderTimesheets);
+$("tsStaffSearch").addEventListener("input", renderTimesheets);
+// week helpers — weeks run Monday..Sunday, in the browser's local (NZ) date
+function isoLocal(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return y+'-'+m+'-'+day; }
+function mondayOf(d){ const x=new Date(d); const wd=(x.getDay()+6)%7; x.setDate(x.getDate()-wd); return x; }
+function setTsRange(which){
+  const now=new Date(); let from, to;
+  if(which==='thisweek'){ from=mondayOf(now); to=new Date(from); to.setDate(from.getDate()+6); }
+  else if(which==='lastweek'){ const m=mondayOf(now); to=new Date(m); to.setDate(m.getDate()-1); from=new Date(to); from.setDate(to.getDate()-6); }
+  else if(which==='fortnight'){ const m=mondayOf(now); from=new Date(m); from.setDate(m.getDate()-7); to=new Date(m); to.setDate(m.getDate()+6); }
+  else { from=new Date(now.getFullYear(), now.getMonth(), 1); to=now; }
+  $("tsFrom").value=isoLocal(from); $("tsTo").value=isoLocal(to); loadTimesheets();
+}
+document.querySelectorAll("[data-range]").forEach((b)=> b.addEventListener("click", ()=> setTsRange(b.dataset.range)));
 function locCell(addr, lat, lng) {
 const hasCoords = lat && lng;
 if (!addr && !hasCoords) return '<span class="muted">—</span>';
@@ -764,7 +791,11 @@ return '<div style="max-width:200px; white-space:nowrap; overflow:hidden; text-o
 }
 function tsFiltered() {
 const st = $("tsStatus").value;
-return st ? tsRows.filter((r) => r.status === st) : tsRows.slice();
+const q = ($("tsStaffSearch").value || "").trim().toLowerCase();
+return tsRows.filter((r) =>
+  (!st || r.status === st) &&
+  (!q || String(r.staff || "").toLowerCase().includes(q))
+);
 }
 function renderTimesheets() {
 const body = $("tsBody");
