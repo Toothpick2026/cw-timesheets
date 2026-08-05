@@ -133,6 +133,106 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 </div>
 </div>
 </div>
+<!-- ================= ONBOARDING WIZARD (brand-new / empty business) ================= -->
+<div id="wizardView" class="hidden">
+<div class="wrap">
+<div class="card" style="max-width:640px;margin:24px auto;">
+<h1 class="brand-wordmark" style="font-size:28px;">KNOCKOFF</h1>
+<div id="wizProgress" class="muted" style="margin:4px 0 16px;"></div>
+<div id="wizMsg" class="msg"></div>
+
+<!-- Step 1: Welcome -->
+<div id="wizStep1" class="wizstep">
+<h2 style="margin-top:0;">Welcome — let's set up your business</h2>
+<p class="muted">A few quick steps and your crew can start clocking in today:</p>
+<ol class="muted" style="line-height:1.9;">
+<li>Add your crew (each gets a PIN)</li>
+<li>Add your job sites</li>
+<li>Share the clock-in link with your crew</li>
+</ol>
+<p class="muted">You can set up payroll now or later — nothing here is permanent, and you can change it all from the dashboard.</p>
+<div class="row" style="margin-top:18px;justify-content:space-between;">
+<button class="secondary small" id="wizSkip">Skip — go to dashboard</button>
+<button id="wizStart">Get started →</button>
+</div>
+</div>
+
+<!-- Step 2: Crew -->
+<div id="wizStep2" class="wizstep hidden">
+<h2 style="margin-top:0;">Add your crew</h2>
+<p class="muted">Each person gets a 4–6 digit PIN they'll use to clock in.</p>
+<label for="wizCrewName">Name</label>
+<input id="wizCrewName" type="text" placeholder="e.g. Sam Veltmans" />
+<label for="wizCrewRole">Role (optional)</label>
+<input id="wizCrewRole" type="text" placeholder="e.g. Builder" />
+<label for="wizCrewPin">PIN (4–6 digits)</label>
+<div class="row">
+<input id="wizCrewPin" type="text" inputmode="numeric" placeholder="e.g. 1234" style="flex:1;" />
+<button class="secondary" id="wizGenPin" type="button">Generate</button>
+</div>
+<div class="row" style="margin-top:12px;">
+<button id="wizAddCrew">Add crew member</button>
+</div>
+<div id="wizCrewList" class="muted" style="margin-top:14px;">No crew added yet.</div>
+<div class="row" style="margin-top:18px;justify-content:space-between;">
+<button class="secondary small" id="wizBack2">← Back</button>
+<button id="wizNext2">Next: job sites →</button>
+</div>
+</div>
+
+<!-- Step 3: Sites -->
+<div id="wizStep3" class="wizstep hidden">
+<h2 style="margin-top:0;">Add your job sites</h2>
+<p class="muted">The sites your crew clock in against. You can add more anytime.</p>
+<label for="wizSiteName">Site name</label>
+<div class="row">
+<input id="wizSiteName" type="text" placeholder="e.g. 12 Marine Parade" style="flex:1;" />
+<button id="wizAddSite">Add site</button>
+</div>
+<div id="wizSiteList" class="muted" style="margin-top:14px;">No sites added yet.</div>
+<div class="row" style="margin-top:18px;justify-content:space-between;">
+<button class="secondary small" id="wizBack3">← Back</button>
+<button id="wizNext3">Next: payroll →</button>
+</div>
+</div>
+
+<!-- Step 4: Payroll (optional) -->
+<div id="wizStep4" class="wizstep hidden">
+<h2 style="margin-top:0;">Payroll setup <span class="muted" style="font-weight:400;font-size:14px;">— optional</span></h2>
+<p class="muted">If you run payroll through Smartly, set each person's payroll ID and pay rate. Not ready? Just click Next.</p>
+<div id="wizPayrollList"></div>
+<label class="row" style="align-items:center;gap:8px;margin-top:12px;">
+<input type="checkbox" id="wizUseDept" style="width:auto;" />
+<span>Cost hours by department (job site)</span>
+</label>
+<div class="row" style="margin-top:12px;">
+<button class="secondary" id="wizSavePayroll">Save payroll settings</button>
+<button class="secondary" id="wizTestCheck" type="button">Run a test check</button>
+</div>
+<div id="wizPayrollInfo" class="muted" style="margin-top:10px;"></div>
+<div class="row" style="margin-top:18px;justify-content:space-between;">
+<button class="secondary small" id="wizBack4">← Back</button>
+<button id="wizNext4">Next →</button>
+</div>
+</div>
+
+<!-- Step 5: Share link + finish -->
+<div id="wizStep5" class="wizstep hidden">
+<h2 style="margin-top:0;">Share the clock-in link 🎉</h2>
+<p class="muted">Send this to your crew. They open it on their phone, pick their name, and enter their PIN.</p>
+<div class="row">
+<input id="wizCrewLink" type="text" readonly style="flex:1;" />
+<button class="secondary" id="wizCopyLink" type="button">Copy</button>
+</div>
+<p class="muted" style="margin-top:14px;">That's it — your business is ready. You can manage crew, sites, timesheets and payroll from the dashboard.</p>
+<div class="row" style="margin-top:18px;justify-content:flex-end;">
+<button id="wizFinish">Go to dashboard →</button>
+</div>
+</div>
+
+</div>
+</div>
+</div>
 <!-- ================= DASHBOARD VIEW ================= -->
 <div id="appView" class="hidden">
 <header>
@@ -543,12 +643,14 @@ let tsRows = []; // last-loaded timesheet rows
 let rpRows = []; // last-loaded report summary rows
 let siteRows = []; // last-loaded site rows
 let staffRows = []; // last-loaded staff rows (for payroll ID lookup)
+let wizSkipped = false; // onboarding wizard dismissed/finished this session
 // ---- auth wiring ----
 async function refresh() {
 const { data: { session } } = await sb.auth.getSession();
 if (!session) {
 show($("loginView"), true);
 show($("onboardView"), false);
+show($("wizardView"), false);
 show($("appView"), false);
 return;
 }
@@ -558,12 +660,25 @@ if (!orgErr && !orgId) {
 // Brand-new owner: no org. Show the create-your-business screen.
 show($("loginView"), false);
 show($("appView"), false);
+show($("wizardView"), false);
 show($("onboardView"), true);
 return;
 }
-// Has an org (or the check errored — fail safe to the existing app view).
+// Has an org. If the business is brand-new/empty, show the guided setup wizard.
+if (!wizSkipped) {
+const [sres, siteres] = await Promise.all([sb.rpc("owner_list_staff"), sb.rpc("owner_list_sites")]);
+const noStaff = !sres.error && (!sres.data || sres.data.length === 0);
+const noSites = !siteres.error && (!siteres.data || siteres.data.length === 0);
+if (!sres.error && !siteres.error && noStaff && noSites) {
+$("whoami").textContent = session.user.email;
+showWizard();
+return;
+}
+}
+// Established business (or the check errored — fail safe to the existing app view).
 show($("loginView"), false);
 show($("onboardView"), false);
+show($("wizardView"), false);
 show($("appView"), true);
 $("whoami").textContent = session.user.email;
 loadStaff();
@@ -600,6 +715,145 @@ $("onboardSignOut").addEventListener("click", async () => {
 await sb.auth.signOut();
 refresh();
 });
+// ---- onboarding wizard (shown when a business is brand-new / empty) ----
+const WIZ_STEPS = 5;
+function showWizardStep(n) {
+for (let i = 1; i <= WIZ_STEPS; i++) show($("wizStep" + i), i === n);
+$("wizProgress").textContent = "Step " + n + " of " + WIZ_STEPS;
+clearMsg($("wizMsg"));
+}
+function showWizard() {
+show($("loginView"), false);
+show($("onboardView"), false);
+show($("appView"), false);
+show($("wizardView"), true);
+$("wizCrewLink").value = window.location.origin + "/";
+showWizardStep(1);
+}
+function wizPin() { return String(Math.floor(1000 + Math.random() * 9000)); }
+// Step 1 — welcome
+$("wizStart").addEventListener("click", () => showWizardStep(2));
+$("wizSkip").addEventListener("click", () => { wizSkipped = true; refresh(); });
+// Step 2 — crew
+function renderWizCrew(list) {
+$("wizCrewList").innerHTML = (!list || list.length === 0)
+? "No crew added yet."
+: "Added: " + list.map((s) => escapeHtml(s.name)).join(", ");
+}
+$("wizGenPin").addEventListener("click", () => { $("wizCrewPin").value = wizPin(); });
+$("wizAddCrew").addEventListener("click", async () => {
+const name = $("wizCrewName").value.trim();
+const role = $("wizCrewRole").value.trim();
+const pin = $("wizCrewPin").value.trim();
+clearMsg($("wizMsg"));
+if (!name) { msg($("wizMsg"), "Please enter a name.", "err"); return; }
+if (!/^\d{4,6}$/.test(pin)) { msg($("wizMsg"), "PIN must be 4 to 6 digits.", "err"); return; }
+$("wizAddCrew").disabled = true;
+const { error } = await sb.rpc("owner_add_staff", { p_name: name, p_role: role, p_pin: pin });
+$("wizAddCrew").disabled = false;
+if (error) { msg($("wizMsg"), error.message, "err"); return; }
+$("wizCrewName").value = ""; $("wizCrewRole").value = ""; $("wizCrewPin").value = "";
+msg($("wizMsg"), "Added " + name + ".", "ok");
+const { data } = await sb.rpc("owner_list_staff");
+renderWizCrew(data || []);
+});
+$("wizBack2").addEventListener("click", () => showWizardStep(1));
+$("wizNext2").addEventListener("click", () => showWizardStep(3));
+// Step 3 — sites
+function renderWizSites(list) {
+$("wizSiteList").innerHTML = (!list || list.length === 0)
+? "No sites added yet."
+: "Added: " + list.map((s) => escapeHtml(s.name)).join(", ");
+}
+$("wizAddSite").addEventListener("click", async () => {
+const name = $("wizSiteName").value.trim();
+clearMsg($("wizMsg"));
+if (!name) { msg($("wizMsg"), "Please enter a site name.", "err"); return; }
+$("wizAddSite").disabled = true;
+const { error } = await sb.rpc("owner_add_site", { p_name: name });
+$("wizAddSite").disabled = false;
+if (error) { msg($("wizMsg"), error.message, "err"); return; }
+$("wizSiteName").value = "";
+msg($("wizMsg"), "Added " + name + ".", "ok");
+const { data } = await sb.rpc("owner_list_sites");
+renderWizSites(data || []);
+});
+$("wizBack3").addEventListener("click", () => showWizardStep(2));
+$("wizNext3").addEventListener("click", async () => { await buildWizPayroll(); showWizardStep(4); });
+// Step 4 — payroll (optional)
+async function buildWizPayroll() {
+const { data } = await sb.rpc("owner_list_staff");
+const rows = data || [];
+const c = $("wizPayrollList");
+if (rows.length === 0) {
+c.innerHTML = '<p class="muted">No crew yet — you can set payroll details later from the Staff tab.</p>';
+} else {
+c.innerHTML = rows.map((s) =>
+'<div class="row" style="align-items:center;gap:8px;margin-bottom:8px;">' +
+'<span style="flex:1;">' + escapeHtml(s.name) + '</span>' +
+'<input data-pid="' + s.id + '" placeholder="Payroll ID" value="' + escapeHtml(s.payroll_id || "") + '" style="width:120px;" />' +
+'<select data-prate="' + s.id + '" style="width:110px;">' +
+'<option value="1"' + ((Number(s.pay_rate_id) || 1) === 1 ? ' selected' : '') + '>Rate 1</option>' +
+'<option value="2"' + ((Number(s.pay_rate_id) || 1) === 2 ? ' selected' : '') + '>Rate 2</option>' +
+'<option value="3"' + ((Number(s.pay_rate_id) || 1) === 3 ? ' selected' : '') + '>Rate 3</option>' +
+'</select>' +
+'</div>'
+).join("");
+}
+const { data: g } = await sb.rpc("owner_get_smartly_settings");
+if (g && g[0]) $("wizUseDept").checked = !!g[0].use_departments;
+}
+$("wizSavePayroll").addEventListener("click", async () => {
+clearMsg($("wizMsg"));
+$("wizSavePayroll").disabled = true;
+try {
+const su = await sb.rpc("owner_set_smartly_settings", { p_use_departments: $("wizUseDept").checked });
+if (su.error) { msg($("wizMsg"), su.error.message, "err"); $("wizSavePayroll").disabled = false; return; }
+const inputs = document.querySelectorAll("[data-pid]");
+for (const el of inputs) {
+const id = el.getAttribute("data-pid");
+const pidVal = el.value.trim();
+if (pidVal && !/^[A-Za-z0-9]{1,5}$/.test(pidVal)) {
+msg($("wizMsg"), "Payroll ID must be 1–5 letters or numbers (check “" + pidVal + "”).", "err");
+$("wizSavePayroll").disabled = false; return;
+}
+const rateEl = document.querySelector('[data-prate="' + id + '"]');
+const rate = parseInt(rateEl.value, 10) || 1;
+const pr = await sb.rpc("owner_set_staff_payroll", { p_staff: id, p_payroll_id: pidVal || null, p_pay_rate_id: rate });
+if (pr.error) { msg($("wizMsg"), pr.error.message, "err"); $("wizSavePayroll").disabled = false; return; }
+}
+msg($("wizMsg"), "Payroll settings saved.", "ok");
+} catch (e) {
+msg($("wizMsg"), (e && e.message) || "Something went wrong saving payroll.", "err");
+}
+$("wizSavePayroll").disabled = false;
+});
+$("wizTestCheck").addEventListener("click", async () => {
+clearMsg($("wizMsg"));
+const nz = (dt) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit' }).format(dt);
+const past = new Date(); past.setDate(past.getDate() - 14);
+const from = nz(past), to = nz(new Date());
+$("wizPayrollInfo").textContent = "Checking the last 14 days…";
+const { data, error } = await sb.rpc("owner_export_smartly_issues", { p_from: from, p_to: to });
+if (error) { $("wizPayrollInfo").textContent = ""; msg($("wizMsg"), error.message, "err"); return; }
+const issues = data || [];
+if (issues.length === 0) {
+$("wizPayrollInfo").innerHTML = '<span style="color:var(--ok)">✓ No problems found in the last 14 days.</span>';
+return;
+}
+const blockers = issues.filter((i) => i.severity === "blocker").length;
+$("wizPayrollInfo").innerHTML =
+(blockers ? '<b style="color:var(--danger)">' + blockers + ' blocker(s)</b> and ' : '') +
+issues.length + " item(s) to review — full detail is on the Payroll tab.";
+});
+$("wizBack4").addEventListener("click", () => showWizardStep(3));
+$("wizNext4").addEventListener("click", () => showWizardStep(5));
+// Step 5 — share link + finish
+$("wizCopyLink").addEventListener("click", async () => {
+try { await navigator.clipboard.writeText($("wizCrewLink").value); msg($("wizMsg"), "Link copied.", "ok"); }
+catch (e) { $("wizCrewLink").select(); msg($("wizMsg"), "Press Ctrl/Cmd+C to copy the link.", "ok"); }
+});
+$("wizFinish").addEventListener("click", () => { wizSkipped = true; refresh(); });
 sb.auth.onAuthStateChange(() => refresh());
 // ---- tab switching ----
 function setTab(which) {
