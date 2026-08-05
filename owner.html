@@ -118,6 +118,21 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 </div>
 </div>
 </div>
+<!-- ================= ONBOARDING (first sign-in, no business yet) ================= -->
+<div id="onboardView" class="hidden">
+<div class="wrap center">
+<div class="card">
+<h1 class="brand-wordmark">KNOCKOFF</h1>
+<p class="muted" style="margin:0 0 18px;">Let's set up your business</p>
+<div id="onboardMsg" class="msg"></div>
+<label for="bizName">Your business name</label>
+<input id="bizName" type="text" placeholder="e.g. Coastal Plumbing Ltd" autocomplete="organization" />
+<button id="createBizBtn" style="width:100%; margin-top:16px;">Create my business</button>
+<p class="muted" style="margin-top:14px;">This is the name your crew and payroll exports will use. You can change it later.</p>
+<button class="secondary small" id="onboardSignOut" style="margin-top:14px;">Sign out</button>
+</div>
+</div>
+</div>
 <!-- ================= DASHBOARD VIEW ================= -->
 <div id="appView" class="hidden">
 <header>
@@ -531,15 +546,27 @@ let staffRows = []; // last-loaded staff rows (for payroll ID lookup)
 // ---- auth wiring ----
 async function refresh() {
 const { data: { session } } = await sb.auth.getSession();
-if (session) {
+if (!session) {
+show($("loginView"), true);
+show($("onboardView"), false);
+show($("appView"), false);
+return;
+}
+// Signed in — do they have a business (org) yet?
+const { data: orgId, error: orgErr } = await sb.rpc("current_owner_org");
+if (!orgErr && !orgId) {
+// Brand-new owner: no org. Show the create-your-business screen.
 show($("loginView"), false);
+show($("appView"), false);
+show($("onboardView"), true);
+return;
+}
+// Has an org (or the check errored — fail safe to the existing app view).
+show($("loginView"), false);
+show($("onboardView"), false);
 show($("appView"), true);
 $("whoami").textContent = session.user.email;
 loadStaff();
-} else {
-show($("loginView"), true);
-show($("appView"), false);
-}
 }
 $("sendLinkBtn").addEventListener("click", async () => {
 const email = $("email").value.trim();
@@ -554,6 +581,22 @@ if (error) { msg($("loginMsg"), error.message, "err"); return; }
 msg($("loginMsg"), "Check your email and click the sign-in link. You can close this tab once you do.", "ok");
 });
 $("signOutBtn").addEventListener("click", async () => {
+await sb.auth.signOut();
+refresh();
+});
+// ---- onboarding: create-your-business (first sign-in) ----
+async function createMyBusiness() {
+const name = $("bizName").value.trim();
+if (!name) { msg($("onboardMsg"), "Please enter your business name.", "err"); return; }
+$("createBizBtn").disabled = true;
+const { error } = await sb.rpc("owner_create_my_business", { p_name: name });
+$("createBizBtn").disabled = false;
+if (error) { msg($("onboardMsg"), error.message, "err"); return; }
+refresh();
+}
+$("createBizBtn").addEventListener("click", createMyBusiness);
+$("bizName").addEventListener("keydown", (e) => { if (e.key === "Enter") createMyBusiness(); });
+$("onboardSignOut").addEventListener("click", async () => {
 await sb.auth.signOut();
 refresh();
 });
