@@ -215,6 +215,10 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <option value="approved">Approved only</option>
 </select>
 </div>
+<div style="max-width:240px;">
+<label for="tsStaffSearch">Search staff</label>
+<input id="tsStaffSearch" type="text" placeholder="Type a name to filter…" />
+</div>
 </div>
 <div class="row" style="margin-top:16px;">
 <button id="tsLoadBtn" style="max-width:160px;">Load timesheets</button>
@@ -829,13 +833,17 @@ return (lat && lng) ? "https://www.google.com/maps?q=" + encodeURIComponent(lat 
 function renderTimesheets() {
 const body = $("tsBody");
 body.innerHTML = "";
-if (tsRows.length === 0) {
-$("tsSummary").textContent = "No timesheets found for this range.";
+const q = ($("tsStaffSearch").value || "").trim().toLowerCase();
+const viewRows = q ? tsRows.filter((r) => (r.staff || "").toLowerCase().includes(q)) : tsRows;
+if (viewRows.length === 0) {
+$("tsSummary").textContent = tsRows.length === 0
+? "No timesheets found for this range."
+: "No timesheets match that name in this range.";
 show($("tsTable"), false);
 return;
 }
 let approvedCount = 0, approvedHrs = 0, pendingCount = 0, activeCount = 0;
-tsRows.forEach((r) => {
+viewRows.forEach((r) => {
 if (r.status === "approved") { approvedCount++; approvedHrs += Number(r.paid_hours) || 0; }
 else if (r.status === "active") { activeCount++; }
 else pendingCount++;
@@ -877,12 +885,14 @@ tr.querySelector("[data-gps]").addEventListener("click", () => openGps(r.id, r.s
 tr.querySelector("[data-del]").addEventListener("click", () => deleteTs(r));
 });
 $("tsSummary").innerHTML =
-'<b>' + tsRows.length + '</b> timesheet(s) · ' +
+'<b>' + viewRows.length + '</b> timesheet(s)' + (q ? ' matching “' + escapeHtml(q) + '”' : '') + ' · ' +
 '<b>' + approvedCount + '</b> approved (' + approvedHrs.toFixed(2) + ' hrs) · ' +
 '<b>' + pendingCount + '</b> pending' +
 (activeCount ? ' · <b>' + activeCount + '</b> on site now' : '');
 show($("tsTable"), true);
 }
+// live filter the loaded timesheets as you type a staff name
+$("tsStaffSearch").addEventListener("input", () => { if (tsRows.length) renderTimesheets(); });
 async function approveTs(id) {
 clearMsg($("appMsg"));
 const { error } = await sb.rpc("owner_approve_timesheet", { p_id: id });
