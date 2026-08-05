@@ -272,6 +272,7 @@ Cost by department (map each job to a Smartly department code on the Sites tab)
 <div id="pySettingsInfo" class="subtle" style="margin-top:8px;"></div>
 <div class="row" style="margin-top:16px;">
 <button id="pyExportBtn" style="max-width:260px;">Download Smartly file (.csv)</button>
+<button class="secondary" id="pyDetailBtn" style="max-width:320px;">Download detailed record + GPS (approved)</button>
 </div>
 <p class="subtle" style="margin-top:12px;">This builds the Smartly <b>#50</b> import file for the pay period, using each staff member's <b>payroll ID</b> and <b>pay rate</b> (set these on the Staff tab). Only <b>approved</b> hours are included. Always click <b>Check before export</b> first — it flags anyone whose approved hours would be left out (no payroll ID, unmatched name, duplicate day, or a shift still in progress).</p>
 </div>
@@ -1101,6 +1102,41 @@ return;
 }
 downloadText("smartly_" + from + "_to_" + to + ".csv", String(data));
 msg($("appMsg"), "Smartly file downloaded. Import it into Smartly as a #50 pay file.", "ok");
+});
+// ---- detailed payroll record + GPS (approved shifts for the pay period) ----
+$("pyDetailBtn").addEventListener("click", async () => {
+clearMsg($("appMsg"));
+const from = $("pyFrom").value, to = $("pyTo").value;
+if (!from || !to) { msg($("appMsg"), "Please choose both pay-period dates.", "err"); return; }
+if (from > to) { msg($("appMsg"), "The From date can't be after the To date.", "err"); return; }
+$("pyDetailBtn").disabled = true;
+const { data, error } = await sb.rpc("owner_list_timesheets", { p_from: from, p_to: to, p_status: "approved" });
+if (error) { $("pyDetailBtn").disabled = false; msg($("appMsg"), error.message, "err"); return; }
+const rows = data || [];
+const gps = await sb.rpc("owner_timesheets_gps_bulk", { p_from: from, p_to: to, p_status: "approved" });
+const byId = {};
+if (!gps.error && gps.data) { gps.data.forEach((g) => { byId[g.id] = g; }); }
+$("pyDetailBtn").disabled = false;
+if (rows.length === 0) { msg($("appMsg"), "No approved shifts in this pay period to export.", "err"); return; }
+const header = [
+"Staff", "Role", "Date", "Start", "End", "Lunch (min)", "Paid hours", "Job",
+"Clock-in time", "Clock-in address", "Clock-in lat", "Clock-in lng", "Clock-in map",
+"Clock-out time", "Clock-out address", "Clock-out lat", "Clock-out lng", "Clock-out map",
+"Staff note", "Payroll note"
+];
+const out = rows.map((r) => {
+const g = byId[r.id] || {};
+return [
+r.staff || "", r.role || "", fmtDate(r.work_date),
+r.start_time || "", r.end_time || "", (Number(r.lunch_break) || 0),
+hrs(r.paid_hours), r.job || "",
+g.clock_in_time || "", g.clock_in_address || "", g.clock_in_lat || "", g.clock_in_lng || "", mapUrl(g.clock_in_lat, g.clock_in_lng),
+g.clock_out_time || "", g.clock_out_address || "", g.clock_out_lat || "", g.clock_out_lng || "", mapUrl(g.clock_out_lat, g.clock_out_lng),
+r.notes || "", r.payroll_note || ""
+];
+});
+downloadCsv("payroll_detail_gps_" + from + "_to_" + to + ".csv", [header, ...out]);
+msg($("appMsg"), "Exported " + rows.length + " approved shift(s) with GPS detail.", "ok");
 });
 // ---- reports: weekly hours by staff ----
 async function loadSummary() {
