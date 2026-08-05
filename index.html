@@ -899,13 +899,13 @@ function buildDayStrip() {
   const d = new Date();
   const btn = document.createElement('div');
   btn.className = 'day-btn selected today-btn';
-  btn.dataset.iso = d.toISOString().split('T')[0];
+  btn.dataset.iso = new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   btn.innerHTML = `<span>${d.getDate()}</span>${days[d.getDay()]}`;
   strip.appendChild(btn);
 }
 function getSelectedDay() {
   const sel = document.querySelector('.day-btn.selected');
-  return sel ? sel.dataset.iso : new Date().toISOString().split('T')[0];
+  return sel ? sel.dataset.iso : new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 }
 
 // ── HOURS CALC ──
@@ -938,7 +938,7 @@ function scheduleBreakTimers() {
   clearAllTimers();
   const today = getSelectedDay();
   const now = new Date();
-  if (today !== now.toISOString().split('T')[0]) return;
+  if (today !== new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())) return;
   const breaks = [
     {startId:'morningStart',durId:'morningDur',label:'Morning tea',type:'morning'},
     {startId:'afternoonStart',durId:'afternoonDur',label:'Afternoon tea',type:'afternoon'},
@@ -1146,7 +1146,7 @@ function toast(msg,type=''){
 // ── RESTORE STATE after suspension/reload ──
 function isToday(dateInput) {
   const d = new Date(dateInput);
-  return d.toISOString().split('T')[0] === new Date().toISOString().split('T')[0];
+  return new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()) === new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 }
 function restoreState() {
   // Restore GPS clock-in — but only if it's from today. Previously this restored
