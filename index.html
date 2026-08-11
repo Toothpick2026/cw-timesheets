@@ -590,6 +590,7 @@ async function doLogin() {
   localStorage.setItem('cwts_user', name);
   localStorage.setItem('cwts_pin', pin);
   bootApp();
+  restoreState();
 }
 function showLoginErr(msg) {
   const el=document.getElementById('loginErr'); el.textContent=msg; el.style.display='block';
@@ -1146,7 +1147,7 @@ function toast(msg,type=''){
 // ── RESTORE STATE after suspension/reload ──
 function isToday(dateInput) {
   const d = new Date(dateInput);
-  return new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()) === new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  return new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(d) === new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 }
 function restoreState() {
   // Restore GPS clock-in — but only if it's from today. Previously this restored
