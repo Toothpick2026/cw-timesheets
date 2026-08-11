@@ -101,6 +101,21 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 .issue.warning { background: var(--warn-bg); border-color: rgba(255,208,0,.35); }
 .issue.info { background: #202020; }
 .issue .isub { font-weight: 700; }
+/* ---- billing ---- */
+.bnr { padding: 12px 16px; border-radius: 8px; margin-bottom: 14px; font-size: 14px; }
+.bnr.trial { background: var(--warn-bg); color: var(--brand); border: 1px solid rgba(255,208,0,.35); }
+.bnr.locked { background: rgba(239,68,68,.12); color: #fca5a5; border: 1px solid rgba(239,68,68,.4); }
+.bnr a { color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.planwrap { display: flex; gap: 12px; flex-wrap: wrap; }
+.plan { flex: 1; min-width: 180px; border: 1px solid var(--line); border-radius: 10px; padding: 18px; background: var(--field); }
+.plan.on { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand) inset; }
+.plan-name { font-weight: 700; font-size: 15px; }
+.plan-price { font-family: var(--heading); font-size: 34px; color: var(--brand); line-height: 1; margin: 6px 0; }
+.plan-price span { font-family: var(--font); font-size: 12px; color: var(--muted); }
+.plan-crew { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+.plan-btn { display: block; text-align: center; background: var(--brand); color: #0d0d0d; font-weight: 700; padding: 10px; border-radius: 4px; text-decoration: none; }
+.plan-btn:hover { background: var(--brand-dark); }
+.plan-cur { display: block; text-align: center; color: var(--muted); font-weight: 700; padding: 10px; border: 1px solid var(--line); border-radius: 4px; }
 </style>
 </head>
 <body>
@@ -244,6 +259,7 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 </header>
 <div class="wrap">
 <div id="appMsg" class="msg"></div>
+<div id="billingBanner" class="hidden"></div>
 <!-- Tabs -->
 <div class="tabs">
 <button class="tab on" id="tabStaff">Staff</button>
@@ -251,6 +267,21 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <button class="tab" id="tabTimesheets">Timesheets</button>
 <button class="tab" id="tabPayroll">Payroll</button>
 <button class="tab" id="tabReports">Reports</button>
+<button class="tab" id="tabBilling">Billing</button>
+</div>
+<!-- ============ BILLING SECTION ============ -->
+<div id="billingSection" class="hidden">
+<div class="card">
+<h2>Your plan</h2>
+<div id="billingSummary" class="summary">Loading…</div>
+<div id="billingManage"></div>
+</div>
+<div class="card">
+<h2>Choose a plan</h2>
+<p class="subtle" style="margin-top:0;">Per business, per month, plus GST. Every plan includes timesheets, hour approvals and the Smartly payroll export — the tiers differ by how many crew you can add.</p>
+<div id="planCards" class="planwrap"></div>
+<p class="subtle" style="margin-top:14px;">Payments are handled securely by Stripe — you'll be taken to Stripe's checkout page in a new tab. After paying, come back here; your plan updates automatically.</p>
+</div>
 </div>
 <!-- ============ STAFF SECTION ============ -->
 <div id="staffSection">
@@ -681,7 +712,10 @@ show($("onboardView"), false);
 show($("wizardView"), false);
 show($("appView"), true);
 $("whoami").textContent = session.user.email;
+myOrgId = orgId;
+myEmail = session.user.email;
 loadStaff();
+loadBilling();
 }
 $("sendLinkBtn").addEventListener("click", async () => {
 const email = $("email").value.trim();
@@ -856,17 +890,146 @@ catch (e) { $("wizCrewLink").select(); msg($("wizMsg"), "Press Ctrl/Cmd+C to cop
 $("wizFinish").addEventListener("click", () => { wizSkipped = true; refresh(); });
 sb.auth.onAuthStateChange(() => refresh());
 // ---- tab switching ----
+// ============================================================
+// BILLING (Stripe) — status banner, plan cards, gate handling.
+// NOTE: PAY_LINKS below are Stripe TEST-mode links. Swap for the
+// live payment links (and set PORTAL_LOGIN_URL) when going live.
+// ============================================================
+const PAY_LINKS = {
+starter:  "https://buy.stripe.com/test_3cIcN7bwn5WW6H2bmx8AE00",
+pro:      "https://buy.stripe.com/test_dRmfZj2ZRets4yU2Q18AE01",
+business: "https://buy.stripe.com/test_eVqdRb8kb7103uQ8al8AE02"
+};
+const PORTAL_LOGIN_URL = ""; // set to your Stripe Customer Portal login link when live
+const PLAN_INFO = {
+starter:  { name: "Starter",  price: "$35", crew: "up to 5 crew" },
+pro:      { name: "Pro",      price: "$55", crew: "up to 10 crew" },
+business: { name: "Business", price: "$95", crew: "up to 20 crew" }
+};
+const PLAN_ORDER = ["starter", "pro", "business"];
+let billing = null;   // last owner_billing_status() row
+let myOrgId = null;   // current org id
+let myEmail = "";     // owner email
+
+async function loadBilling() {
+const { data, error } = await sb.rpc("owner_billing_status");
+if (error) { billing = null; return; }
+billing = Array.isArray(data) ? (data[0] || null) : (data || null);
+renderBilling();
+}
+function daysLeft(iso) {
+if (!iso) return 0;
+return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000));
+}
+function payHref(plan) {
+let u;
+try { u = new URL(PAY_LINKS[plan]); } catch (e) { return PAY_LINKS[plan] || "#"; }
+if (myOrgId) u.searchParams.set("client_reference_id", myOrgId);
+if (myEmail) u.searchParams.set("prefilled_email", myEmail);
+return u.toString();
+}
+function renderBilling() {
+const b = billing || {};
+const status = b.subscription_status || "";
+const plan = b.plan || "";
+const banner = $("billingBanner");
+// ---- banner ----
+if (status === "comped") {
+show(banner, false);
+} else if (b.write_allowed && status === "trialing") {
+const d = daysLeft(b.trial_ends_at);
+banner.className = "bnr trial";
+banner.innerHTML = "You're on a free trial — <b>" + d + " day" + (d === 1 ? "" : "s") +
+" left</b>. <a id='bnrSub'>Choose a plan</a> to keep going after it ends.";
+show(banner, true);
+$("bnrSub").onclick = () => { setTab("billing"); };
+} else if (b.write_allowed) {
+show(banner, false); // active paid — no banner needed
+} else {
+banner.className = "bnr locked";
+banner.innerHTML = "⚠️ Your " + (status === "past_due" ? "payment didn't go through" : "trial has ended") +
+" — approving hours and running payroll are paused. <a id='bnrSub'>Reactivate your plan</a> to switch them back on. Your crew can still clock in.";
+show(banner, true);
+$("bnrSub").onclick = () => { setTab("billing"); };
+}
+// ---- billing tab: summary ----
+const sum = $("billingSummary");
+if (sum) {
+const used = (b.active_staff != null) ? b.active_staff : "—";
+const cap = (b.seat_limit != null) ? b.seat_limit : "—";
+let html = "";
+if (status === "comped") {
+html = "You have <b>complimentary full access</b> to Knockoff. Crew: " + used + " active.";
+} else if (status === "trialing" && b.write_allowed) {
+html = "<b>Free trial</b> — " + daysLeft(b.trial_ends_at) + " day" + (daysLeft(b.trial_ends_at) === 1 ? "" : "s") +
+" left. Pick a plan below before it ends so your crew's hours keep flowing to payroll.<br>Crew: " + used + " active.";
+} else if (b.write_allowed && plan) {
+const pi = PLAN_INFO[plan] || { name: plan, price: "" };
+html = "You're on the <b>" + pi.name + "</b> plan (" + pi.price + "/mo + GST).";
+if (b.current_period_end) html += " Renews " + fmtDate(b.current_period_end) + ".";
+html += "<br>Crew: " + used + " of " + cap + " used.";
+} else {
+html = "Your " + (status === "past_due" ? "last payment failed" : "trial has ended") +
+" — pick a plan below to reactivate approvals and payroll. Crew: " + used + " active.";
+}
+sum.innerHTML = html;
+}
+// ---- billing tab: manage (portal) ----
+const mng = $("billingManage");
+if (mng) {
+if (PORTAL_LOGIN_URL && (status === "active" || status === "past_due")) {
+mng.innerHTML = "<a class='plan-btn' style='display:inline-block;margin-top:12px;padding:9px 16px;' href='" +
+PORTAL_LOGIN_URL + "' target='_blank' rel='noopener'>Manage or cancel subscription</a>";
+} else {
+mng.innerHTML = "";
+}
+}
+// ---- billing tab: plan cards ----
+const cards = $("planCards");
+if (cards) {
+cards.innerHTML = PLAN_ORDER.map(function (p) {
+const pi = PLAN_INFO[p];
+const isCurrent = b.write_allowed && plan === p && status !== "trialing" && status !== "comped";
+const btn = isCurrent
+? "<span class='plan-cur'>Current plan</span>"
+: "<a class='plan-btn' href='" + payHref(p) + "' target='_blank' rel='noopener'>Choose " + pi.name + "</a>";
+return "<div class='plan" + (isCurrent ? " on" : "") + "'>" +
+"<div class='plan-name'>" + pi.name + "</div>" +
+"<div class='plan-price'>" + pi.price + "<span>/mo + GST</span></div>" +
+"<div class='plan-crew'>" + pi.crew + "</div>" + btn + "</div>";
+}).join("");
+}
+}
+// Detect the server-side billing gate errors and show a friendly upgrade prompt.
+function gateHandled(error) {
+const m = ((error && error.message) || "") + " " + ((error && error.hint) || "");
+if (/SUBSCRIPTION_REQUIRED/.test(m)) {
+msg($("appMsg"), "Your Knockoff trial or subscription has ended. Reactivate a plan below to approve hours and run payroll.", "err");
+setTab("billing");
+return true;
+}
+if (/SEAT_LIMIT_REACHED/.test(m)) {
+const cap = (billing && billing.seat_limit != null) ? (" (" + billing.seat_limit + ")") : "";
+msg($("appMsg"), "You've reached your plan's crew limit" + cap + ". Upgrade below to add more crew.", "err");
+setTab("billing");
+return true;
+}
+return false;
+}
+
 function setTab(which) {
 $("tabStaff").classList.toggle("on", which === "staff");
 $("tabSites").classList.toggle("on", which === "sites");
 $("tabTimesheets").classList.toggle("on", which === "timesheets");
 $("tabPayroll").classList.toggle("on", which === "payroll");
 $("tabReports").classList.toggle("on", which === "reports");
+$("tabBilling").classList.toggle("on", which === "billing");
 show($("staffSection"), which === "staff");
 show($("sitesSection"), which === "sites");
 show($("timesheetsSection"), which === "timesheets");
 show($("payrollSection"), which === "payroll");
 show($("reportsSection"), which === "reports");
+show($("billingSection"), which === "billing");
 clearMsg($("appMsg"));
 }
 $("tabStaff").addEventListener("click", () => setTab("staff"));
@@ -889,6 +1052,7 @@ setTab("reports");
 if (!$("rpFrom").value) { $("rpFrom").value = isoDaysAgo(6); $("rpTo").value = isoDaysAgo(0); }
 if (rpRows.length === 0) loadSummary();
 });
+$("tabBilling").addEventListener("click", () => { setTab("billing"); loadBilling(); });
 // ---- staff list ----
 async function loadStaff() {
 $("listStatus").textContent = "Loading…";
@@ -931,7 +1095,7 @@ if (!/^\d{4,6}$/.test(pin)) { msg($("appMsg"), "PIN must be 4 to 6 digits.", "er
 $("addBtn").disabled = true;
 const { error } = await sb.rpc("owner_add_staff", { p_name: name, p_role: role, p_pin: pin });
 $("addBtn").disabled = false;
-if (error) { msg($("appMsg"), error.message, "err"); return; }
+if (error) { if (!gateHandled(error)) msg($("appMsg"), error.message, "err"); return; }
 $("newName").value = ""; $("newRole").value = ""; $("newPin").value = "";
 msg($("appMsg"), "Staff member added.", "ok");
 loadStaff();
@@ -1193,7 +1357,7 @@ $("tsStaffSearch").addEventListener("input", () => { if (tsRows.length) renderTi
 async function approveTs(id) {
 clearMsg($("appMsg"));
 const { error } = await sb.rpc("owner_approve_timesheet", { p_id: id });
-if (error) { msg($("appMsg"), error.message, "err"); return; }
+if (error) { if (!gateHandled(error)) msg($("appMsg"), error.message, "err"); return; }
 msg($("appMsg"), "Timesheet approved.", "ok");
 loadTimesheets();
 }
@@ -1402,7 +1566,7 @@ if (from > to) { msg($("appMsg"), "The From date can't be after the To date.", "
 $("pyExportBtn").disabled = true;
 const { data, error } = await sb.rpc("owner_export_smartly_csv", { p_from: from, p_to: to });
 $("pyExportBtn").disabled = false;
-if (error) { msg($("appMsg"), error.message, "err"); return; }
+if (error) { if (!gateHandled(error)) msg($("appMsg"), error.message, "err"); return; }
 if (!data || !String(data).trim()) {
 msg($("appMsg"), "Nothing to export — no approved hours with a payroll ID in this period. Click “Check before export” to see why.", "err");
 return;
