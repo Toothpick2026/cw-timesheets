@@ -264,6 +264,8 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <div class="tabs">
 <button class="tab on" id="tabStaff">Staff</button>
 <button class="tab" id="tabSites">Sites</button>
+<button class="tab hidden" id="tabTeams">Teams</button>
+<button class="tab hidden" id="tabCategories">Categories</button>
 <button class="tab" id="tabTimesheets">Timesheets</button>
 <button class="tab" id="tabPayroll">Payroll</button>
 <button class="tab" id="tabReports">Reports</button>
@@ -337,6 +339,71 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <tr><th>Site</th><th>Smartly dept</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
 </thead>
 <tbody id="siteBody"></tbody>
+</table>
+</div>
+</div>
+<!-- ============ TEAMS SECTION ============ -->
+<div id="teamsSection" class="hidden">
+<div class="card">
+<h2>Add a team</h2>
+<div class="row">
+<div>
+<label for="newTeam">Team name</label>
+<input id="newTeam" type="text" placeholder="e.g. North Crew" />
+</div>
+<div>
+<label for="newTeamLead">Team lead / foreman <span class="muted">(optional)</span></label>
+<select id="newTeamLead"><option value="">— none —</option></select>
+</div>
+<div style="max-width:160px; display:flex; align-items:flex-end;">
+<button id="addTeamBtn" style="width:100%;">Add team</button>
+</div>
+</div>
+<p class="subtle" style="margin-top:12px;">Group your crew under a foreman, then filter your payroll reports by team. Part of the Business plan.</p>
+</div>
+<div class="card">
+<h2>Your teams</h2>
+<div id="teamStatus" class="muted">Loading…</div>
+<table id="teamTable" class="hidden">
+<thead>
+<tr><th>Team</th><th>Lead</th><th class="num">Members</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
+</thead>
+<tbody id="teamBody"></tbody>
+</table>
+</div>
+<div class="card">
+<h2>Assign crew to teams</h2>
+<div id="assignStatus" class="muted">Loading…</div>
+<div id="assignList"></div>
+</div>
+</div>
+<!-- ============ CATEGORIES SECTION ============ -->
+<div id="categoriesSection" class="hidden">
+<div class="card">
+<h2>Add a job category</h2>
+<div class="row">
+<div>
+<label for="newCat">Category (work type)</label>
+<input id="newCat" type="text" placeholder="e.g. Framing, Plumbing, Sparky" />
+</div>
+<div style="max-width:180px;">
+<label for="newCatCode">Cost code <span class="muted">(optional)</span></label>
+<input id="newCatCode" type="text" placeholder="e.g. FRM-01" />
+</div>
+<div style="max-width:160px; display:flex; align-items:flex-end;">
+<button id="addCatBtn" style="width:100%;">Add category</button>
+</div>
+</div>
+<p class="subtle" style="margin-top:12px;">Categories are work types your crew can tag on their timesheets, doubling as cost codes you total up for billing. Part of the Business plan.</p>
+</div>
+<div class="card">
+<h2>Your categories</h2>
+<div id="catStatus" class="muted">Loading…</div>
+<table id="catTable" class="hidden">
+<thead>
+<tr><th>Category</th><th>Cost code</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
+</thead>
+<tbody id="catBody"></tbody>
 </table>
 </div>
 </div>
@@ -469,6 +536,36 @@ Cost by department (map each job to a Smartly department code on the Sites tab)
 </thead>
 <tbody id="rpBody"></tbody>
 <tfoot id="rpFoot"></tfoot>
+</table>
+</div>
+</div>
+<div class="card hidden" id="crCard">
+<h2>Hours by cost code / category <span class="muted" style="font-weight:400;font-size:13px;">— Business</span></h2>
+<div class="row">
+<div><label for="crFrom">From</label><input id="crFrom" type="date" /></div>
+<div><label for="crTo">To</label><input id="crTo" type="date" /></div>
+<div style="max-width:160px; display:flex; align-items:flex-end;"><button id="crLoadBtn" style="width:100%;">Load</button></div>
+</div>
+<div id="crStatus" class="muted" style="margin-top:12px;">Choose a date range and click Load.</div>
+<div style="overflow-x:auto;">
+<table id="crTable" class="hidden">
+<thead><tr><th>Category</th><th>Cost code</th><th class="num">Entries</th><th class="num">Paid hrs</th></tr></thead>
+<tbody id="crBody"></tbody>
+</table>
+</div>
+</div>
+<div class="card hidden" id="trCard">
+<h2>Hours by team <span class="muted" style="font-weight:400;font-size:13px;">— Business</span></h2>
+<div class="row">
+<div><label for="trFrom">From</label><input id="trFrom" type="date" /></div>
+<div><label for="trTo">To</label><input id="trTo" type="date" /></div>
+<div style="max-width:160px; display:flex; align-items:flex-end;"><button id="trLoadBtn" style="width:100%;">Load</button></div>
+</div>
+<div id="trStatus" class="muted" style="margin-top:12px;">Choose a date range and click Load.</div>
+<div style="overflow-x:auto;">
+<table id="trTable" class="hidden">
+<thead><tr><th>Team</th><th>Lead</th><th class="num">Entries</th><th class="num">Paid hrs</th></tr></thead>
+<tbody id="trBody"></tbody>
 </table>
 </div>
 </div>
@@ -915,6 +1012,7 @@ const { data, error } = await sb.rpc("owner_billing_status");
 if (error) { billing = null; return; }
 billing = Array.isArray(data) ? (data[0] || null) : (data || null);
 renderBilling();
+applyTierGating();
 }
 function daysLeft(iso) {
 if (!iso) return 0;
@@ -1019,12 +1117,16 @@ return false;
 function setTab(which) {
 $("tabStaff").classList.toggle("on", which === "staff");
 $("tabSites").classList.toggle("on", which === "sites");
+$("tabTeams").classList.toggle("on", which === "teams");
+$("tabCategories").classList.toggle("on", which === "categories");
 $("tabTimesheets").classList.toggle("on", which === "timesheets");
 $("tabPayroll").classList.toggle("on", which === "payroll");
 $("tabReports").classList.toggle("on", which === "reports");
 $("tabBilling").classList.toggle("on", which === "billing");
 show($("staffSection"), which === "staff");
 show($("sitesSection"), which === "sites");
+show($("teamsSection"), which === "teams");
+show($("categoriesSection"), which === "categories");
 show($("timesheetsSection"), which === "timesheets");
 show($("payrollSection"), which === "payroll");
 show($("reportsSection"), which === "reports");
@@ -1052,6 +1154,170 @@ if (!$("rpFrom").value) { $("rpFrom").value = isoDaysAgo(6); $("rpTo").value = i
 if (rpRows.length === 0) loadSummary();
 });
 $("tabBilling").addEventListener("click", () => { setTab("billing"); loadBilling(); });
+
+// ============================================================
+// TEAMS · CATEGORIES · EXTRA REPORTS (Business plan)
+// ============================================================
+let teamRows = [], catRows = [];
+
+function tierEntitled() {
+const b = billing || {};
+const st = (b.subscription_status || "").toLowerCase();
+const pl = (b.plan || "").toLowerCase();
+if (st === "comped" || st === "trialing") return true;
+return pl === "business";
+}
+function applyTierGating() {
+const on = tierEntitled();
+$("tabTeams").classList.toggle("hidden", !on);
+$("tabCategories").classList.toggle("hidden", !on);
+if ($("crCard")) $("crCard").classList.toggle("hidden", !on);
+if ($("trCard")) $("trCard").classList.toggle("hidden", !on);
+}
+
+$("tabTeams").addEventListener("click", () => { setTab("teams"); loadTeams(); });
+$("tabCategories").addEventListener("click", () => { setTab("categories"); loadCategories(); });
+
+async function loadTeams() {
+$("teamStatus").textContent = "Loading…";
+show($("teamTable"), false);
+const [tr, sr, st] = await Promise.all([
+sb.rpc("owner_list_teams"),
+sb.rpc("owner_list_staff"),
+sb.rpc("owner_staff_teams")
+]);
+if (tr.error) { $("teamStatus").textContent = ""; msg($("appMsg"), tr.error.message, "err"); return; }
+teamRows = tr.data || [];
+const staff = (sr.data || []).filter((s) => s.active);
+const teamOf = {}; (st.data || []).forEach((r) => { teamOf[r.staff_id] = r.team_id; });
+$("newTeamLead").innerHTML = '<option value="">— none —</option>' +
+staff.map((s) => '<option value="' + s.id + '">' + escapeHtml(s.name) + '</option>').join("");
+if (teamRows.length === 0) { $("teamStatus").innerHTML = "No teams yet — add one above."; }
+else {
+$("teamStatus").textContent = "";
+const body = $("teamBody"); body.innerHTML = "";
+teamRows.forEach((t) => {
+const row = document.createElement("tr");
+row.innerHTML =
+'<td>' + escapeHtml(t.name) + '</td>' +
+'<td>' + (t.lead_name ? escapeHtml(t.lead_name) : '<span class="muted">—</span>') + '</td>' +
+'<td class="num">' + (Number(t.member_count) || 0) + '</td>' +
+'<td><span class="pill ' + (t.active ? "active" : "inactive") + '">' + (t.active ? "Active" : "Inactive") + '</span></td>' +
+'<td><div class="actions"><button class="secondary small" data-team-toggle="' + t.id + '">' + (t.active ? "Deactivate" : "Reactivate") + '</button></div></td>';
+body.appendChild(row);
+row.querySelector("[data-team-toggle]").addEventListener("click", async () => {
+const r = await sb.rpc("owner_update_team", { p_id: t.id, p_name: t.name, p_lead_staff_id: t.lead_staff_id || null, p_active: !t.active });
+if (r.error) msg($("appMsg"), r.error.message, "err"); else loadTeams();
+});
+});
+show($("teamTable"), true);
+}
+const opts = '<option value="">— no team —</option>' +
+teamRows.filter((t) => t.active).map((t) => '<option value="' + t.id + '">' + escapeHtml(t.name) + '</option>').join("");
+if (staff.length === 0) { $("assignStatus").textContent = "Add crew first (Staff tab)."; $("assignList").innerHTML = ""; }
+else {
+$("assignStatus").textContent = "";
+$("assignList").innerHTML = staff.map((s) =>
+'<div class="row" style="align-items:center;gap:8px;margin-bottom:8px;">' +
+'<span style="flex:1;">' + escapeHtml(s.name) + '</span>' +
+'<select data-assign="' + s.id + '" style="max-width:220px;">' + opts + '</select>' +
+'</div>').join("");
+staff.forEach((s) => {
+const sel = $("assignList").querySelector('[data-assign="' + s.id + '"]');
+if (teamOf[s.id]) sel.value = String(teamOf[s.id]);
+sel.addEventListener("change", async () => {
+const val = sel.value ? Number(sel.value) : null;
+const r = await sb.rpc("owner_assign_staff_team", { p_staff_id: s.id, p_team_id: val });
+if (r.error) { msg($("appMsg"), r.error.message, "err"); }
+else { msg($("appMsg"), "Updated " + s.name + "'s team.", "ok"); loadTeams(); }
+});
+});
+}
+}
+$("addTeamBtn").addEventListener("click", async () => {
+const name = $("newTeam").value.trim();
+const lead = $("newTeamLead").value || null;
+if (!name) { msg($("appMsg"), "Enter a team name.", "err"); return; }
+$("addTeamBtn").disabled = true;
+const r = await sb.rpc("owner_add_team", { p_name: name, p_lead_staff_id: lead });
+$("addTeamBtn").disabled = false;
+if (r.error) { msg($("appMsg"), r.error.message, "err"); return; }
+$("newTeam").value = ""; msg($("appMsg"), "Added team " + name + ".", "ok"); loadTeams();
+});
+
+async function loadCategories() {
+$("catStatus").textContent = "Loading…";
+show($("catTable"), false);
+const { data, error } = await sb.rpc("owner_list_categories");
+if (error) { $("catStatus").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
+catRows = data || [];
+if (catRows.length === 0) { $("catStatus").innerHTML = "No categories yet — add one above."; return; }
+$("catStatus").textContent = "";
+const body = $("catBody"); body.innerHTML = "";
+catRows.forEach((c) => {
+const row = document.createElement("tr");
+row.innerHTML =
+'<td>' + escapeHtml(c.name) + '</td>' +
+'<td>' + (c.cost_code ? escapeHtml(c.cost_code) : '<span class="muted">—</span>') + '</td>' +
+'<td><span class="pill ' + (c.active ? "active" : "inactive") + '">' + (c.active ? "Active" : "Inactive") + '</span></td>' +
+'<td><div class="actions"><button class="secondary small" data-cat-toggle="' + c.id + '">' + (c.active ? "Deactivate" : "Reactivate") + '</button></div></td>';
+body.appendChild(row);
+row.querySelector("[data-cat-toggle]").addEventListener("click", async () => {
+const r = await sb.rpc("owner_update_category", { p_id: c.id, p_name: c.name, p_cost_code: c.cost_code || null, p_active: !c.active });
+if (r.error) msg($("appMsg"), r.error.message, "err"); else loadCategories();
+});
+});
+show($("catTable"), true);
+}
+$("addCatBtn").addEventListener("click", async () => {
+const name = $("newCat").value.trim();
+const code = $("newCatCode").value.trim() || null;
+if (!name) { msg($("appMsg"), "Enter a category name.", "err"); return; }
+$("addCatBtn").disabled = true;
+const r = await sb.rpc("owner_add_category", { p_name: name, p_cost_code: code });
+$("addCatBtn").disabled = false;
+if (r.error) { msg($("appMsg"), r.error.message, "err"); return; }
+$("newCat").value = ""; $("newCatCode").value = ""; msg($("appMsg"), "Added category " + name + ".", "ok"); loadCategories();
+});
+
+$("crLoadBtn").addEventListener("click", async () => {
+const from = $("crFrom").value || isoDaysAgo(6), to = $("crTo").value || isoDaysAgo(0);
+$("crFrom").value = from; $("crTo").value = to;
+$("crStatus").textContent = "Loading…"; show($("crTable"), false);
+const { data, error } = await sb.rpc("owner_payroll_report_by_category", { p_from: from, p_to: to });
+if (error) { $("crStatus").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
+const rows = data || [], body = $("crBody"); body.innerHTML = "";
+if (rows.length === 0) { $("crStatus").textContent = "No hours in that range."; return; }
+$("crStatus").textContent = "";
+rows.forEach((r) => {
+const row = document.createElement("tr");
+row.innerHTML = '<td>' + escapeHtml(r.category || "") + '</td>' +
+'<td>' + (r.cost_code ? escapeHtml(r.cost_code) : '<span class="muted">—</span>') + '</td>' +
+'<td class="num">' + (Number(r.entries) || 0) + '</td>' +
+'<td class="num">' + (Number(r.paid_hours) || 0).toFixed(2) + '</td>';
+body.appendChild(row);
+});
+show($("crTable"), true);
+});
+$("trLoadBtn").addEventListener("click", async () => {
+const from = $("trFrom").value || isoDaysAgo(6), to = $("trTo").value || isoDaysAgo(0);
+$("trFrom").value = from; $("trTo").value = to;
+$("trStatus").textContent = "Loading…"; show($("trTable"), false);
+const { data, error } = await sb.rpc("owner_payroll_report_by_team", { p_from: from, p_to: to });
+if (error) { $("trStatus").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
+const rows = data || [], body = $("trBody"); body.innerHTML = "";
+if (rows.length === 0) { $("trStatus").textContent = "No hours in that range."; return; }
+$("trStatus").textContent = "";
+rows.forEach((r) => {
+const row = document.createElement("tr");
+row.innerHTML = '<td>' + escapeHtml(r.team || "") + '</td>' +
+'<td>' + (r.lead_name ? escapeHtml(r.lead_name) : '<span class="muted">—</span>') + '</td>' +
+'<td class="num">' + (Number(r.entries) || 0) + '</td>' +
+'<td class="num">' + (Number(r.paid_hours) || 0).toFixed(2) + '</td>';
+body.appendChild(row);
+});
+show($("trTable"), true);
+});
 // ---- staff list ----
 async function loadStaff() {
 $("listStatus").textContent = "Loading…";
