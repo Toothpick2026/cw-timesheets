@@ -644,14 +644,89 @@ function bootApp() {
   requestWakeLock();
 }
 
+// ── LIVE CLOCK EVENTS ──
+// Record clock-in / clock-out to the server the moment they happen, so a punch
+// exists in the database even if the phone never gets as far as an end-of-day
+// submit. Best-effort with an offline queue; the full timesheet still submits
+// normally either way.
+// NZ STANDARD TIME ONLY. Every recorded time is formatted in Pacific/Auckland,
+// never the device's local clock — a phone left on the wrong timezone must not
+// be able to write a wrong start or finish time into payroll.
+function nzTime(dt = new Date()) {
+  return new Intl.DateTimeFormat('en-NZ', { timeZone:'Pacific/Auckland',
+    hour:'2-digit', minute:'2-digit', hour12:false }).format(dt); // HH:MM
+}
+function nzDateStr(dt = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone:'Pacific/Auckland',
+    year:'numeric', month:'2-digit', day:'2-digit' }).format(dt); // YYYY-MM-DD
+}
+function clockPayload(){
+  return {
+    date: getSelectedDay(),
+    start_time: gpsData.clockInTime ? nzTime(new Date(gpsData.clockInTime)) : null,
+    end_time:   gpsData.clockOutTime ? nzTime(new Date(gpsData.clockOutTime)) : null,
+    clock_in_time: gpsData.clockInTime, clock_out_time: gpsData.clockOutTime,
+    clock_in_lat: gpsData.clockInLat, clock_in_lng: gpsData.clockInLng, clock_in_address: gpsData.clockInAddress,
+    clock_out_lat: gpsData.clockOutLat, clock_out_lng: gpsData.clockOutLng, clock_out_address: gpsData.clockOutAddress
+  };
+}
+// Returns true if the server accepted the punch, false if it was queued.
+// keepalive lets the browser finish the request even if the page is hidden or
+// frozen a moment later — phones get pocketed straight after tapping.
+async function serverClock(kind){
+  if(!currentUser || !currentPin) return false;
+  const fn = kind==='in' ? 'clock_in' : 'clock_out';
+  const payload = clockPayload();
+  try{
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+      method:'POST',
+      keepalive:true,
+      headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: payload })
+    });
+    if(!res.ok) throw new Error(await res.text());
+    setSyncDot(true);
+    return true;
+  }catch(e){
+    const q = JSON.parse(localStorage.getItem('cwts_clockQueue')||'[]');
+    q.push({ fn, payload }); localStorage.setItem('cwts_clockQueue', JSON.stringify(q));
+    setSyncDot(false);
+    return false;
+  }
+}
+async function flushClockQueue(){
+  let q = JSON.parse(localStorage.getItem('cwts_clockQueue')||'[]');
+  if(!q.length || !currentUser || !currentPin) return;
+  const remain=[];
+  for(const item of q){
+    try{
+      const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + item.fn, {
+        method:'POST',
+        headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+        body: JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: item.payload })
+      });
+      if(!res.ok) throw new Error();
+    }catch(e){ remain.push(item); }
+  }
+  if(remain.length) localStorage.setItem('cwts_clockQueue', JSON.stringify(remain));
+  else { localStorage.removeItem('cwts_clockQueue'); setSyncDot(true); }
+}
+
 // ── GPS ──
+// Resolves to null instead of rejecting, so a missing or slow fix can never
+// throw the clock-in off course. enableHighAccuracy is off and a recent cached
+// fix is accepted: waking the GPS chip took longer than the old 3s race allowed,
+// which is why phones fell through to the no-location path nearly every time.
 async function getGPS() {
-  return new Promise((resolve,reject)=>{
-    if (!navigator.geolocation){reject('GPS not available');return;}
+  return new Promise(resolve=>{
+    if (!navigator.geolocation){ resolve(null); return; }
+    let done=false;
+    const finish=v=>{ if(!done){ done=true; resolve(v); } };
+    setTimeout(()=>finish(null), 8000);
     navigator.geolocation.getCurrentPosition(
-      pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude}),
-      err=>reject(err.message),
-      {enableHighAccuracy:true,timeout:10000}
+      pos=>finish({lat:pos.coords.latitude,lng:pos.coords.longitude}),
+      ()=>finish(null),
+      {enableHighAccuracy:false,timeout:8000,maximumAge:60000}
     );
   });
 }
@@ -672,7 +747,7 @@ async function mockClockIn() {
   gpsData.clockInLat=null;
   gpsData.clockInLng=null;
   gpsData.clockInAddress='Location unavailable';
-  document.getElementById('startTime').value=now.toTimeString().slice(0,5);
+  document.getElementById('startTime').value=nzTime(now);
   calcHours();
   document.getElementById('clockInTime').textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('clockInBtn').classList.add('clocked');
@@ -686,7 +761,7 @@ async function mockClockOut() {
   gpsData.clockOutLat=null;
   gpsData.clockOutLng=null;
   gpsData.clockOutAddress='Location unavailable';
-  document.getElementById('endTime').value=now.toTimeString().slice(0,5);
+  document.getElementById('endTime').value=nzTime(now);
   calcHours();
   document.getElementById('clockOutTime').textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('clockOutBtn').classList.add('clocked');
@@ -694,63 +769,82 @@ async function mockClockOut() {
   localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
   toast('Clocked out ✓ (location unavailable)','warn');
 }
+// Save the punch to the server FIRST, on tap. Location is decoration and is
+// attached afterwards in a second call — clock_in is idempotent for a given
+// staff member and date, so it updates the same row rather than duplicating it.
 async function doClockIn() {
   const timeEl=document.getElementById('clockInTime');
   const addrEl=document.getElementById('clockInAddr');
   timeEl.innerHTML='<span class="gps-spinner"></span> Clocking in…';
-  
-  try {
-    // Try GPS with 3 second timeout (faster)
-    const gpsPromise = getGPS();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject('GPS timeout'), 3000)
-    );
-    const {lat,lng} = await Promise.race([gpsPromise, timeoutPromise]);
-    
-    const now=new Date();
-    gpsData.clockInTime=now.toISOString();
-    gpsData.clockInLat=lat; gpsData.clockInLng=lng;
-    document.getElementById('startTime').value=now.toTimeString().slice(0,5);
-    calcHours();
-    timeEl.textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('clockInBtn').classList.add('clocked');
-    addrEl.textContent='📍 Getting address…';
-    const addr=await reverseGeocode(lat,lng);
-    gpsData.clockInAddress=addr; addrEl.textContent=addr;
+
+  const now=new Date();
+  gpsData.clockInTime=now.toISOString();
+  gpsData.clockInLat=null;
+  gpsData.clockInLng=null;
+  gpsData.clockInAddress='Locating…';
+  document.getElementById('startTime').value=nzTime(now);
+  calcHours();
+  document.getElementById('clockInBtn').classList.add('clocked');
+  localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
+
+  const saved = await serverClock('in');
+
+  timeEl.textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+  toast(saved ? 'Clocked in ✓' : 'Clocked in — will sync when back online',
+        saved ? 'success' : 'warn');
+
+  addrEl.textContent='📍 Getting location…';
+  const fix = await getGPS();
+  if (!fix) {
+    gpsData.clockInAddress='Location unavailable';
+    addrEl.textContent=gpsData.clockInAddress;
     localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
-    toast('Clocked in ✓','success');
-  } catch (err) { 
-    mockClockIn();
+    return;
   }
+  gpsData.clockInLat=fix.lat; gpsData.clockInLng=fix.lng;
+  addrEl.textContent='📍 Getting address…';
+  let addr='Location recorded';
+  try { addr = await reverseGeocode(fix.lat, fix.lng); } catch(e) {}
+  gpsData.clockInAddress=addr; addrEl.textContent=addr;
+  localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
+  serverClock('in');
 }
 async function doClockOut() {
   const timeEl=document.getElementById('clockOutTime');
   const addrEl=document.getElementById('clockOutAddr');
   timeEl.innerHTML='<span class="gps-spinner"></span> Clocking out…';
-  
-  try {
-    // Try GPS with 3 second timeout (faster)
-    const gpsPromise = getGPS();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject('GPS timeout'), 3000)
-    );
-    const {lat,lng} = await Promise.race([gpsPromise, timeoutPromise]);
-    
-    const now=new Date();
-    gpsData.clockOutTime=now.toISOString();
-    gpsData.clockOutLat=lat; gpsData.clockOutLng=lng;
-    document.getElementById('endTime').value=now.toTimeString().slice(0,5);
-    calcHours();
-    timeEl.textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('clockOutBtn').classList.add('clocked');
-    addrEl.textContent='📍 Getting address…';
-    const addr=await reverseGeocode(lat,lng);
-    gpsData.clockOutAddress=addr; addrEl.textContent=addr;
+
+  const now=new Date();
+  gpsData.clockOutTime=now.toISOString();
+  gpsData.clockOutLat=null;
+  gpsData.clockOutLng=null;
+  gpsData.clockOutAddress='Locating…';
+  document.getElementById('endTime').value=nzTime(now);
+  calcHours();
+  document.getElementById('clockOutBtn').classList.add('clocked');
+  localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
+
+  const saved = await serverClock('out');
+
+  timeEl.textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+  toast(saved ? 'Clocked out ✓' : 'Clocked out — will sync when back online',
+        saved ? 'success' : 'warn');
+
+  addrEl.textContent='📍 Getting location…';
+  const fix = await getGPS();
+  if (!fix) {
+    gpsData.clockOutAddress='Location unavailable';
+    addrEl.textContent=gpsData.clockOutAddress;
     localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
-    toast('Clocked out ✓','success');
-  } catch { 
-    mockClockOut();
+    return;
   }
+  gpsData.clockOutLat=fix.lat; gpsData.clockOutLng=fix.lng;
+  addrEl.textContent='📍 Getting address…';
+  let addr='Location recorded';
+  try { addr = await reverseGeocode(fix.lat, fix.lng); } catch(e) {}
+  gpsData.clockOutAddress=addr; addrEl.textContent=addr;
+  localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
+  serverClock('out');
 }
 function resetGPS() {
   gpsData={clockInTime:null,clockInLat:null,clockInLng:null,clockInAddress:'',clockOutTime:null,clockOutLat:null,clockOutLng:null,clockOutAddress:''};
@@ -900,13 +994,13 @@ function buildDayStrip() {
   const d = new Date();
   const btn = document.createElement('div');
   btn.className = 'day-btn selected today-btn';
-  btn.dataset.iso = new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  btn.dataset.iso = nzDateStr(new Date());
   btn.innerHTML = `<span>${d.getDate()}</span>${days[d.getDay()]}`;
   strip.appendChild(btn);
 }
 function getSelectedDay() {
   const sel = document.querySelector('.day-btn.selected');
-  return sel ? sel.dataset.iso : new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  return sel ? sel.dataset.iso : nzDateStr(new Date());
 }
 
 // ── HOURS CALC ──
@@ -939,7 +1033,7 @@ function scheduleBreakTimers() {
   clearAllTimers();
   const today = getSelectedDay();
   const now = new Date();
-  if (today !== new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())) return;
+  if (today !== nzDateStr(new Date())) return;
   const breaks = [
     {startId:'morningStart',durId:'morningDur',label:'Morning tea',type:'morning'},
     {startId:'afternoonStart',durId:'afternoonDur',label:'Afternoon tea',type:'afternoon'},
@@ -1034,7 +1128,7 @@ async function submitEntry() {
     morning_break:Math.round(morningDur),
     lunch_break:Math.round(lunchMins),
     afternoon_break:Math.round(afternoonDur),
-    lunch_start: lunchStartTime ? lunchStartTime.toTimeString().slice(0,5) : null,
+    lunch_start: lunchStartTime ? nzTime(lunchStartTime) : null,
     paid_hours:paidHrs, job, notes,
     status:'pending',
     submitted_at:new Date().toISOString(),
@@ -1147,7 +1241,7 @@ function toast(msg,type=''){
 // ── RESTORE STATE after suspension/reload ──
 function isToday(dateInput) {
   const d = new Date(dateInput);
-  return new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(d) === new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  return nzDateStr(d) === nzDateStr(new Date());
 }
 function restoreState() {
   // Restore GPS clock-in — but only if it's from today. Previously this restored
@@ -1166,14 +1260,14 @@ function restoreState() {
           const t = new Date(d.clockInTime);
           document.getElementById('clockInTime').textContent = t.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
           document.getElementById('clockInBtn').classList.add('clocked');
-          document.getElementById('startTime').value = t.toTimeString().slice(0,5);
+          document.getElementById('startTime').value = nzTime(t);
           if (d.clockInAddress) document.getElementById('clockInAddr').textContent = d.clockInAddress;
         }
         if (d.clockOutTime) {
           const t = new Date(d.clockOutTime);
           document.getElementById('clockOutTime').textContent = t.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
           document.getElementById('clockOutBtn').classList.add('clocked');
-          document.getElementById('endTime').value = t.toTimeString().slice(0,5);
+          document.getElementById('endTime').value = nzTime(t);
           if (d.clockOutAddress) document.getElementById('clockOutAddr').textContent = d.clockOutAddress;
         }
         calcHours();
@@ -1229,14 +1323,18 @@ document.addEventListener('visibilitychange', () => {
       updateLunchTimer();
     }
     calcHours();
+    // The 60s interval doesn't run while the page is frozen in the background,
+    // so coming back to the foreground is the only reliable chance to drain
+    // anything stuck in the clock queue.
+    if (currentUser && navigator.onLine) flushClockQueue();
   }
 });
 
 // Retry any stuck offline submissions whenever connectivity comes back, and as
 // a periodic safety net every minute while the app is open — instead of only
 // ever trying once at the moment of a failed submit.
-window.addEventListener('online', () => { if (currentUser) flushQueue().then(()=>{ if(document.getElementById('page-history').classList.contains('active')) renderHistory(); }); });
-setInterval(() => { if (currentUser && navigator.onLine) flushQueue(); }, 60000);
+window.addEventListener('online', () => { if (currentUser) flushClockQueue(); if (currentUser) flushQueue().then(()=>{ if(document.getElementById('page-history').classList.contains('active')) renderHistory(); }); });
+setInterval(() => { if (currentUser && navigator.onLine) { flushQueue(); flushClockQueue(); } }, 60000);
 
 window.onload=async ()=>{
   const savedUser = localStorage.getItem('cwts_user');
@@ -1256,6 +1354,7 @@ window.onload=async ()=>{
         bootApp();
         restoreState();
         requestWakeLock();
+        flushClockQueue();
       } else {
         localStorage.removeItem('cwts_user');
         localStorage.removeItem('cwts_pin');

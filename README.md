@@ -58,13 +58,9 @@ python3 -m http.server 8000
 
 ## Login Credentials (for testing)
 
-| Name | PIN |
-|------|-----|
-| Glenn Wilson | 1111 |
-| Troy Wilson | 2222 |
-| Marco | 3333 |
-| Sam | 4444 |
-| Kylie | 5555 |
+Ask the site owner for test credentials.
+
+**Do not commit PINs to this repository — it is public.**
 
 ## Tech Stack
 
