@@ -1,8 +1,9 @@
-const CACHE = 'cw-timesheet-v2';
+// v3 — staff.html removed. addAll() rejects the whole install if any single
+// entry 404s, so a stale path here silently disables offline caching entirely.
+const CACHE = 'cw-timesheet-v3';
 const ASSETS = [
   '/',
   '/index.html',
-  '/staff.html',
   '/owner.html',
   '/manifest.json'
 ];
