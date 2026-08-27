@@ -119,6 +119,10 @@
   .lunch-end-btn { background: var(--green); color: #fff; border: none; border-radius: 4px; font-family: var(--heading); font-size: 1.1rem; letter-spacing: 1px; padding: 0.75rem; cursor: pointer; transition: opacity 0.2s; }
   .lunch-end-btn:active { opacity: 0.8; }
   .lunch-end-btn:disabled { opacity: 0.4; cursor: default; }
+  .lunch-btn-row + .lunch-btn-row { grid-template-columns: 1fr; margin-top: 0.5rem; }
+  .lunch-none-btn { background: transparent; color: #aaa; border: 1px solid #444; border-radius: 4px; font-family: var(--heading); font-size: 0.95rem; letter-spacing: 1px; padding: 0.6rem; cursor: pointer; transition: opacity 0.2s; }
+  .lunch-none-btn:active { opacity: 0.7; }
+  .lunch-none-btn.chosen { border-color: var(--green); color: var(--green); }
   .lunch-status { font-size: 0.8rem; color: var(--muted); text-align: center; margin-top: 0.5rem; }
   .break-deduct-note { font-size: 0.8rem; color: var(--yellow); margin-top: 0.5rem; }
 
@@ -307,6 +311,9 @@
               <button class="lunch-start-btn" id="lunchStartBtn" onclick="startLunch()">▶ Start Lunch</button>
               <button class="lunch-end-btn" id="lunchEndBtn" onclick="endLunch()" disabled>■ End Lunch</button>
             </div>
+            <div class="lunch-btn-row">
+              <button class="lunch-none-btn" id="lunchNoneBtn" onclick="noLunchTaken()">✕ Worked through — no lunch</button>
+            </div>
             <div class="lunch-status" id="lunchStatus">Tap "Start Lunch" when you go on break</div>
           </div>
           <div class="break-deduct-note">⚠ Lunch time deducted from paid hours</div>
@@ -493,7 +500,44 @@ let lunchStartTime = null;
 let lunchEndTime = null;
 let lunchIntervalId = null;
 let lunchDurationMins = 0;
+let lunchNoneTaken = false;   // set by the "No lunch" button — the only way to record a 0-min lunch
+let lunchStartRecorded = null; // survives endLunch() clearing lunchStartTime, so the row still carries it
 let lunchHornFired = false;
+
+// Single source of truth for how many lunch minutes come off the day.
+// Worked through lunch  -> 0 (staff must say so explicitly)
+// Timer was used        -> the measured duration
+// Neither               -> the 30-minute default, as before
+function effectiveLunchMins() {
+  if (lunchNoneTaken) return 0;
+  return lunchDurationMins > 0 ? lunchDurationMins : 30;
+}
+
+// Keep the measured lunch across a reload — it used to live only in memory,
+// so refreshing the page silently reverted the day to the 30-minute default.
+function persistLunchState() {
+  try {
+    localStorage.setItem('cwts_lunchState', JSON.stringify({
+      date: nzDateStr(new Date()),
+      mins: lunchDurationMins,
+      none: lunchNoneTaken
+    }));
+  } catch(e) {}
+}
+function restoreLunchState() {
+  try {
+    const raw = localStorage.getItem('cwts_lunchState');
+    if (!raw) return;
+    const st = JSON.parse(raw);
+    if (!st || st.date !== nzDateStr(new Date())) { localStorage.removeItem('cwts_lunchState'); return; }
+    lunchDurationMins = st.mins || 0;
+    lunchNoneTaken = !!st.none;
+    if (lunchNoneTaken) {
+      const s = document.getElementById('lunchStatus');
+      if (s) s.textContent = '✓ No lunch taken — 0 min deducted';
+    }
+  } catch(e) {}
+}
 let audioCtx = null; // created on first user tap to satisfy browser autoplay policy
 
 // ── SUPABASE ──
@@ -858,8 +902,36 @@ function resetGPS() {
 }
 
 // ── LUNCH TIMER ──
+// Worked through lunch. Without this there is no way to record a zero lunch —
+// the day silently falls back to a 30-minute deduction.
+function noLunchTaken() {
+  if (lunchStartTime && !lunchEndTime) {
+    toast('Lunch timer is still running — tap End Lunch first', 'warn');
+    return;
+  }
+  lunchNoneTaken = true;
+  lunchDurationMins = 0;
+  lunchStartTime = null;
+  lunchEndTime = null;
+  try { localStorage.removeItem('cwts_lunchStart'); } catch(e) {}
+  stopLunchTimer();
+  document.getElementById('lunchNoneBtn').classList.add('chosen');
+  document.getElementById('lunchStartBtn').disabled = false;
+  document.getElementById('lunchEndBtn').disabled = true;
+  document.getElementById('lunchTimerDisplay').textContent = '00:00';
+  document.getElementById('lunchTimerDisplay').className = 'lunch-timer-display done';
+  document.getElementById('lunchStatus').textContent = '✓ No lunch taken — 0 min deducted';
+  persistLunchState();
+  calcHours();
+  toast('No lunch recorded — full time paid ✓', 'success');
+}
+
 function startLunch() {
   if (lunchStartTime) return;
+  // Starting the timer cancels a previous "worked through" choice.
+  lunchNoneTaken = false;
+  const noneBtn = document.getElementById('lunchNoneBtn');
+  if (noneBtn) noneBtn.classList.remove('chosen');
   // Create (or resume) AudioContext NOW while we have a user gesture
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -911,7 +983,14 @@ function endLunch() {
   // to a tradesperson reading their own timesheet. Anyone who tapped Start/End at
   // all gets at least 1 minute deducted rather than a confusing "0min".
   lunchDurationMins = Math.max(1, Math.round(elapsedSecs / 60));
+  lunchNoneTaken = false;
   localStorage.removeItem('cwts_lunchStart');
+  // Keep the actual start-of-lunch time for the submitted row before we clear it.
+  lunchStartRecorded = lunchStartTime;
+  // Clearing this is what lets "Start Lunch" work a second time — without it the
+  // guard at the top of startLunch() made the button a permanent no-op.
+  lunchStartTime = null;
+  persistLunchState();
   stopLunchTimer();
   document.getElementById('lunchStartBtn').disabled = false;
   document.getElementById('lunchEndBtn').disabled = true;
@@ -1007,25 +1086,31 @@ function getSelectedDay() {
 function calcHours() {
   const s = document.getElementById('startTime').value;
   const e = document.getElementById('endTime').value;
-  // Use actual lunch duration if timer was used, else default 30
-  const lunchMins = lunchDurationMins > 0 ? lunchDurationMins : 30;
-  
+  const lunchMins = effectiveLunchMins();
+
   // Only calculate if both times are set
   if (!s || !e) {
     document.getElementById('hoursCalc').textContent = '—';
     document.getElementById('hoursBreakdown').textContent = 'Clock in and out to calculate hours';
     return;
   }
-  
+
   const [sh,sm] = s.split(':').map(Number);
   const [eh,em] = e.split(':').map(Number);
-  const grossMins = (eh*60+em)-(sh*60+sm);
+  let grossMins = (eh*60+em)-(sh*60+sm);
+  // Shift crossing midnight — 22:00 → 06:00 is 8 hours, not minus 16.
+  // The server already does this; without it here the day shows 0 and is
+  // blocked at submit, so overnight work could never be entered at all.
+  let overnight = false;
+  if (grossMins < 0) { grossMins += 1440; overnight = true; }
   const paidMins = Math.max(0, grossMins - lunchMins);
   const paidHrs = (paidMins/60).toFixed(2);
   const paidDisplay = parseFloat(paidHrs) === 0 ? '0' : paidHrs;
   document.getElementById('hoursCalc').textContent = paidDisplay;
   const lunchLabel = lunchMins>=60 ? (lunchMins/60).toFixed(1).replace(/\.0$/,'')+'h' : lunchMins+'min';
-  document.getElementById('hoursBreakdown').textContent = `${grossMins}min on site − ${lunchLabel} lunch = ${paidDisplay}h paid`;
+  const lunchPart = lunchMins === 0 ? 'no lunch' : lunchLabel + ' lunch';
+  document.getElementById('hoursBreakdown').textContent =
+    `${grossMins}min on site − ${lunchPart} = ${paidDisplay}h paid` + (overnight ? ' (overnight shift)' : '');
 }
 
 // ── BREAK TIMERS (morning + afternoon) ──
@@ -1101,23 +1186,28 @@ async function submitEntry() {
   const job=document.getElementById('jobSelect').value;
   const notes=document.getElementById('notesField').value.trim();
   const paidHrs=parseFloat(document.getElementById('hoursCalc').textContent);
-  const lunchMins = lunchDurationMins>0 ? lunchDurationMins : 30;
+  const lunchMins = effectiveLunchMins();
 
   if (!job){toast('Please select a job / site','error');return;}
-  if (paidHrs<=0){toast('Check your start / finish times','error');return;}
+  // parseFloat('—') is NaN, and NaN <= 0 is false — so the old guard let a blank
+  // form straight through and submitted a row with no hours on it.
+  if (!start || !end){toast('Clock in and out before submitting','error');return;}
+  if (!isFinite(paidHrs) || paidHrs<=0){toast('Check your start / finish times','error');return;}
 
-  // Duplicate guard — warn if this person already has an entry for this day, so
-  // a second submit doesn't quietly create a double-paid row. If we're offline
-  // (fetch fails) we skip the check and let the normal offline flow handle it.
+  // Re-submit guard. The old version matched ANY row for today — including the
+  // 'active' row created by this person's own clock-in — so it fired on every
+  // single normal submission and trained everyone to click through it. It also
+  // claimed a second row would be created, which is untrue: the server upserts.
+  // Only warn when a genuinely finished timesheet already exists for the day.
   try {
     const existing = await dbFetch(currentUser);
     const queued = JSON.parse(localStorage.getItem('cwts_queue')||'[]').filter(r=>r.staff===currentUser);
-    const dupe = [...existing, ...queued].some(e => e.date === day);
-    if (dupe) {
-      const proceed = confirm('You already have a timesheet for '+fmtDate(day)+'.\n\nSubmitting again will create a SECOND entry for the same day. Only continue if this is a genuinely separate shift.\n\nSubmit anyway?');
-      if (!proceed) { toast('Cancelled — no duplicate created','warn'); return; }
+    const prior = [...existing, ...queued].find(e => e.date === day && e.status && e.status !== 'active');
+    if (prior) {
+      const proceed = confirm('You already submitted a timesheet for '+fmtDate(day)+' ('+prior.status+').\n\nSubmitting again will REPLACE it with these times.\n\nReplace it?');
+      if (!proceed) { toast('Cancelled — your earlier entry is unchanged','warn'); return; }
     }
-  } catch (e) { /* offline / fetch failed — skip the duplicate check */ }
+  } catch (e) { /* offline / fetch failed — skip the check */ }
 
   const btn=document.getElementById('submitBtn');
   btn.disabled=true; btn.textContent='Submitting…';
@@ -1128,7 +1218,7 @@ async function submitEntry() {
     morning_break:Math.round(morningDur),
     lunch_break:Math.round(lunchMins),
     afternoon_break:Math.round(afternoonDur),
-    lunch_start: lunchStartTime ? nzTime(lunchStartTime) : null,
+    lunch_start: (lunchStartTime || lunchStartRecorded) ? nzTime(lunchStartTime || lunchStartRecorded) : null,
     paid_hours:paidHrs, job, notes,
     status:'pending',
     submitted_at:new Date().toISOString(),
@@ -1151,6 +1241,9 @@ async function submitEntry() {
     
     // Reset lunch
     lunchStartTime=null; lunchEndTime=null; lunchDurationMins=0; lunchHornFired=false;
+    lunchNoneTaken=false; lunchStartRecorded=null;
+    try { localStorage.removeItem('cwts_lunchState'); } catch(e) {}
+    const noneBtn=document.getElementById('lunchNoneBtn'); if(noneBtn) noneBtn.classList.remove('chosen');
     localStorage.removeItem('cwts_lunchStart');
     stopLunchTimer();
     document.getElementById('lunchTimerDisplay').textContent='00:00';
@@ -1275,6 +1368,9 @@ function restoreState() {
     } catch(e) {}
   }
 
+  // Restore a completed lunch (or an explicit "no lunch") from earlier today.
+  restoreLunchState();
+
   // Restore lunch timer if it was running — same staleness check applies.
   const savedLunch = localStorage.getItem('cwts_lunchStart');
   if (savedLunch) {
@@ -1315,9 +1411,30 @@ async function reacquireWakeLock() {
 }
 
 // ── PAGE VISIBILITY — re-sync when app comes back into view ──
+// The day strip was built once at boot and never rebuilt, so an app left open
+// overnight wrote the next morning's punch onto yesterday's row. Rebuild it
+// whenever the NZ date has moved on since the strip was drawn.
+function refreshDayStripIfDateRolled() {
+  const shown = document.querySelector('.day-btn.today-btn');
+  const todayIso = nzDateStr(new Date());
+  if (!shown || shown.dataset.iso === todayIso) return false;
+  buildDayStrip();
+  // Yesterday's in-progress state does not belong to today.
+  lunchStartTime=null; lunchEndTime=null; lunchDurationMins=0;
+  lunchNoneTaken=false; lunchStartRecorded=null; lunchHornFired=false;
+  stopLunchTimer();
+  try { localStorage.removeItem('cwts_lunchState'); localStorage.removeItem('cwts_lunchStart'); } catch(e) {}
+  const noneBtn=document.getElementById('lunchNoneBtn'); if(noneBtn) noneBtn.classList.remove('chosen');
+  calcHours();
+  toast('New day — timesheet reset to ' + fmtDate(todayIso), 'warn');
+  return true;
+}
+setInterval(refreshDayStripIfDateRolled, 60000);
+
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     reacquireWakeLock();
+    refreshDayStripIfDateRolled();
     // Re-sync lunch timer display in case setInterval drifted
     if (lunchStartTime && !lunchEndTime) {
       updateLunchTimer();
