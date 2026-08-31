@@ -66,6 +66,8 @@ tfoot td { border-top: 2px solid var(--line); border-bottom: none; font-size: 14
 .pill.active, .pill.approved { background: rgba(76,175,80,.15); color: #7bd67f; }
 .pill.inactive { background: #242424; color: var(--muted); }
 .pill.pending { background: var(--warn-bg); color: var(--brand); }
+.pill.review { background: rgba(255,152,0,.18); color: #ffb74d; }
+.pill.rejected { background: rgba(244,67,54,.15); color: #ef8a80; }
 .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .msg { padding: 11px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 14px; display: none; }
 .msg.show { display: block; }
@@ -288,6 +290,14 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <!-- ============ STAFF SECTION ============ -->
 <div id="staffSection">
 <div class="card">
+<h2>Your crew's clock-in link</h2>
+<p class="muted">Send this to anyone who needs to clock in. They open it once on their phone and it remembers your business. A plain link without the code on the end will not work.</p>
+<div class="row">
+<input id="crewLink" type="text" readonly style="flex:1;" />
+<button class="secondary" id="copyCrewLink" type="button">Copy</button>
+</div>
+</div>
+<div class="card">
 <h2>Add a staff member</h2>
 <div class="row">
 <div>
@@ -425,6 +435,8 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <select id="tsStatus">
 <option value="">All</option>
 <option value="pending">Pending only</option>
+<option value="needs_review">Needs review only</option>
+<option value="rejected">Rejected only</option>
 <option value="approved">Approved only</option>
 </select>
 </div>
@@ -792,7 +804,10 @@ show($("wizardView"), false);
 show($("onboardView"), true);
 return;
 }
-// Has an org. If the business is brand-new/empty, show the guided setup wizard.
+// Has an org. Record it before anything else — the wizard's crew link needs it,
+// and the wizard branch below returns before the assignment further down.
+myOrgId = orgId;
+// If the business is brand-new/empty, show the guided setup wizard.
 if (!wizSkipped) {
 const [sres, siteres] = await Promise.all([sb.rpc("owner_list_staff"), sb.rpc("owner_list_sites")]);
 const noStaff = !sres.error && (!sres.data || sres.data.length === 0);
@@ -813,6 +828,7 @@ myOrgId = orgId;
 myEmail = session.user.email;
 loadStaff();
 loadBilling();
+setCrewLink();
 }
 $("sendLinkBtn").addEventListener("click", async () => {
 const email = $("email").value.trim();
@@ -858,8 +874,21 @@ show($("loginView"), false);
 show($("onboardView"), false);
 show($("appView"), false);
 show($("wizardView"), true);
-$("wizCrewLink").value = window.location.origin + "/";
+setCrewLink();
 showWizardStep(1);
+}
+// The crew link MUST carry the business id. Without it the staff app has no way
+// to know whose crew is opening it, and shows another company's roster.
+function crewLinkUrl() {
+return myOrgId ? window.location.origin + "/?org=" + myOrgId : "";
+}
+function setCrewLink() {
+["wizCrewLink", "crewLink"].forEach(id => {
+const el = $(id);
+if (!el) return;
+el.value = crewLinkUrl();
+el.placeholder = myOrgId ? "" : "Finishing setup — reload if this stays empty";
+});
 }
 function wizPin() { return String(Math.floor(1000 + Math.random() * 9000)); }
 // Step 1 — welcome
@@ -985,6 +1014,12 @@ try { await navigator.clipboard.writeText($("wizCrewLink").value); msg($("wizMsg
 catch (e) { $("wizCrewLink").select(); msg($("wizMsg"), "Press Ctrl/Cmd+C to copy the link.", "ok"); }
 });
 $("wizFinish").addEventListener("click", () => { wizSkipped = true; refresh(); });
+$("copyCrewLink").addEventListener("click", async () => {
+const url = crewLinkUrl();
+if (!url) { msg($("appMsg"), "Still loading your business — try again in a moment.", "err"); return; }
+try { await navigator.clipboard.writeText(url); msg($("appMsg"), "Clock-in link copied.", "ok"); }
+catch (e) { $("crewLink").select(); msg($("appMsg"), "Press Ctrl/Cmd+C to copy the link.", "ok"); }
+});
 sb.auth.onAuthStateChange(() => refresh());
 // ---- tab switching ----
 // ============================================================
@@ -1576,8 +1611,20 @@ else pendingCount++;
 const tr = document.createElement("tr");
 const isApproved = r.status === "approved";
 const isActive = r.status === "active";
-const statusTxt = isApproved ? "Approved" : (isActive ? (r.end_time ? "Clocked out" : "🟢 On site") : "Pending");
-const statusCls = isApproved ? "approved" : (isActive ? "active" : "pending");
+const isReview = r.status === "needs_review";
+const isRejected = r.status === "rejected";
+// needs_review and rejected used to render as an ordinary yellow "Pending" pill
+// with a live Approve button, so a broken day looked exactly like a good one.
+const statusTxt = isApproved ? "Approved"
+: isActive ? (r.end_time ? "Clocked out" : "🟢 On site")
+: isReview ? "⚠ Needs review"
+: isRejected ? "Rejected"
+: "Pending";
+const statusCls = isApproved ? "approved"
+: isActive ? "active"
+: isReview ? "review"
+: isRejected ? "rejected"
+: "pending";
 tr.innerHTML =
 '<td>' + escapeHtml(r.staff) + '</td>' +
 '<td>' + escapeHtml(r.role || "") + '</td>' +
@@ -1603,9 +1650,9 @@ tr.innerHTML =
 '</div></td>';
 body.appendChild(tr);
 const apprBtn = tr.querySelector("[data-appr]");
-if (apprBtn) apprBtn.addEventListener("click", () => approveTs(r.id));
+if (apprBtn) apprBtn.addEventListener("click", () => approveTs(r.id, r));
 const undoBtn = tr.querySelector("[data-undo]");
-if (undoBtn) undoBtn.addEventListener("click", () => unapproveTs(r.id));
+if (undoBtn) undoBtn.addEventListener("click", () => unapproveTs(r.id, r));
 tr.querySelector("[data-adj]").addEventListener("click", () => openAdjust(r));
 tr.querySelector("[data-gps]").addEventListener("click", () => openGps(r.id, r.staff, r.work_date));
 tr.querySelector("[data-del]").addEventListener("click", () => deleteTs(r));
@@ -1619,14 +1666,33 @@ show($("tsTable"), true);
 }
 // live filter the loaded timesheets as you type a staff name
 $("tsStaffSearch").addEventListener("input", () => { if (tsRows.length) renderTimesheets(); });
-async function approveTs(id) {
+function tsSummaryLine(r) {
+if (!r) return "";
+return r.staff + " — " + fmtDate(r.work_date) + "\n"
++ "Start " + (r.start_time || "(none)") + "   Finish " + (r.end_time || "(none)")
++ "   Lunch " + (Number(r.lunch_break) || 0) + " min\n"
++ "Paid hours: " + hrs(r.paid_hours)
++ (r.payroll_note ? "\n\nNote: " + r.payroll_note : "");
+}
+async function approveTs(id, r) {
+// A day the system flagged is the one most likely to be wrong, so show the
+// recorded times before it becomes payable.
+if (r && (r.status === "needs_review" || r.status === "rejected")) {
+const label = r.status === "needs_review" ? "flagged for review" : "previously rejected";
+if (!window.confirm("This day is " + label + ".\n\n" + tsSummaryLine(r)
++ "\n\nApproving makes these hours payable. Approve anyway?")) return;
+}
 clearMsg($("appMsg"));
 const { error } = await sb.rpc("owner_approve_timesheet", { p_id: id });
 if (error) { if (!gateHandled(error)) msg($("appMsg"), error.message, "err"); return; }
 msg($("appMsg"), "Timesheet approved.", "ok");
 loadTimesheets();
 }
-async function unapproveTs(id) {
+async function unapproveTs(id, r) {
+// Undo sits next to Adjust, and still works when billing is past due while
+// re-approving is blocked — so a misclick could strand a day unpaid.
+if (!window.confirm("Undo approval?\n\n" + tsSummaryLine(r)
++ "\n\nThis puts the day back to pending. If your subscription has lapsed you may not be able to re-approve it.")) return;
 clearMsg($("appMsg"));
 const { error } = await sb.rpc("owner_unapprove_timesheet", { p_id: id });
 if (error) { msg($("appMsg"), error.message, "err"); return; }
@@ -1798,22 +1864,15 @@ const { error } = await sb.rpc("owner_set_smartly_settings", { p_use_departments
 if (error) { msg($("appMsg"), error.message, "err"); $("pyUseDept").checked = !$("pyUseDept").checked; return; }
 msg($("appMsg"), $("pyUseDept").checked ? "Department costing turned on." : "Department costing turned off.", "ok");
 });
-$("pyCheckBtn").addEventListener("click", async () => {
-clearMsg($("appMsg"));
-const from = $("pyFrom").value, to = $("pyTo").value;
-if (!from || !to) { msg($("appMsg"), "Please choose both pay-period dates.", "err"); return; }
-if (from > to) { msg($("appMsg"), "The From date can't be after the To date.", "err"); return; }
-$("pyCheckBtn").disabled = true;
-$("pyIssuesStatus").textContent = "Checking…";
-$("pyIssues").innerHTML = "";
-const { data, error } = await sb.rpc("owner_export_smartly_issues", { p_from: from, p_to: to });
-$("pyCheckBtn").disabled = false;
-if (error) { $("pyIssuesStatus").textContent = ""; msg($("appMsg"), error.message, "err"); return; }
-const issues = data || [];
+// Remembers which date range the on-screen result actually belongs to, so a
+// stale "✓ All clear" can't sit above a different pay period.
+let pyCheckedRange = "";
+function renderPayrollIssues(issues) {
 const blockers = issues.filter((i) => i.severity === "blocker").length;
 if (issues.length === 0) {
 $("pyIssuesStatus").innerHTML = '<span style="color:var(--ok)">✓ All clear — no problems found for this pay period.</span>';
-return;
+$("pyIssues").innerHTML = "";
+return blockers;
 }
 $("pyIssuesStatus").innerHTML = blockers
 ? '<b style="color:var(--danger)">' + blockers + ' blocker(s)</b> would leave hours out of the file. Fix these before exporting.'
@@ -1822,6 +1881,34 @@ $("pyIssues").innerHTML = issues.map((i) =>
 '<div class="issue ' + escapeHtml(i.severity) + '">' +
 '<span class="isub">' + escapeHtml(i.subject) + '</span> — ' + escapeHtml(i.detail) +
 '</div>').join("");
+return blockers;
+}
+// Returns { issues, blockers } or null if the lookup failed.
+async function runPayrollCheck(from, to) {
+const { data, error } = await sb.rpc("owner_export_smartly_issues", { p_from: from, p_to: to });
+if (error) { $("pyIssuesStatus").textContent = ""; msg($("appMsg"), error.message, "err"); return null; }
+const issues = data || [];
+const blockers = renderPayrollIssues(issues);
+pyCheckedRange = from + "|" + to;
+return { issues: issues, blockers: blockers };
+}
+function invalidatePayrollCheck() {
+pyCheckedRange = "";
+$("pyIssuesStatus").textContent = "";
+$("pyIssues").innerHTML = "";
+}
+$("pyFrom").addEventListener("change", invalidatePayrollCheck);
+$("pyTo").addEventListener("change", invalidatePayrollCheck);
+$("pyCheckBtn").addEventListener("click", async () => {
+clearMsg($("appMsg"));
+const from = $("pyFrom").value, to = $("pyTo").value;
+if (!from || !to) { msg($("appMsg"), "Please choose both pay-period dates.", "err"); return; }
+if (from > to) { msg($("appMsg"), "The From date can't be after the To date.", "err"); return; }
+$("pyCheckBtn").disabled = true;
+$("pyIssuesStatus").textContent = "Checking…";
+$("pyIssues").innerHTML = "";
+await runPayrollCheck(from, to);
+$("pyCheckBtn").disabled = false;
 });
 $("pyExportBtn").addEventListener("click", async () => {
 clearMsg($("appMsg"));
@@ -1829,6 +1916,23 @@ const from = $("pyFrom").value, to = $("pyTo").value;
 if (!from || !to) { msg($("appMsg"), "Please choose both pay-period dates.", "err"); return; }
 if (from > to) { msg($("appMsg"), "The From date can't be after the To date.", "err"); return; }
 $("pyExportBtn").disabled = true;
+// Never export without checking first — the file silently omits hours that
+// have no payroll ID or aren't approved, and payroll is the last place to
+// find that out.
+if (pyCheckedRange !== from + "|" + to) {
+$("pyIssuesStatus").textContent = "Checking…";
+const res = await runPayrollCheck(from, to);
+if (!res) { $("pyExportBtn").disabled = false; return; }
+}
+const shown = Array.from(document.querySelectorAll("#pyIssues .issue.blocker"))
+.map((el) => "• " + el.textContent.trim());
+if (shown.length) {
+if (!window.confirm("These will be left out of the payroll file:\n\n" + shown.join("\n")
++ "\n\nExport anyway with those hours missing?")) {
+$("pyExportBtn").disabled = false;
+return;
+}
+}
 const { data, error } = await sb.rpc("owner_export_smartly_csv", { p_from: from, p_to: to });
 $("pyExportBtn").disabled = false;
 if (error) { if (!gateHandled(error)) msg($("appMsg"), error.message, "err"); return; }

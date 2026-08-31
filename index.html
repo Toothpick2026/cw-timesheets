@@ -203,9 +203,9 @@
     </div>
     <div class="field">
       <label>PIN</label>
-      <input type="password" inputmode="numeric" maxlength="4" id="pinInput" placeholder="4-digit PIN" onkeydown="if(event.key==='Enter')doLogin()">
+      <input type="password" inputmode="numeric" maxlength="12" id="pinInput" placeholder="4-digit PIN" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <button class="btn-primary" onclick="doLogin()">Start →</button>
+    <button class="btn-primary" id="loginBtn" onclick="doLogin()">Start →</button>
     <div class="err" id="loginErr">Incorrect PIN. Try again.</div>
   </div>
 </div>
@@ -353,12 +353,8 @@
       <div class="field">
         <select id="jobSelect">
           <option value="">— select job or site —</option>
-          <option>Downers – general</option>
-          <option>PAE – general</option>
-          <option>Craigs Investment Partners</option>
-          <option>One New Zealand</option>
-          <option>Cushman &amp; Wakefield</option>
-          <option>Other / multiple sites</option>
+          <!-- Filled from the business's own job sites by loadSites(). No
+               hardcoded names: they belong to one customer, not all of them. -->
         </select>
       </div>
     </div>
@@ -389,16 +385,20 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const SUPABASE_AUTH_HEADERS = {'apikey':SUPABASE_KEY,'Authorization':'Bearer ' + SUPABASE_KEY};
 const PIN_FORMAT_REGEX = /^\d{4}$/;
 
-// Default/fallback PIN list — used only if the Supabase `staff` table hasn't
-// been created yet or a fetch fails. Once `staff` exists, real PINs (including
-// any staff has changed themselves) come from there instead.
-// Fallback names shown only if the server list can't be reached. The real,
-// live list comes from the list_staff RPC below and rebuilds the dropdown.
-const DEFAULT_STAFF = {
-  'Glenn Wilson': true, 'Troy Wilson': true, 'Marko Minic': true,
-  'Kylie Poultney': true, 'Sam Veltzman': true
-};
-let STAFF = {...DEFAULT_STAFF};
+// The roster always comes from the list_staff RPC. If the network is down we
+// fall back to the last roster this device saw *for this business* — never to a
+// hardcoded list, which would show one company's staff to another's crew.
+// The client NEVER holds PINs; every entry is just TRUE (name present).
+function cachedRoster(org) {
+  if (!org) return {};
+  try { return JSON.parse(localStorage.getItem('cwts_roster_' + org) || '{}') || {}; }
+  catch (e) { return {}; }
+}
+function cacheRoster(org, roster) {
+  if (!org) return;
+  try { localStorage.setItem('cwts_roster_' + org, JSON.stringify(roster)); } catch (e) {}
+}
+let STAFF = {};
 
 // Build the login dropdown from whatever names are in STAFF, so the list always
 // matches the database and new staff appear automatically.
@@ -420,12 +420,67 @@ populateNameDropdown();
 // because a staff member changed their PIN. Loaded from Supabase `app_config`.
 let ADMIN_PIN = null;
 
-const ORG_ID = 'a0d4b1d7-05de-4623-8e40-11ad338df54a';
+// ── Which business is this app for? ──────────────────────────────────────────
+// The owner's setup wizard hands their crew a link with ?org=<id> on the end.
+// The device remembers it, so the crew only ever need that link once. Without
+// this the app can only ever serve one business.
+const ORG_ID = (function () {
+  const KEY = 'cwts_org';
+  const LEGACY_ORG = 'a0d4b1d7-05de-4623-8e40-11ad338df54a'; // the original install
+  const RX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const read = k => { try { return (localStorage.getItem(k) || '').trim(); } catch (e) { return ''; } };
+  const write = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+
+  // 1. arriving on the link the owner sent
+  let fromUrl = '';
+  try { fromUrl = (new URLSearchParams(location.search).get('org') || '').trim(); } catch (e) {}
+  if (RX.test(fromUrl)) {
+    write(KEY, fromUrl);
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    return fromUrl;
+  }
+
+  // 2. this device has been linked before
+  const stored = read(KEY);
+  if (RX.test(stored)) return stored;
+
+  // 3. an install from before the app knew about separate businesses: the phone
+  //    is already logged in, so keep it working and record which business it is.
+  if (read('cwts_user')) { write(KEY, LEGACY_ORG); return LEGACY_ORG; }
+
+  // 4. brand-new device, no link: we do not know the business yet.
+  return '';
+})();
+
+// Shown when someone opens the bare address without ever having used their
+// owner's link. Guessing a business here is how one crew ends up clocking
+// into another company's payroll.
+function showNeedsLink() {
+  const sel = document.getElementById('nameSelect');
+  if (sel) { sel.length = 1; sel.disabled = true; }
+  ['loginBtn', 'pinInput'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = true;
+  });
+  const err = document.getElementById('loginErr') || document.getElementById('loginError');
+  if (err) {
+    err.textContent = 'This phone isn’t linked to a business yet. Ask your boss for the clock-in link they were given when they set up Knock Off, and open it once on this phone.';
+    err.style.display = 'block';
+  }
+}
+
+// Every timesheet write carries the business it belongs to, so the server never
+// has to guess which company a name belongs to.
+function withOrg(payload) {
+  return Object.assign({}, payload || {}, { org_id: ORG_ID });
+}
 
 async function loadStaffAndConfig() {
-  // Names only — the client NEVER sees PINs. The list_staff RPC returns the
-  // roster; each entry is stored as TRUE (present), never a PIN value. All PIN
-  // checking happens server-side via the verify_* RPCs.
+  if (!ORG_ID) { showNeedsLink(); return; }
+  // Show the last roster we saw for this business straight away, so the
+  // dropdown is never empty while the network call is in flight.
+  STAFF = cachedRoster(ORG_ID);
+  populateNameDropdown();
   try {
     const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/list_staff', {
       method: 'POST',
@@ -440,33 +495,50 @@ async function loadStaffAndConfig() {
           const name = String(r.name || '').trim();
           if (name) fresh[name] = true;
         });
-        if (Object.keys(fresh).length) STAFF = fresh;
+        if (Object.keys(fresh).length) { STAFF = fresh; cacheRoster(ORG_ID, fresh); }
       }
     }
   } catch (e) {
-    console.log('Using default staff list — list_staff RPC not reachable yet', e);
+    console.log('Using the last known roster — list_staff RPC not reachable', e);
   }
   populateNameDropdown(); // refresh with the live database names
 }
 loadStaffAndConfig();
 
 // ── Job sites: live list from the database, editable in the owner portal.
-// Falls back to the built-in list if the RPC can't be reached. ──
-const DEFAULT_SITES = ['Downers – general','PAE – general','Craigs Investment Partners','One New Zealand','Cushman & Wakefield'];
+// Falls back to the last list this device saw for THIS business — never to a
+// hardcoded list, which would show one company's clients to another's crew. ──
+function cachedSites(org) {
+  if (!org) return [];
+  try { return JSON.parse(localStorage.getItem('cwts_sites_' + org) || '[]') || []; }
+  catch (e) { return []; }
+}
+function cacheSites(org, names) {
+  if (!org) return;
+  try { localStorage.setItem('cwts_sites_' + org, JSON.stringify(names)); } catch (e) {}
+}
 function populateJobDropdown(names){
   const sel = document.getElementById('jobSelect');
   if(!sel) return;
   const chosen = sel.value;
   sel.innerHTML = '';
   const ph = document.createElement('option'); ph.value=''; ph.textContent='— select job or site —'; sel.appendChild(ph);
-  (names && names.length ? names : DEFAULT_SITES).forEach(n=>{
+  const list = (names && names.length) ? names : [];
+  list.forEach(n=>{
     const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o);
   });
-  const other=document.createElement('option'); other.value='Other / multiple sites'; other.textContent='Other / multiple sites'; sel.appendChild(other);
+  // only add the catch-all if the business doesn't already have one by that name,
+  // otherwise it appears twice in the dropdown
+  const OTHER = 'Other / multiple sites';
+  if (!list.some(n => String(n).toLowerCase() === OTHER.toLowerCase())) {
+    const other=document.createElement('option'); other.value=OTHER; other.textContent=OTHER; sel.appendChild(other);
+  }
   if(chosen) sel.value=chosen;
 }
 async function loadSites(){
-  let names = DEFAULT_SITES;
+  if (!ORG_ID) return;
+  let names = cachedSites(ORG_ID);
+  populateJobDropdown(names);
   try{
     const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/list_sites', {
       method:'POST',
@@ -475,9 +547,12 @@ async function loadSites(){
     });
     if(res.ok){
       const rows = await res.json();
-      if(rows && rows.length){ names = rows.map(r=>String(r.name||'').trim()).filter(Boolean); }
+      if(rows && rows.length){
+        names = rows.map(r=>String(r.name||'').trim()).filter(Boolean);
+        cacheSites(ORG_ID, names);
+      }
     }
-  }catch(e){ console.log('Using default site list — list_sites RPC not reachable yet', e); }
+  }catch(e){ console.log('Using the last known site list — list_sites RPC not reachable', e); }
   populateJobDropdown(names);
 }
 loadSites();
@@ -549,7 +624,7 @@ async function dbInsert(row) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/submit_timesheet', {
     method:'POST',
     headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
-    body:JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: data })
+    body:JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: withOrg(data) })
   });
   if (!res.ok) throw new Error(await res.text());
 }
@@ -559,7 +634,7 @@ async function dbFetch(staff) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/my_timesheets', {
     method:'POST',
     headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
-    body:JSON.stringify({ p_name: currentUser, p_pin: currentPin })
+    body:JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_org: ORG_ID })
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
@@ -610,7 +685,7 @@ async function doLogin() {
   try {
     const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/verify_staff_pin', {
       method:'POST', headers:rpcHeaders,
-      body:JSON.stringify({ p_name: name, p_pin: pin })
+      body:JSON.stringify({ p_name: name, p_pin: pin, p_org: ORG_ID })
     });
     if (res.ok) {
       const rows = await res.json();
@@ -663,7 +738,7 @@ async function savePinChange() {
     const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/set_staff_pin', {
       method: 'POST',
       headers: { apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
-      body: JSON.stringify({ p_name: currentUser, p_old_pin: currentPin, p_new_pin: p1 })
+      body: JSON.stringify({ p_name: currentUser, p_old_pin: currentPin, p_new_pin: p1, p_org: ORG_ID })
     });
     if (!res.ok) throw new Error(await res.text());
     currentPin = p1;
@@ -726,7 +801,7 @@ async function serverClock(kind){
       method:'POST',
       keepalive:true,
       headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
-      body: JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: payload })
+      body: JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: withOrg(payload) })
     });
     if(!res.ok) throw new Error(await res.text());
     setSyncDot(true);
@@ -747,7 +822,7 @@ async function flushClockQueue(){
       const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + item.fn, {
         method:'POST',
         headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
-        body: JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: item.payload })
+        body: JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: withOrg(item.payload) })
       });
       if(!res.ok) throw new Error();
     }catch(e){ remain.push(item); }
@@ -1462,7 +1537,7 @@ window.onload=async ()=>{
       const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/verify_staff_pin', {
         method:'POST',
         headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
-        body:JSON.stringify({ p_name: savedUser, p_pin: savedPin })
+        body:JSON.stringify({ p_name: savedUser, p_pin: savedPin, p_org: ORG_ID })
       });
       const rows = res.ok ? await res.json() : [];
       if (Array.isArray(rows) && rows.length === 1) {
