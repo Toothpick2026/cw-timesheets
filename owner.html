@@ -652,11 +652,11 @@ Cost by department (map each job to a Smartly department code on the Sites tab)
 <p class="subtle" id="adjWho" style="margin-top:0;"></p>
 <div class="row">
 <div>
-<label for="adjStart">Start time <span class="subtle">(24h, e.g. 07:30)</span></label>
+<label for="adjStart">Start time <span class="subtle">(24h — 07:30, 730 or 7.30)</span></label>
 <input id="adjStart" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" />
 </div>
 <div>
-<label for="adjEnd">Finish time <span class="subtle">(24h, e.g. 16:15)</span></label>
+<label for="adjEnd">Finish time <span class="subtle">(24h — 16:15, 1615 or 4:15pm)</span></label>
 <input id="adjEnd" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" />
 </div>
 <div style="max-width:130px;">
@@ -687,8 +687,8 @@ Cost by department (map each job to a Smartly department code on the Sites tab)
 <div style="max-width:130px;"><label for="addLunch">Lunch (min)</label><input id="addLunch" type="number" step="1" min="0" max="600" value="30" /></div>
 </div>
 <div class="row" style="margin-top:10px;">
-<div><label for="addStart">Start time <span class="subtle">(24h, e.g. 07:30)</span></label><input id="addStart" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" /></div>
-<div><label for="addEnd">Finish time <span class="subtle">(24h, e.g. 16:15)</span></label><input id="addEnd" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" /></div>
+<div><label for="addStart">Start time <span class="subtle">(24h — 07:30, 730 or 7.30)</span></label><input id="addStart" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" /></div>
+<div><label for="addEnd">Finish time <span class="subtle">(24h — 16:15, 1615 or 4:15pm)</span></label><input id="addEnd" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" /></div>
 </div>
 <label for="addJob" style="margin-top:10px;">Job / site</label>
 <select id="addJob"></select>
@@ -1774,17 +1774,12 @@ $("gpsClose").addEventListener("click", () => $("gpsModal").classList.remove("sh
 // ---- adjust timesheet modal ----
 // paid hours = (finish - start) - lunch, matching the staff app rule
 function computePaid() {
-const s = $("adjStart").value.trim(); // "HH:MM" (24-hour)
-const e = $("adjEnd").value.trim();
 const lunch = Number($("adjLunch").value) || 0;
-const re = /^([01]?\d|2[0-3]):[0-5]\d$/;
-if (!re.test(s) || !re.test(e)) return;
-const [sh, sm] = s.split(":").map(Number);
-const [eh, em] = e.split(":").map(Number);
-let mins = (eh * 60 + em) - (sh * 60 + sm);
-if (mins < 0) mins += 24 * 60; // overnight shift
-const paid = Math.max(0, (mins - lunch) / 60);
-$("adjHours").value = paid.toFixed(2);
+const mins = shiftMinutes($("adjStart").value, $("adjEnd").value);
+if (mins === null) { $("adjHours").value = ""; return; }
+$("adjHours").value = Math.max(0, (mins - lunch) / 60).toFixed(2);
+const warn = overnightWarning($("adjStart").value, $("adjEnd").value);
+if (warn) msg($("adjMsg"), warn, "err"); else clearMsg($("adjMsg"));
 }
 function openAdjust(r) {
 adjustingId = r.id;
@@ -1798,20 +1793,21 @@ $("adjHours").value = (r.paid_hours == null ? "" : Number(r.paid_hours));
 $("adjNote").value = r.payroll_note || "";
 $("adjModal").classList.add("show");
 }
+["adjStart", "adjEnd"].forEach((id) => bindTimeField(id, computePaid));
 ["adjStart", "adjEnd", "adjLunch"].forEach((id) =>
 $(id).addEventListener("input", computePaid));
 $("adjCancel").addEventListener("click", () => $("adjModal").classList.remove("show"));
 $("adjSave").addEventListener("click", async () => {
 clearMsg($("adjMsg"));
-const start = $("adjStart").value.trim();
-const end = $("adjEnd").value.trim();
+const start = normaliseTime($("adjStart").value);
+const end = normaliseTime($("adjEnd").value);
 const lunch = parseInt($("adjLunch").value, 10);
-const h = parseFloat($("adjHours").value);
 const note = $("adjNote").value.trim();
-const timeRe = /^([01]?\d|2[0-3]):[0-5]\d$/; // 24-hour HH:MM
-if (!start || !end) { msg($("adjMsg"), "Please enter both a start and finish time.", "err"); return; }
-if (!timeRe.test(start) || !timeRe.test(end)) { msg($("adjMsg"), "Times must be 24-hour, like 07:30 or 16:15.", "err"); return; }
+if (!start || !end) { msg($("adjMsg"), "Enter both times in 24-hour form — 07:30 and 16:15. 8.00, 800 and 4:15pm all work too.", "err"); return; }
+$("adjStart").value = start; $("adjEnd").value = end;
 if (isNaN(lunch) || lunch < 0 || lunch > 600) { msg($("adjMsg"), "Lunch minutes must be between 0 and 600.", "err"); return; }
+if (!String($("adjHours").value).trim()) computePaid();
+const h = parseFloat($("adjHours").value);
 if (isNaN(h) || h < 0 || h > 24) { msg($("adjMsg"), "Paid hours must be a number between 0 and 24.", "err"); return; }
 $("adjSave").disabled = true;
 const { error } = await sb.rpc("owner_adjust_timesheet", {
@@ -2082,15 +2078,73 @@ if(!t) return '<span class="muted">—</span>';
 return '<div style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="'+escapeHtml(t)+'">'+escapeHtml(t)+'</div>';
 }
 
+// ---- time entry -------------------------------------------------------
+// People type 8.00, 800, 8, 2pm — not everyone types 07:30. Rejecting those
+// left the paid-hours box empty AND blocked the save, with an error that
+// didn't explain what was actually wrong. Accept the common forms and
+// normalise to 24-hour HH:MM.
+function normaliseTime(v) {
+const raw = String(v == null ? "" : v).trim().toLowerCase();
+if (!raw) return "";
+const ampm = /(a|p)\.?m?\.?$/.exec(raw);
+const body = ampm ? raw.slice(0, ampm.index).trim() : raw;
+let hh, mm, m;
+if ((m = /^(\d{1,2})\s*[.:,h\s]\s*(\d{1,2})$/.exec(body))) { hh = +m[1]; mm = +m[2]; }
+else if (/^\d{1,2}$/.test(body)) { hh = +body; mm = 0; }
+else if (/^\d{3}$/.test(body)) { hh = +body.slice(0,1); mm = +body.slice(1); }
+else if (/^\d{4}$/.test(body)) { hh = +body.slice(0,2); mm = +body.slice(2); }
+else return null;
+if (ampm) {
+if (hh < 1 || hh > 12) return null;
+if (ampm[1] === "p" && hh !== 12) hh += 12;
+if (ampm[1] === "a" && hh === 12) hh = 0;
+}
+if (!(hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59)) return null;
+return String(hh).padStart(2,"0") + ":" + String(mm).padStart(2,"0");
+}
+// Show the tidied value back to the person so they can see what was understood.
+function bindTimeField(id, after) {
+const el = $(id);
+if (!el) return;
+el.setAttribute("maxlength", "7");
+el.addEventListener("blur", () => {
+const t = normaliseTime(el.value);
+if (t) el.value = t;
+if (typeof after === "function") after();
+});
+}
+// Minutes worked, wrapping past midnight. Returns null if either time is unusable.
+function shiftMinutes(startRaw, endRaw) {
+const s = normaliseTime(startRaw), e = normaliseTime(endRaw);
+if (!s || !e) return null;
+const [sh, sm] = s.split(":").map(Number), [eh, em] = e.split(":").map(Number);
+let mins = (eh*60 + em) - (sh*60 + sm);
+if (mins < 0) mins += 24*60;
+return mins;
+}
+// "8.00 to 2.00" almost always means 8am to 2pm, not an 18-hour night shift.
+// Don't silently price it as one.
+function overnightWarning(startRaw, endRaw) {
+const s = normaliseTime(startRaw), e = normaliseTime(endRaw);
+if (!s || !e) return "";
+const sMin = (+s.slice(0,2))*60 + (+s.slice(3)), eMin = (+e.slice(0,2))*60 + (+e.slice(3));
+if (eMin > sMin) return "";
+const eh = +e.slice(0,2);
+if (eh >= 1 && eh <= 11) {
+const pm = String(eh+12).padStart(2,"0") + ":" + e.slice(3);
+return "That reads as an overnight shift finishing at " + e +
+" the next morning. If you meant the afternoon, enter " + pm + ".";
+}
+return "That reads as an overnight shift finishing the next morning.";
+}
 // ---- add timesheet entry (manual, owner-created) ----
 function computeAddPaid(){
-const s=$("addStart").value.trim(), e=$("addEnd").value.trim();
 const lunch=Number($("addLunch").value)||0;
-const re=/^([01]?\d|2[0-3]):[0-5]\d$/;
-if(!re.test(s)||!re.test(e)) return;
-const [sh,sm]=s.split(":").map(Number), [eh,em]=e.split(":").map(Number);
-let mins=(eh*60+em)-(sh*60+sm); if(mins<0) mins+=24*60;
+const mins=shiftMinutes($("addStart").value, $("addEnd").value);
+if(mins===null){ $("addHours").value=""; return; }
 $("addHours").value=Math.max(0,(mins-lunch)/60).toFixed(2);
+const warn=overnightWarning($("addStart").value, $("addEnd").value);
+if(warn) msg($("addMsg"), warn, "err"); else clearMsg($("addMsg"));
 }
 async function openAddEntry(){
 clearMsg($("addMsg"));
@@ -2109,17 +2163,21 @@ $("addModal").classList.add("show");
 $("tsAddBtn").addEventListener("click", openAddEntry);
 $("addCancel").addEventListener("click", ()=>$("addModal").classList.remove("show"));
 ["addStart","addEnd","addLunch"].forEach(id=>$(id).addEventListener("input",computeAddPaid));
+["addStart","addEnd"].forEach(id=>bindTimeField(id,computeAddPaid));
 $("addSave").addEventListener("click", async ()=>{
 clearMsg($("addMsg"));
-const staff=$("addStaff").value, date=$("addDate").value, start=$("addStart").value.trim(), end=$("addEnd").value.trim();
+const staff=$("addStaff").value, date=$("addDate").value;
+const start=normaliseTime($("addStart").value), end=normaliseTime($("addEnd").value);
 const lunch=parseInt($("addLunch").value,10), job=$("addJob").value, note=$("addNote").value.trim();
-const h=parseFloat($("addHours").value);
-const timeRe=/^([01]?\d|2[0-3]):[0-5]\d$/;
 if(!staff){msg($("addMsg"),"Please choose a staff member.","err");return;}
 if(!date){msg($("addMsg"),"Please choose a date.","err");return;}
-if(!timeRe.test(start)||!timeRe.test(end)){msg($("addMsg"),"Times must be 24-hour, like 07:30 or 16:15.","err");return;}
+if(!start||!end){msg($("addMsg"),"Enter both times in 24-hour form — 07:30 and 16:15. 8.00, 800 and 4:15pm all work too.","err");return;}
+$("addStart").value=start; $("addEnd").value=end;
 if(isNaN(lunch)||lunch<0||lunch>600){msg($("addMsg"),"Lunch minutes must be between 0 and 600.","err");return;}
 if(!job){msg($("addMsg"),"Please choose a job / site.","err");return;}
+// the box says "auto-calculated", so work it out rather than refusing an empty one
+if(!String($("addHours").value).trim()) computeAddPaid();
+const h=parseFloat($("addHours").value);
 if(isNaN(h)||h<0||h>24){msg($("addMsg"),"Paid hours must be between 0 and 24.","err");return;}
 $("addSave").disabled=true;
 const { error } = await sb.rpc("owner_add_timesheet",{p_staff:staff,p_date:date,p_start:start,p_end:end,p_lunch:lunch,p_job:job,p_paid_hours:h,p_note:note||null});
