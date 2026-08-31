@@ -274,7 +274,7 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <!-- Step 4: Payroll (optional) -->
 <div id="wizStep4" class="wizstep hidden">
 <h2 style="margin-top:0;">Payroll setup <span class="muted" style="font-weight:400;font-size:14px;">— optional</span></h2>
-<p class="muted">If you run payroll through Smartly, set each person's payroll ID and pay rate. Not ready? Just click Next.</p>
+<p class="muted">Set each person's payroll ID and pay rate so their hours can be handed to payroll. Not ready? Just click Next.</p>
 <div id="wizPayrollList"></div>
 <label class="row" style="align-items:center;gap:8px;margin-top:12px;">
 <input type="checkbox" id="wizUseDept" style="width:auto;" />
@@ -378,7 +378,7 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <div id="listStatus" class="muted">Loading…</div>
 <table id="staffTable" class="hidden">
 <thead>
-<tr><th>Name</th><th>Role</th><th>Payroll ID</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
+<tr><th>Name</th><th>Role</th><th>Payroll ID</th><th class="num">Hourly rate</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
 </thead>
 <tbody id="staffBody"></tbody>
 </table>
@@ -404,7 +404,7 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <div id="siteStatus" class="muted">Loading…</div>
 <table id="siteTable" class="hidden">
 <thead>
-<tr><th>Site</th><th>Smartly dept</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
+<tr><th>Site</th><th>Dept code</th><th>Status</th><th style="text-align:right;">Manage</th></tr>
 </thead>
 <tbody id="siteBody"></tbody>
 </table>
@@ -506,7 +506,7 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <div class="row" style="margin-top:16px;">
 <button id="tsLoadBtn" style="max-width:160px;">Load timesheets</button>
 <button id="tsAddBtn" style="max-width:150px;">➕ Add entry</button>
-<button class="secondary" id="tsCsvBtn" style="max-width:230px;">Download payroll CSV (approved)</button>
+<button class="secondary" id="tsCsvBtn" style="max-width:230px;">Download hours (CSV — any payroll system)</button>
 <button class="secondary" id="tsLocCsvBtn" style="max-width:270px;">Download timesheets + location</button>
 </div>
 <p class="subtle" style="margin-top:12px;">Default range is the last 7 days (one weekly pay run). The <b>Clock in</b> and <b>Clock out</b> columns show where each person started and finished (tap <b>map</b> to open it). <b>Download payroll CSV</b> exports only <b>approved</b> rows; <b>Download timesheets + location</b> exports <b>every</b> row in the range, including addresses, coordinates and map links, for a spreadsheet. Tap <b>📍 Location</b> on any row for the full clock-in/out and break detail.</p>
@@ -536,7 +536,7 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <!-- ============ PAYROLL SECTION ============ -->
 <div id="payrollSection" class="hidden">
 <div class="card">
-<h2>Smartly payroll export</h2>
+<h2>Payroll export</h2>
 <div class="row">
 <div>
 <label for="pyFrom">Pay period from</label>
@@ -553,7 +553,7 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <div class="row" style="margin-top:12px;">
 <label style="display:flex; align-items:center; gap:8px; color:var(--ink); margin:0;">
 <input type="checkbox" id="pyUseDept" style="width:auto;" />
-Cost by department (map each job to a Smartly department code on the Sites tab)
+Cost by department (map each job to a department / cost code on the Sites tab)
 </label>
 </div>
 <div id="pySettingsInfo" class="subtle" style="margin-top:8px;"></div>
@@ -561,7 +561,7 @@ Cost by department (map each job to a Smartly department code on the Sites tab)
 <button id="pyExportBtn" style="max-width:260px;">Download Smartly file (.csv)</button>
 <button class="secondary" id="pyDetailBtn" style="max-width:320px;">Download detailed record + GPS (approved)</button>
 </div>
-<p class="subtle" style="margin-top:12px;">This builds the Smartly <b>#50</b> import file for the pay period, using each staff member's <b>payroll ID</b> and <b>pay rate</b> (set these on the Staff tab). Only <b>approved</b> hours are included. Always click <b>Check before export</b> first — it flags anyone whose approved hours would be left out (no payroll ID, unmatched name, duplicate day, or a shift still in progress).</p>
+<p class="subtle" style="margin-top:12px;">This builds the Smartly <b>#50</b> direct-import file. On any other payroll system, use <b>Download hours (CSV)</b> on the Timesheets tab instead — it opens in Excel and imports into Xero, MYOB, PayHero and the rest. This builds the Smartly file for the pay period, using each staff member's <b>payroll ID</b> and <b>pay rate</b> (set these on the Staff tab). Only <b>approved</b> hours are included. Always click <b>Check before export</b> first — it flags anyone whose approved hours would be left out (no payroll ID, unmatched name, duplicate day, or a shift still in progress).</p>
 </div>
 <div class="card">
 <div id="pyIssuesWrap">
@@ -659,18 +659,28 @@ Cost by department (map each job to a Smartly department code on the Sites tab)
 <hr style="border:none; border-top:1px solid var(--line); margin:18px 0;" />
 <div class="row">
 <div>
-<label for="editPayrollId">Smartly payroll ID <span class="subtle">(1–5 letters/numbers)</span></label>
+<label for="editPayrollId">Payroll ID <span class="subtle">(the code your payroll system knows them by)</span></label>
 <input id="editPayrollId" type="text" maxlength="5" placeholder="e.g. A1" />
 </div>
 <div style="max-width:150px;">
-<label for="editPayRate">Pay rate</label>
+<label for="editHourlyRate">Hourly rate <span class="subtle">(NZD, before tax)</span></label>
+<input id="editHourlyRate" type="number" step="0.01" min="0" max="10000" placeholder="e.g. 34.50" />
+</div>
+</div>
+<p class="subtle" style="margin:8px 0 0;">The hourly rate is used to show you what a day or a job cost in labour.
+Your payroll system still works out the actual pay. Leave it blank if you would rather not record it.</p>
+<details style="margin-top:10px;">
+<summary class="subtle" style="cursor:pointer;">Smartly pay rate (advanced)</summary>
+<div style="max-width:220px;margin-top:8px;">
 <select id="editPayRate">
-<option value="1">Rate 1</option>
+<option value="1">Rate 1 &mdash; ordinary time</option>
 <option value="2">Rate 2</option>
 <option value="3">Rate 3</option>
 </select>
+<p class="subtle" style="margin:6px 0 0;">Only change this if the person has more than one rate set up in Smartly.
+It tells the Smartly file which of their rates to use. Nearly everyone stays on Rate 1.</p>
 </div>
-</div>
+</details>
 <hr style="border:none; border-top:1px solid var(--line); margin:18px 0;" />
 <label for="editPin">Reset PIN (optional — leave blank to keep current)</label>
 <input id="editPin" type="text" inputmode="numeric" placeholder="New 4–6 digit PIN" />
@@ -692,7 +702,7 @@ Cost by department (map each job to a Smartly department code on the Sites tab)
 <option value="true">Active (shown to the crew)</option>
 <option value="false">Inactive (hidden from the crew)</option>
 </select>
-<label for="editSiteDept">Smartly department code <span class="subtle">(optional — 1–6 letters/numbers)</span></label>
+<label for="editSiteDept">Department / cost code <span class="subtle">(optional — 1–6 letters/numbers)</span></label>
 <input id="editSiteDept" type="text" maxlength="6" placeholder="e.g. ENG" />
 <div class="row" style="margin-top:18px;">
 <button class="secondary" id="siteCancel">Cancel</button>
@@ -1011,7 +1021,7 @@ c.innerHTML = rows.map((s) =>
 '<span style="flex:1;">' + escapeHtml(s.name) + '</span>' +
 '<input data-pid="' + s.id + '" placeholder="Payroll ID" value="' + escapeHtml(s.payroll_id || "") + '" style="width:120px;" />' +
 '<select data-prate="' + s.id + '" style="width:110px;">' +
-'<option value="1"' + ((Number(s.pay_rate_id) || 1) === 1 ? ' selected' : '') + '>Rate 1</option>' +
+'<option value="1"' + ((Number(s.pay_rate_id) || 1) === 1 ? ' selected' : '') + '>Rate 1 \u2014 ordinary time</option>' +
 '<option value="2"' + ((Number(s.pay_rate_id) || 1) === 2 ? ' selected' : '') + '>Rate 2</option>' +
 '<option value="3"' + ((Number(s.pay_rate_id) || 1) === 3 ? ' selected' : '') + '>Rate 3</option>' +
 '</select>' +
@@ -1094,7 +1104,7 @@ const CONTACT_EMAIL = "hello@knockoff.co.nz";
 const PORTAL_LOGIN_URL = "https://billing.stripe.com/p/login/3cIcN7bwn5WW6H2bmx8AE00"; // Stripe Customer Portal login link (LIVE)
 const PLAN_INFO = {
 starter: { name: "Starter", price: "$35", crew: "up to 5 crew", gps: false,
-           blurb: "Timesheets, hour approvals and the Smartly payroll export." },
+           blurb: "Timesheets, hour approvals and payroll export." },
 pro:     { name: "Pro", price: "$55", crew: "up to 10 crew", gps: true,
            blurb: "Everything in Starter, plus GPS job-site check-in on every clock-in." },
 business:{ name: "Business", price: "Let's talk", crew: "bigger crews", gps: true, contact: true,
@@ -1451,7 +1461,8 @@ const tr = document.createElement("tr");
 tr.innerHTML =
 '<td>' + escapeHtml(s.name) + '</td>' +
 '<td>' + escapeHtml(s.role || "") + '</td>' +
-'<td>' + (s.payroll_id ? escapeHtml(s.payroll_id) + ' <span class="subtle">(rate ' + (Number(s.pay_rate_id) || 1) + ')</span>' : '<span class="muted">— not set —</span>') + '</td>' +
+'<td>' + (s.payroll_id ? escapeHtml(s.payroll_id) : '<span class="muted">— not set —</span>') + '</td>' +
+'<td class="num">' + (s.hourly_rate != null ? '$' + Number(s.hourly_rate).toFixed(2) : '<span class="muted">—</span>') + '</td>' +
 '<td><span class="pill ' + (s.active ? "active" : "inactive") + '">' +
 (s.active ? "Active" : "Inactive") + '</span></td>' +
 '<td><div class="actions">' +
@@ -1462,6 +1473,13 @@ tr.querySelector("[data-edit]").addEventListener("click", () =>
 openEdit(s));
 });
 show($("staffTable"), true);
+}
+// What does an hour of this person cost? Null when no rate has been recorded,
+// so cost columns stay blank rather than reading as zero.
+function rateFor(staffName) {
+const s = (staffRows || []).find(x => String(x.name).toLowerCase() === String(staffName || "").toLowerCase());
+const r = s && s.hourly_rate != null ? Number(s.hourly_rate) : null;
+return (r != null && isFinite(r)) ? r : null;
 }
 // ---- add staff ----
 $("addBtn").addEventListener("click", async () => {
@@ -1489,6 +1507,7 @@ $("editRole").value = s.role || "";
 $("editActive").value = s.active ? "true" : "false";
 $("editPayrollId").value = s.payroll_id || "";
 $("editPayRate").value = String(Number(s.pay_rate_id) || 1);
+$("editHourlyRate").value = (s.hourly_rate == null ? "" : Number(s.hourly_rate));
 $("editPin").value = "";
 $("editModal").classList.add("show");
 }
@@ -1500,17 +1519,22 @@ const active = $("editActive").value === "true";
 const pin = $("editPin").value.trim();
 const payrollId = $("editPayrollId").value.trim();
 const payRate = parseInt($("editPayRate").value, 10) || 1;
+const rateRaw = String($("editHourlyRate").value).trim();
+// blank leaves the stored rate alone; 0 clears it
+const hourlyRate = rateRaw === "" ? null : Number(rateRaw);
 clearMsg($("editMsg"));
 if (!name) { msg($("editMsg"), "Name can't be empty.", "err"); return; }
 if (pin && !/^\d{4,6}$/.test(pin)) { msg($("editMsg"), "PIN must be 4 to 6 digits.", "err"); return; }
 if (payrollId && !/^[A-Za-z0-9]{1,5}$/.test(payrollId)) { msg($("editMsg"), "Payroll ID must be 1–5 letters or numbers.", "err"); return; }
+if (hourlyRate !== null && (!isFinite(hourlyRate) || hourlyRate < 0 || hourlyRate > 10000)) {
+msg($("editMsg"), "Hourly rate must be a number between 0 and 10000.", "err"); return; }
 $("editSave").disabled = true;
 const up = await sb.rpc("owner_update_staff",
 { p_staff_id: editingId, p_name: name, p_role: role, p_active: active });
 if (up.error) { $("editSave").disabled = false; msg($("editMsg"), up.error.message, "err"); return; }
 // Save payroll ID / pay rate (blank clears the payroll ID)
 const pr = await sb.rpc("owner_set_staff_payroll",
-{ p_staff: editingId, p_payroll_id: payrollId || null, p_pay_rate_id: payRate });
+{ p_staff: editingId, p_payroll_id: payrollId || null, p_pay_rate_id: payRate, p_hourly_rate: hourlyRate });
 if (pr.error) { $("editSave").disabled = false; msg($("editMsg"), pr.error.message, "err"); return; }
 if (pin) {
 const rp = await sb.rpc("owner_reset_staff_pin", { p_staff_id: editingId, p_new_pin: pin });
@@ -1889,12 +1913,20 @@ if (approved.length === 0) {
 msg($("appMsg"), "No approved timesheets in this range to export. Approve some first, or adjust the date range.", "err");
 return;
 }
-const header = ["Staff", "Role", "Date", "Start", "End", "Lunch (min)", "Paid hours", "Job", "Staff note", "Payroll note"];
-const rows = approved.map((r) => [
+const header = ["Staff", "Role", "Date", "Start", "End", "Lunch (min)", "Paid hours",
+"Hourly rate", "Labour cost", "Job", "Staff note", "Payroll note"];
+const rows = approved.map((r) => {
+const rate = rateFor(r.staff);
+const paid = Number(r.paid_hours);
+return [
 r.staff || "", r.role || "", fmtDate(r.work_date),
 r.start_time || "", r.end_time || "", (Number(r.lunch_break) || 0),
-hrs(r.paid_hours), r.job || "", r.notes || "", r.payroll_note || ""
-]);
+hrs(r.paid_hours),
+rate == null ? "" : rate.toFixed(2),
+(rate == null || !isFinite(paid)) ? "" : (paid * rate).toFixed(2),
+r.job || "", r.notes || "", r.payroll_note || ""
+];
+});
 downloadCsv("payroll_" + $("tsFrom").value + "_to_" + $("tsTo").value + ".csv", [header, ...rows]);
 msg($("appMsg"), "Exported " + approved.length + " approved timesheet(s) to CSV.", "ok");
 });
