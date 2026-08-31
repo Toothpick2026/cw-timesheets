@@ -114,6 +114,8 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 .plan-name { font-weight: 700; font-size: 15px; }
 .plan-price { font-family: var(--heading); font-size: 34px; color: var(--brand); line-height: 1; margin: 6px 0; }
 .plan-price span { font-family: var(--font); font-size: 12px; color: var(--muted); }
+.plan-price.talk { font-size: 22px; }
+.plan-crew + .plan-gps { margin-top: -8px; }
 .plan-crew { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
 .plan-btn { display: block; text-align: center; background: var(--brand); color: #0d0d0d; font-weight: 700; padding: 10px; border-radius: 4px; text-decoration: none; }
 .plan-btn:hover { background: var(--brand-dark); }
@@ -282,7 +284,7 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 </div>
 <div class="card">
 <h2>Choose a plan</h2>
-<p class="subtle" style="margin-top:0;">Per business, per month, plus GST. Every plan includes timesheets, hour approvals and the Smartly payroll export — the tiers differ by how many crew you can add.</p>
+<p class="subtle" style="margin-top:0;">Per business, per month, plus GST. Every plan includes timesheets, hour approvals and the Smartly payroll export. Pro adds GPS job-site check-in. Business is trade pricing for bigger crews — get in touch.</p>
 <div id="planCards" class="planwrap"></div>
 <p class="subtle" style="margin-top:14px;">Payments are handled securely by Stripe — you'll be taken to Stripe's checkout page in a new tab. After paying, come back here; your plan updates automatically.</p>
 </div>
@@ -1028,14 +1030,19 @@ sb.auth.onAuthStateChange(() => refresh());
 // ============================================================
 const PAY_LINKS = {
 starter:  "https://buy.stripe.com/3cIcN7bwn5WW6H2bmx8AE00",
-pro:      "https://buy.stripe.com/dRmfZj2ZRets4yU2Q18AE01",
-business: "https://buy.stripe.com/eVqdRb8kb7103uQ8al8AE02"
+pro:      "https://buy.stripe.com/dRmfZj2ZRets4yU2Q18AE01"
+// Business is a negotiated trade deal, not a checkout. Its old payment link is
+// deliberately not listed here so the card cannot send anyone to Stripe.
 };
+const CONTACT_EMAIL = "hello@knockoff.co.nz";
 const PORTAL_LOGIN_URL = "https://billing.stripe.com/p/login/3cIcN7bwn5WW6H2bmx8AE00"; // Stripe Customer Portal login link (LIVE)
 const PLAN_INFO = {
-starter:  { name: "Starter",  price: "$35", crew: "up to 5 crew" },
-pro:      { name: "Pro",      price: "$55", crew: "up to 10 crew" },
-business: { name: "Business", price: "$95", crew: "up to 20 crew" }
+starter: { name: "Starter", price: "$35", crew: "up to 5 crew", gps: false,
+           blurb: "Timesheets, hour approvals and the Smartly payroll export." },
+pro:     { name: "Pro", price: "$55", crew: "up to 10 crew", gps: true,
+           blurb: "Everything in Starter, plus GPS job-site check-in on every clock-in." },
+business:{ name: "Business", price: "Let's talk", crew: "bigger crews", gps: true, contact: true,
+           blurb: "Trade pricing for larger outfits, plus job categories, teams and payroll reports." }
 };
 const PLAN_ORDER = ["starter", "pro", "business"];
 let billing = null;   // last owner_billing_status() row
@@ -1094,11 +1101,16 @@ if (status === "comped") {
 html = "You have <b>complimentary full access</b> to Knockoff. Crew: " + used + " active.";
 } else if (status === "trialing" && b.write_allowed) {
 html = "<b>Free trial</b> — " + daysLeft(b.trial_ends_at) + " day" + (daysLeft(b.trial_ends_at) === 1 ? "" : "s") +
-" left. Pick a plan below before it ends so your crew's hours keep flowing to payroll.<br>Crew: " + used + " active.";
+" left. Pick a plan below before it ends so your crew's hours keep flowing to payroll.<br>Crew: " + used + " active." +
+"<br><span class='muted'>Your trial includes everything, GPS check-in included. GPS stays on <b>Pro</b> — " +
+"on Starter your crew still clock in, but their location isn't recorded.</span>";
 } else if (b.write_allowed && plan) {
 const pi = PLAN_INFO[plan] || { name: plan, price: "" };
-html = "You're on the <b>" + pi.name + "</b> plan (" + pi.price + "/mo + GST).";
+html = "You're on the <b>" + pi.name + "</b> plan (" + pi.price + (pi.contact ? "" : "/mo + GST") + ").";
 if (b.current_period_end) html += " Renews " + fmtDate(b.current_period_end) + ".";
+html += pi.gps
+? "<br><span class='muted'>GPS job-site check-in is on.</span>"
+: "<br><span class='muted'>GPS check-in is <b>off</b> on this plan — clock-ins record the time but not the location. Pro adds it.</span>";
 html += "<br>Crew: " + used + " of " + cap + " used.";
 } else {
 html = "Your " + (status === "past_due" ? "last payment failed" : "trial has ended") +
@@ -1124,11 +1136,22 @@ const pi = PLAN_INFO[p];
 const isCurrent = b.write_allowed && plan === p && status !== "trialing" && status !== "comped";
 const btn = isCurrent
 ? "<span class='plan-cur'>Current plan</span>"
+: pi.contact
+? "<a class='plan-btn' href='mailto:" + CONTACT_EMAIL + "?subject=" +
+  encodeURIComponent("Knockoff Business plan enquiry") + "'>Talk to us</a>"
 : "<a class='plan-btn' href='" + payHref(p) + "' target='_blank' rel='noopener'>Choose " + pi.name + "</a>";
+// State the GPS difference on the card itself. Finding out after paying that
+// location tracking stopped is the fastest way to lose a customer.
+const gpsLine = "<div class='plan-gps' style='margin:6px 0 10px;font-size:13px;'>" +
+(pi.gps ? "<span style='color:var(--ok)'>\u2713 GPS job-site check-in</span>"
+        : "<span class='muted'>\u2715 No GPS check-in</span>") + "</div>";
 return "<div class='plan" + (isCurrent ? " on" : "") + "'>" +
 "<div class='plan-name'>" + pi.name + "</div>" +
-"<div class='plan-price'>" + pi.price + "<span>/mo + GST</span></div>" +
-"<div class='plan-crew'>" + pi.crew + "</div>" + btn + "</div>";
+"<div class='plan-price" + (pi.contact ? " talk" : "") + "'>" + pi.price +
+(pi.contact ? "" : "<span>/mo + GST</span>") + "</div>" +
+"<div class='plan-crew'>" + pi.crew + "</div>" + gpsLine +
+"<div class='plan-blurb muted' style='font-size:12px;margin-bottom:12px;'>" + pi.blurb + "</div>" +
+btn + "</div>";
 }).join("");
 }
 }
