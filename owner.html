@@ -86,6 +86,62 @@ background: #1a1a1a; color: var(--muted); font-weight: 600; font-size: 14px;
 padding: 9px 16px; border-radius: 4px; border: 1px solid var(--line); cursor: pointer;
 }
 .tab.on { background: var(--brand); color: #0d0d0d; border-color: var(--brand); }
+/* ── Phone layout ────────────────────────────────────────────────────────
+   The owner's job on a phone is to look at the week and approve it, often
+   standing on a site. Nothing is hidden or disabled here — the same rows,
+   the same buttons — the table just stops being a table so a day can be
+   read without dragging it sideways. */
+@media (max-width: 760px) {
+  .wrap { padding: 12px; }
+  .card { padding: 16px 14px; }
+
+  /* one row of tabs that scrolls, rather than three rows eating the screen */
+  .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+          gap: 8px; padding-bottom: 4px; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: 0 0 auto; padding: 10px 14px; }
+
+  /* tables become stacked cards, one per day */
+  #tsTable, #rpTable, #staffTable, #siteTable, #teamTable, #catTable { border-collapse: separate; }
+  #tsTable thead, #rpTable thead, #staffTable thead, #siteTable thead,
+  #teamTable thead, #catTable thead { display: none; }
+  #tsTable tr, #rpTable tr, #staffTable tr, #siteTable tr, #teamTable tr, #catTable tr {
+    display: block; border: 1px solid var(--line); border-radius: 10px;
+    padding: 4px 12px 10px; margin-bottom: 12px; background: var(--field); }
+  #tsTable td, #rpTable td, #staffTable td, #siteTable td, #teamTable td, #catTable td {
+    display: flex; justify-content: space-between; align-items: center; gap: 14px;
+    border-bottom: 1px dashed var(--line); padding: 9px 0; text-align: right; }
+  #tsTable tr td:last-child, #rpTable tr td:last-child, #staffTable tr td:last-child,
+  #siteTable tr td:last-child, #teamTable tr td:last-child, #catTable tr td:last-child {
+    border-bottom: none; }
+  /* the column name, carried over from the header row */
+  #tsTable td::before, #rpTable td::before, #staffTable td::before, #siteTable td::before,
+  #teamTable td::before, #catTable td::before {
+    content: attr(data-label); color: var(--muted); font-size: 11px;
+    text-transform: uppercase; letter-spacing: .04em; font-weight: 600;
+    text-align: left; flex: 0 0 auto; }
+  /* an empty cell is just noise on a phone */
+  #tsTable td.is-empty, #rpTable td.is-empty, #staffTable td.is-empty,
+  #siteTable td.is-empty, #teamTable td.is-empty, #catTable td.is-empty { display: none; }
+  /* paid hours is what the boss is actually looking for */
+  #tsTable td.num { font-size: 17px; font-weight: 700; color: var(--ink); }
+  .loc { max-width: none; }
+
+  /* buttons big enough for a thumb */
+  .actions { justify-content: flex-start; width: 100%; gap: 8px; }
+  .actions button { flex: 1 1 auto; min-height: 40px; min-width: 88px; }
+  #tsTable td:last-child, #staffTable td:last-child, #siteTable td:last-child,
+  #teamTable td:last-child, #catTable td:last-child { display: block; text-align: left; padding-top: 12px; }
+  #tsTable td:last-child::before, #staffTable td:last-child::before, #siteTable td:last-child::before,
+  #teamTable td:last-child::before, #catTable td:last-child::before { display: none; }
+
+  /* modals: full width, and inputs big enough not to zoom the page on iOS */
+  .modal .card, .modal-card { max-width: 100%; margin: 0; }
+  input, select, button { font-size: 16px; }
+  .row > * { min-width: 100%; }
+  .plan { min-width: 100%; }
+}
+
 .summary { font-size: 14px; color: var(--ink); margin: 0 0 12px; }
 .summary b { font-size: 16px; }
 .modal-bg {
@@ -2077,6 +2133,25 @@ const t = (note==null?"":String(note)).trim();
 if(!t) return '<span class="muted">—</span>';
 return '<div style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="'+escapeHtml(t)+'">'+escapeHtml(t)+'</div>';
 }
+
+
+// ---- phone layout support -------------------------------------------------
+// On a narrow screen each table row becomes a card, and every cell needs to say
+// which column it came from. Rather than hand-editing every render path, copy
+// the header text onto the cells whenever a table body changes.
+function labelTableCells(table) {
+  const heads = [...table.querySelectorAll("thead th")].map(h => h.textContent.trim());
+  if (!heads.length) return;
+  table.querySelectorAll("tbody tr").forEach(tr => {
+    [...tr.children].forEach((td, i) => {
+      if (heads[i] && td.getAttribute("data-label") !== heads[i]) td.setAttribute("data-label", heads[i]);
+      const bare = !td.textContent.trim() && !td.querySelector("button,a,span,img");
+      td.classList.toggle("is-empty", bare);
+    });
+  });
+}
+function labelAllTables() { document.querySelectorAll("table").forEach(labelTableCells); }
+new MutationObserver(labelAllTables).observe(document.body, { childList: true, subtree: true });
 
 // ---- time entry -------------------------------------------------------
 // People type 8.00, 800, 8, 2pm — not everyone types 07:30. Rejecting those
