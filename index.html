@@ -434,9 +434,12 @@ const ORG_ID = (function () {
   // 1. arriving on the link the owner sent
   let fromUrl = '';
   try { fromUrl = (new URLSearchParams(location.search).get('org') || '').trim(); } catch (e) {}
+  // Leave ?org= in the address. iOS saves whatever URL is showing when someone
+  // taps Add to Home Screen, and a home-screen app gets a storage jar of its own
+  // that cannot see what Safari saved. Stripping it here left the icon with no
+  // way to know the business, so the crew hit "this phone isn't linked".
   if (RX.test(fromUrl)) {
     write(KEY, fromUrl);
-    try { history.replaceState(null, '', location.pathname); } catch (e) {}
     return fromUrl;
   }
 
@@ -464,9 +467,57 @@ function showNeedsLink() {
   });
   const err = document.getElementById('loginErr') || document.getElementById('loginError');
   if (err) {
-    err.textContent = 'This phone isn’t linked to a business yet. Ask your boss for the clock-in link they were given when they set up Knock Off, and open it once on this phone.';
+    err.textContent = 'This phone isn’t linked to a business yet. Paste the clock-in link your boss sent you below, or open that link on this phone.';
     err.style.display = 'block';
+    addLinkRescue(err);
   }
+}
+
+// Rather than making them ring the boss, let them paste the link straight in.
+// Anything with a business id in it will do — the whole link, or just the code.
+function addLinkRescue(err) {
+  if (!err || !err.parentNode || document.getElementById('orgRescue')) return;
+  const RX = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+  const wrap = document.createElement('div');
+  wrap.id = 'orgRescue';
+  wrap.style.cssText = 'margin-top:14px;';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.id = 'orgRescueInput';
+  input.placeholder = 'Paste your clock-in link';
+  input.autocapitalize = 'off';
+  input.autocorrect = 'off';
+  input.spellcheck = false;
+  // 16px keeps iOS from zooming the page when the field is tapped.
+  input.style.cssText = 'width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #2a2a2a;background:#1a1a1a;color:#f5f0e8;font-size:16px;';
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = 'Link this phone';
+  btn.style.cssText = 'margin-top:8px;width:100%;padding:12px;border:none;border-radius:8px;background:#FFD000;color:#0d0d0d;font-weight:700;font-size:15px;cursor:pointer;';
+
+  const note = document.createElement('div');
+  note.style.cssText = 'margin-top:8px;font-size:13px;color:#888;line-height:1.4;';
+
+  btn.addEventListener('click', function () {
+    const found = RX.exec(input.value || '');
+    if (!found) {
+      note.style.color = '#FF5C00';
+      note.textContent = 'That does not look like the clock-in link. It should end in ?org= followed by a long code.';
+      return;
+    }
+    try { localStorage.setItem('cwts_org', found[0]); } catch (e) {}
+    location.replace(location.pathname + '?org=' + found[0]);
+  });
+
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') btn.click(); });
+
+  wrap.appendChild(input);
+  wrap.appendChild(btn);
+  wrap.appendChild(note);
+  err.parentNode.insertBefore(wrap, err.nextSibling);
 }
 
 // Every timesheet write carries the business it belongs to, so the server never
