@@ -75,6 +75,14 @@
 
   /* GPS */
   .gps-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+  .site-log { margin-top: 0.9rem; border-top: 1px solid var(--border); padding-top: 0.8rem; }
+  .site-now { font-family: var(--heading); font-size: 1.05rem; letter-spacing: 1px; color: var(--text); margin-bottom: 0.4rem; }
+  .site-now span { color: var(--green); }
+  .site-list { font-size: 0.85rem; color: var(--muted); margin: 0 0 0.6rem; padding: 0; list-style: none; }
+  .site-list li { padding: 2px 0; }
+  .site-switch { display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; }
+  .site-switch select { width: 100%; }
+  .site-switch button { background: var(--green); color: #000; border: 0; border-radius: 8px; padding: 0 1rem; font-weight: 700; cursor: pointer; }
   .gps-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
   .gps-btn { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; text-align: center; cursor: pointer; transition: all 0.2s; }
   .gps-btn:active { opacity: 0.8; }
@@ -259,6 +267,15 @@
             <div class="gps-btn-label">🏁 Clock Out</div>
             <div class="gps-btn-time" id="clockOutTime">Tap to clock out</div>
             <div class="gps-address" id="clockOutAddr"></div>
+          </div>
+        </div>
+        <!-- MULTI-SITE: shows once clocked in, hides after clock out -->
+        <div class="site-log" id="siteLog" style="display:none">
+          <div class="site-now" id="siteNow">On site: <span>—</span></div>
+          <ul class="site-list" id="siteList"></ul>
+          <div class="site-switch">
+            <select id="siteSwitchSelect"><option value="">— moved to another site? —</option></select>
+            <button type="button" id="siteSwitchBtn" onclick="doSwitchSite()">Arrived</button>
           </div>
         </div>
       </div>
@@ -585,6 +602,11 @@ function populateJobDropdown(names){
     const other=document.createElement('option'); other.value=OTHER; other.textContent=OTHER; sel.appendChild(other);
   }
   if(chosen) sel.value=chosen;
+  const sw = document.getElementById('siteSwitchSelect');
+  if (sw) {
+    sw.innerHTML = '<option value="">— moved to another site? —</option>';
+    list.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sw.appendChild(o); });
+  }
 }
 async function loadSites(){
   if (!ORG_ID) return;
@@ -939,6 +961,77 @@ async function mockClockOut() {
   localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
   toast('Clocked out ✓ (location unavailable)','warn');
 }
+// ── MULTI-SITE DAY ──
+// Each site a worker is at today is a segment on the server (switch_site /
+// end_segments). The phone keeps its own copy so the list survives a reload.
+function siteKey(){ return 'cwts_sites_' + (currentUser||'') + '_' + getSelectedDay(); }
+function loadSiteLog(){ try { return JSON.parse(localStorage.getItem(siteKey())||'[]'); } catch(e){ return []; } }
+function saveSiteLog(log){ try { localStorage.setItem(siteKey(), JSON.stringify(log)); } catch(e){} }
+async function serverCall(fn, payload){
+  try{
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+      method:'POST', keepalive:true,
+      headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: withOrg(payload) })
+    });
+    if(!res.ok) throw new Error(await res.text());
+    return true;
+  }catch(e){
+    const q = JSON.parse(localStorage.getItem('cwts_clockQueue')||'[]');
+    q.push({ fn, payload }); localStorage.setItem('cwts_clockQueue', JSON.stringify(q));
+    setSyncDot(false);
+    return false;
+  }
+}
+function renderSiteLog(){
+  const box = document.getElementById('siteLog');
+  if (!box) return;
+  const on = !!gpsData.clockInTime && !gpsData.clockOutTime;
+  const log = loadSiteLog();
+  box.style.display = (on || log.length > 1) ? '' : 'none';
+  const cur = log.length ? log[log.length-1].site : '';
+  document.getElementById('siteNow').innerHTML = on
+    ? 'On site: <span>' + escapeText(cur || 'not set — pick below') + '</span>'
+    : 'Sites today';
+  document.getElementById('siteList').innerHTML = log.map((e,i)=>{
+    const t = nzTime(new Date(e.at));
+    const next = log[i+1] ? nzTime(new Date(log[i+1].at)) : (gpsData.clockOutTime ? nzTime(new Date(gpsData.clockOutTime)) : 'now');
+    return '<li>' + t + '–' + next + ' · ' + escapeText(e.site) + '</li>';
+  }).join('');
+  document.querySelector('#siteLog .site-switch').style.display = on ? '' : 'none';
+}
+function escapeText(v){ const d=document.createElement('div'); d.textContent=String(v==null?'':v); return d.innerHTML; }
+async function recordSite(site){
+  if (!site) return;
+  const log = loadSiteLog();
+  if (log.length && log[log.length-1].site.toLowerCase() === site.toLowerCase()) return;
+  const at = new Date().toISOString();
+  log.push({ site, at }); saveSiteLog(log);
+  // more than one site today → the timesheet itself is "multiple sites"; the
+  // per-site split lives in the segments
+  const distinct = new Set(log.map(e=>e.site.toLowerCase()));
+  const jobSel = document.getElementById('jobSelect');
+  if (distinct.size > 1) {
+    const other = [...jobSel.options].find(o=>o.value.toLowerCase()==='other / multiple sites');
+    if (other) jobSel.value = other.value;
+  } else if (!jobSel.value) {
+    jobSel.value = site;
+  }
+  renderSiteLog();
+  const payload = { date: getSelectedDay(), at, site_name: site };
+  const fix = await getGPS();
+  if (fix) { payload.lat = fix.lat; payload.lng = fix.lng; }
+  await serverCall('switch_site', payload);
+}
+async function doSwitchSite(){
+  const sel = document.getElementById('siteSwitchSelect');
+  const site = sel.value;
+  if (!gpsData.clockInTime || gpsData.clockOutTime) { toast('Clock in first','error'); return; }
+  if (!site) { toast('Pick the site you have arrived at','error'); return; }
+  await recordSite(site);
+  sel.value = '';
+  toast('Now at ' + site + ' ✓','success');
+}
 // Save the punch to the server FIRST, on tap. Location is decoration and is
 // attached afterwards in a second call — clock_in is idempotent for a given
 // staff member and date, so it updates the same row rather than duplicating it.
@@ -962,6 +1055,9 @@ async function doClockIn() {
   timeEl.textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
   toast(saved ? 'Clocked in ✓' : 'Clocked in — will sync when back online',
         saved ? 'success' : 'warn');
+  const firstSite = document.getElementById('jobSelect').value;
+  if (firstSite && firstSite.toLowerCase() !== 'other / multiple sites') recordSite(firstSite);
+  renderSiteLog();
 
   addrEl.textContent='📍 Getting location…';
   const fix = await getGPS();
@@ -999,6 +1095,8 @@ async function doClockOut() {
   timeEl.textContent=now.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
   toast(saved ? 'Clocked out ✓' : 'Clocked out — will sync when back online',
         saved ? 'success' : 'warn');
+  if (loadSiteLog().length) serverCall('end_segments', { date: getSelectedDay(), at: gpsData.clockOutTime });
+  renderSiteLog();
 
   addrEl.textContent='📍 Getting location…';
   const fix = await getGPS();
@@ -1361,6 +1459,7 @@ async function submitEntry() {
     
     // RESET EVERYTHING
     document.getElementById('notesField').value='';
+    try { localStorage.removeItem(siteKey()); } catch(e) {}
     document.getElementById('jobSelect').value='';
     document.getElementById('startTime').value='';
     document.getElementById('endTime').value='';
@@ -1379,7 +1478,7 @@ async function submitEntry() {
     document.getElementById('lunchStatus').textContent='Tap "Start Lunch" when you go on break';
     
     // Reset GPS & clock times
-    resetGPS();
+    resetGPS(); renderSiteLog();
     
     // Recalculate hours (should show "—")
     calcHours();
@@ -1493,6 +1592,8 @@ function restoreState() {
       }
     } catch(e) {}
   }
+
+  renderSiteLog();
 
   // Restore a completed lunch (or an explicit "no lunch") from earlier today.
   restoreLunchState();

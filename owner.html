@@ -409,6 +409,13 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <p class="subtle" style="margin-top:12px;">Sites here appear in your crew's “Job / Site” dropdown in the app. <b>Deactivate</b> a finished site to hide it from the crew (you can switch it back on anytime). <b>Delete</b> removes it from the list for good — past timesheets keep their site name either way.</p>
 </div>
 <div class="card">
+<h2>Add lots of sites at once</h2>
+<label for="bulkSites">Paste your site list — one site per line (straight from Excel or an email is fine)</label>
+<textarea id="bulkSites" rows="6" placeholder="Downers – Newmarket&#10;Cushman – Tauranga CBD&#10;Gordon Ave fencing"></textarea>
+<div class="row" style="margin-top:12px;"><button id="bulkSitesBtn" style="max-width:200px;">Add all</button></div>
+<p class="subtle" style="margin-top:8px;">Blank lines and sites you already have are skipped.</p>
+</div>
+<div class="card">
 <h2>Your job sites</h2>
 <div id="siteStatus" class="muted">Loading…</div>
 <table id="siteTable" class="hidden">
@@ -617,6 +624,22 @@ Cost by department (map each job to a department / cost code on the Sites tab)
 <tfoot id="rpFoot"></tfoot>
 </table>
 </div>
+</div>
+<div class="card" id="siCard">
+<h2>Hours by job site</h2>
+<div class="row">
+<div><label for="siFrom">From</label><input id="siFrom" type="date" /></div>
+<div><label for="siTo">To</label><input id="siTo" type="date" /></div>
+<div style="max-width:160px; display:flex; align-items:flex-end;"><button id="siLoadBtn" style="width:100%;">Load</button></div>
+</div>
+<div id="siStatus" class="muted" style="margin-top:12px;">Shows where each person spent their day when they moved between sites. Paid hours are split across the sites by time spent at each.</div>
+<div style="overflow-x:auto;">
+<table id="siTable" class="hidden">
+<thead><tr><th>Site</th><th>Staff</th><th class="num">Days</th><th class="num">Paid hrs</th></tr></thead>
+<tbody id="siBody"></tbody>
+</table>
+</div>
+<div class="row" style="margin-top:12px;"><button class="secondary" id="siCsvBtn" style="max-width:230px;">Download site hours CSV</button></div>
 </div>
 <div class="card hidden" id="crCard">
 <h2>Hours by cost code / category <span class="muted" style="font-weight:400;font-size:13px;">— Business</span></h2>
@@ -1369,6 +1392,7 @@ loadSmartlySettings();
 $("tabReports").addEventListener("click", () => {
 setTab("reports");
 if (!$("rpFrom").value) setWeek("rp", 0, false);
+if (!$("siFrom").value) setWeek("si", 0, false);
 if (rpRows.length === 0) loadSummary();
 });
 $("tabBilling").addEventListener("click", () => { setTab("billing"); loadBilling(); });
@@ -1688,6 +1712,53 @@ if (error) { msg($("appMsg"), error.message, "err"); return; }
 $("newSite").value = "";
 msg($("appMsg"), "Site added.", "ok");
 loadSites();
+});
+// ---- bulk add sites ----
+$("bulkSitesBtn").addEventListener("click", async () => {
+clearMsg($("appMsg"));
+const lines = $("bulkSites").value.split(/\r?\n/).map((l) => l.replace(/\t.*$/, "").trim()).filter(Boolean);
+if (!lines.length) { msg($("appMsg"), "Paste at least one site name.", "err"); return; }
+$("bulkSitesBtn").disabled = true;
+const { data: existing } = await sb.rpc("owner_list_sites");
+const have = new Set((existing || []).map((x) => String(x.name).toLowerCase()));
+let added = 0, skipped = 0; const failed = [];
+for (const name of lines) {
+if (have.has(name.toLowerCase())) { skipped++; continue; }
+const { error } = await sb.rpc("owner_add_site", { p_name: name });
+if (error) failed.push(name); else { added++; have.add(name.toLowerCase()); }
+}
+$("bulkSitesBtn").disabled = false;
+$("bulkSites").value = failed.join("\n");
+msg($("appMsg"), "Added " + added + " site(s)" + (skipped ? ", skipped " + skipped + " already on the list" : "") +
+(failed.length ? ". Couldn't add " + failed.length + " — they're left in the box." : "."), failed.length ? "err" : "ok");
+loadSites();
+});
+// ---- hours by job site (multi-site days) ----
+let siRows = [];
+async function loadSiteHours() {
+if (!$("siFrom").value || !$("siTo").value) setWeek("si", 0, false);
+const from = $("siFrom").value, to = $("siTo").value;
+$("siStatus").textContent = "Loading…";
+const { data, error } = await sb.rpc("owner_site_hours", { p_from: from, p_to: to });
+if (error) { $("siStatus").textContent = error.message; show($("siTable"), false); return; }
+siRows = data || [];
+if (!siRows.length) {
+$("siStatus").textContent = "No site changes recorded for this week yet. They appear once crew tap “Arrived” at a new site in the app.";
+show($("siTable"), false); return;
+}
+let total = 0;
+$("siBody").innerHTML = siRows.map((r) => { total += Number(r.hours) || 0;
+return "<tr><td>" + escapeHtml(r.site_name) + "</td><td>" + escapeHtml(r.staff) + "</td><td class=\"num\">" + r.days +
+"</td><td class=\"num\">" + Number(r.hours).toFixed(2) + "</td></tr>"; }).join("") +
+"<tr><td><b>Total</b></td><td></td><td></td><td class=\"num\"><b>" + total.toFixed(2) + "</b></td></tr>";
+$("siStatus").textContent = from + " to " + to;
+show($("siTable"), true);
+}
+$("siLoadBtn").addEventListener("click", loadSiteHours);
+$("siCsvBtn").addEventListener("click", () => {
+if (!siRows.length) { msg($("appMsg"), "Load the site hours first.", "err"); return; }
+downloadCsv("site_hours_" + $("siFrom").value + "_to_" + $("siTo").value + ".csv",
+[["Site", "Staff", "Days", "Paid hours"], ...siRows.map((r) => [r.site_name, r.staff, r.days, Number(r.hours).toFixed(2)])]);
 });
 // ---- edit site modal ----
 function openSiteEdit(s) {
@@ -2396,6 +2467,7 @@ const WEEK_RANGES = {
 ts: () => loadTimesheets(),
 py: () => {}, // payroll: dates change, the owner then clicks Check before export
 rp: () => loadSummary(),
+si: () => loadSiteHours(),
 cr: () => $("crLoadBtn").click(),
 tr: () => $("trLoadBtn").click()
 };
