@@ -69,6 +69,8 @@ tfoot td { border-top: 2px solid var(--line); border-bottom: none; font-size: 14
 .pill.review { background: rgba(255,152,0,.18); color: #ffb74d; }
 .pill.rejected { background: rgba(244,67,54,.15); color: #ef8a80; }
 .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.wk-btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.wk-btns button.wk-on { border-color: var(--brand); color: var(--brand); }
 .msg { padding: 11px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 14px; display: none; }
 .msg.show { display: block; }
 .msg.err { background: rgba(239,68,68,.12); color: #fca5a5; }
@@ -188,8 +190,14 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <div id="loginMsg" class="msg"></div>
 <label for="email">Your email address</label>
 <input id="email" type="email" placeholder="you@business.com" autocomplete="email" />
-<button id="sendLinkBtn" style="width:100%; margin-top:16px;">Email me a sign-in link</button>
-<p class="muted" style="margin-top:14px;">We'll email you a secure link — no password to remember. Click it and you'll be signed in.</p>
+<label for="password">Password</label>
+<input id="password" type="password" placeholder="Your password" autocomplete="current-password" />
+<button id="pwSignInBtn" style="width:100%; margin-top:16px;">Sign in</button>
+<div class="row" style="margin-top:10px;">
+<button class="secondary small" id="forgotPwBtn" type="button">Forgot password?</button>
+<button class="secondary small" id="sendLinkBtn" type="button">Email me a sign-in link instead</button>
+</div>
+<p class="muted" style="margin-top:14px;">No password yet? Use the email link to sign in, then tap <strong>Password</strong> at the top of your dashboard to set one.</p>
 </div>
 </div>
 </div>
@@ -314,6 +322,7 @@ display: none; align-items: center; justify-content: center; padding: 20px;
 <h1><span class="mark">KNOCKOFF</span> — Owner</h1>
 <div style="text-align:right;">
 <div class="who" id="whoami"></div>
+<button class="secondary small" id="setPwBtn" style="margin-top:4px;">Password</button>
 <button class="secondary small" id="signOutBtn" style="margin-top:4px;">Sign out</button>
 </div>
 </header>
@@ -642,6 +651,22 @@ Cost by department (map each job to a department / cost code on the Sites tab)
 </div>
 </div>
 </div>
+<!-- ================= SET / CHANGE PASSWORD MODAL ================= -->
+<div class="modal-bg" id="pwModal">
+<div class="modal">
+<h2 id="pwTitle">Set your password</h2>
+<div id="pwMsg" class="msg"></div>
+<label for="newPw">New password <span class="subtle">(at least 8 characters)</span></label>
+<input id="newPw" type="password" autocomplete="new-password" />
+<label for="newPw2">Type it again</label>
+<input id="newPw2" type="password" autocomplete="new-password" />
+<p class="subtle" style="margin:8px 0 0;">You can still use an emailed sign-in link any time, so you can't get locked out.</p>
+<div class="row" style="margin-top:18px;">
+<button class="secondary" id="pwCancel">Cancel</button>
+<button id="pwSave">Save password</button>
+</div>
+</div>
+</div>
 <!-- ================= EDIT STAFF MODAL ================= -->
 <div class="modal-bg" id="editModal">
 <div class="modal">
@@ -813,6 +838,15 @@ d.setDate(d.getDate() - n);
 return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland',
 year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 }
+// ---- Mon–Sun pay weeks (NZ calendar) ----
+// weekRange(0) = this week, weekRange(-1) = last week. Always Monday to Sunday.
+function weekRange(offsetWeeks) {
+const today = new Date(isoDaysAgo(0) + "T00:00:00Z");
+const sinceMonday = (today.getUTCDay() + 6) % 7; // Mon=0 … Sun=6
+const mon = new Date(today); mon.setUTCDate(today.getUTCDate() - sinceMonday + 7 * offsetWeeks);
+const sun = new Date(mon); sun.setUTCDate(mon.getUTCDate() + 6);
+return { from: mon.toISOString().slice(0, 10), to: sun.toISOString().slice(0, 10) };
+}
 function hrs(v) { return (v == null || v === "") ? "" : Number(v).toFixed(2); }
 // Shared CSV cell escaper (quotes values containing commas, quotes, or newlines)
 function csvEsc(v) {
@@ -862,6 +896,7 @@ show($("wizardView"), false);
 show($("appView"), false);
 return;
 }
+checkPendingReset(session);
 // Signed in — do they have a business (org) yet?
 const { data: orgId, error: orgErr } = await sb.rpc("current_owner_org");
 if (!orgErr && !orgId) {
@@ -910,6 +945,62 @@ $("sendLinkBtn").disabled = false;
 if (error) { msg($("loginMsg"), error.message, "err"); return; }
 msg($("loginMsg"), "Check your email and click the sign-in link. You can close this tab once you do.", "ok");
 });
+// ---- password sign-in, reset, and set/change ----
+async function pwSignIn() {
+const email = $("email").value.trim();
+const password = $("password").value;
+if (!email || !password) { msg($("loginMsg"), "Enter your email and password.", "err"); return; }
+$("pwSignInBtn").disabled = true;
+const { error } = await sb.auth.signInWithPassword({ email, password });
+$("pwSignInBtn").disabled = false;
+if (error) {
+msg($("loginMsg"), "That email and password don't match. If you haven't set a password yet, use the email link instead.", "err");
+return;
+}
+$("password").value = "";
+refresh();
+}
+$("pwSignInBtn").addEventListener("click", pwSignIn);
+$("password").addEventListener("keydown", (e) => { if (e.key === "Enter") pwSignIn(); });
+$("forgotPwBtn").addEventListener("click", async () => {
+const email = $("email").value.trim();
+if (!email) { msg($("loginMsg"), "Enter your email address first, then tap Forgot password.", "err"); return; }
+$("forgotPwBtn").disabled = true;
+const back = window.location.origin + window.location.pathname + "?reset=1";
+const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: back });
+$("forgotPwBtn").disabled = false;
+if (error) { msg($("loginMsg"), error.message, "err"); return; }
+msg($("loginMsg"), "Check your email for a link to choose a new password.", "ok");
+});
+function openPwModal(isReset) {
+$("pwTitle").textContent = isReset ? "Choose a new password" : "Set or change your password";
+$("newPw").value = ""; $("newPw2").value = "";
+clearMsg($("pwMsg"));
+$("pwModal").classList.add("show");
+setTimeout(() => $("newPw").focus(), 50);
+}
+function closePwModal() { $("pwModal").classList.remove("show"); }
+$("setPwBtn").addEventListener("click", () => openPwModal(false));
+$("pwCancel").addEventListener("click", closePwModal);
+$("pwSave").addEventListener("click", async () => {
+const a = $("newPw").value, b = $("newPw2").value;
+if (a.length < 8) { msg($("pwMsg"), "Make it at least 8 characters.", "err"); return; }
+if (a !== b) { msg($("pwMsg"), "Those two don't match — try again.", "err"); return; }
+$("pwSave").disabled = true;
+const { error } = await sb.auth.updateUser({ password: a });
+$("pwSave").disabled = false;
+if (error) { msg($("pwMsg"), error.message, "err"); return; }
+closePwModal();
+msg($("appMsg"), "Password saved. Next time just sign in with your email and password.", "ok");
+});
+// Arriving from a "forgot password" email: open the new-password box once signed in.
+let pendingPwReset = new URLSearchParams(window.location.search).has("reset");
+function checkPendingReset(session) {
+if (!pendingPwReset || !session) return;
+pendingPwReset = false;
+history.replaceState(null, "", window.location.pathname);
+openPwModal(true);
+}
 $("signOutBtn").addEventListener("click", async () => {
 await sb.auth.signOut();
 refresh();
@@ -1088,7 +1179,10 @@ if (!url) { msg($("appMsg"), "Still loading your business — try again in a mom
 try { await navigator.clipboard.writeText(url); msg($("appMsg"), "Clock-in link copied.", "ok"); }
 catch (e) { $("crewLink").select(); msg($("appMsg"), "Press Ctrl/Cmd+C to copy the link.", "ok"); }
 });
-sb.auth.onAuthStateChange(() => refresh());
+sb.auth.onAuthStateChange((event) => {
+if (event === "PASSWORD_RECOVERY") { pendingPwReset = true; }
+refresh();
+});
 // ---- tab switching ----
 // ============================================================
 // BILLING (Stripe) — status banner, plan cards, gate handling.
@@ -1264,17 +1358,17 @@ if (siteRows.length === 0) loadSites();
 });
 $("tabTimesheets").addEventListener("click", () => {
 setTab("timesheets");
-if (!$("tsFrom").value) { $("tsFrom").value = isoDaysAgo(6); $("tsTo").value = isoDaysAgo(0); }
+if (!$("tsFrom").value) setWeek("ts", 0, false);
 if (tsRows.length === 0) loadTimesheets();
 });
 $("tabPayroll").addEventListener("click", () => {
 setTab("payroll");
-if (!$("pyFrom").value) { $("pyFrom").value = isoDaysAgo(6); $("pyTo").value = isoDaysAgo(0); }
+if (!$("pyFrom").value) setWeek("py", 0, false);
 loadSmartlySettings();
 });
 $("tabReports").addEventListener("click", () => {
 setTab("reports");
-if (!$("rpFrom").value) { $("rpFrom").value = isoDaysAgo(6); $("rpTo").value = isoDaysAgo(0); }
+if (!$("rpFrom").value) setWeek("rp", 0, false);
 if (rpRows.length === 0) loadSummary();
 });
 $("tabBilling").addEventListener("click", () => { setTab("billing"); loadBilling(); });
@@ -1405,7 +1499,8 @@ $("newCat").value = ""; $("newCatCode").value = ""; msg($("appMsg"), "Added cate
 });
 
 $("crLoadBtn").addEventListener("click", async () => {
-const from = $("crFrom").value || isoDaysAgo(6), to = $("crTo").value || isoDaysAgo(0);
+if (!$("crFrom").value || !$("crTo").value) setWeek("cr", 0, false);
+const from = $("crFrom").value, to = $("crTo").value;
 $("crFrom").value = from; $("crTo").value = to;
 $("crStatus").textContent = "Loading…"; show($("crTable"), false);
 const { data, error } = await sb.rpc("owner_payroll_report_by_category", { p_from: from, p_to: to });
@@ -1424,7 +1519,8 @@ body.appendChild(row);
 show($("crTable"), true);
 });
 $("trLoadBtn").addEventListener("click", async () => {
-const from = $("trFrom").value || isoDaysAgo(6), to = $("trTo").value || isoDaysAgo(0);
+if (!$("trFrom").value || !$("trTo").value) setWeek("tr", 0, false);
+const from = $("trFrom").value, to = $("trTo").value;
 $("trFrom").value = from; $("trTo").value = to;
 $("trStatus").textContent = "Loading…"; show($("trTable"), false);
 const { data, error } = await sb.rpc("owner_payroll_report_by_team", { p_from: from, p_to: to });
@@ -2295,6 +2391,43 @@ msg($("appMsg"),"Entry added — it's pending your approval.","ok");
 loadTimesheets();
 });
 
+// ---- "Last week" / "This week" buttons on every date range ----
+const WEEK_RANGES = {
+ts: () => loadTimesheets(),
+py: () => {}, // payroll: dates change, the owner then clicks Check before export
+rp: () => loadSummary(),
+cr: () => $("crLoadBtn").click(),
+tr: () => $("trLoadBtn").click()
+};
+function markWeek(prefix, which) {
+document.querySelectorAll('[data-wk="' + prefix + '"]').forEach((b) =>
+b.classList.toggle("wk-on", b.dataset.which === String(which)));
+}
+function setWeek(prefix, offset, andLoad) {
+const r = weekRange(offset);
+$(prefix + "From").value = r.from;
+$(prefix + "To").value = r.to;
+// let any existing change listeners know (e.g. payroll check reset)
+$(prefix + "From").dispatchEvent(new Event("change"));
+$(prefix + "To").dispatchEvent(new Event("change"));
+markWeek(prefix, offset);
+if (andLoad) WEEK_RANGES[prefix]();
+}
+Object.keys(WEEK_RANGES).forEach((prefix) => {
+const fromEl = $(prefix + "From");
+if (!fromEl) return;
+const row = fromEl.closest(".row");
+const box = document.createElement("div");
+box.className = "wk-btns";
+box.innerHTML =
+'<button type="button" class="secondary small" data-wk="' + prefix + '" data-which="-1">Last week</button>' +
+'<button type="button" class="secondary small" data-wk="' + prefix + '" data-which="0">This week</button>';
+row.insertAdjacentElement("afterend", box);
+box.querySelectorAll("button").forEach((b) =>
+b.addEventListener("click", () => setWeek(prefix, Number(b.dataset.which), true)));
+// typing a date by hand clears the highlight
+[fromEl, $(prefix + "To")].forEach((el) => el.addEventListener("input", () => markWeek(prefix, null)));
+});
 // go
 refresh();
 </script>
