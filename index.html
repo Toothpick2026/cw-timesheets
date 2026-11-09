@@ -905,30 +905,163 @@ async function flushClockQueue(){
 }
 
 // ── GPS ──
-// Resolves to null instead of rejecting, so a missing or slow fix can never
-// throw the clock-in off course. enableHighAccuracy is off and a recent cached
-// fix is accepted: waking the GPS chip took longer than the old 3s race allowed,
-// which is why phones fell through to the no-location path nearly every time.
+// getGPS() always resolves (never throws) to either {lat,lng,acc} or {err}
+// where err says WHY there is no location, so the timesheet can record the
+// reason instead of a blank "Location unavailable":
+//   off         – location permission is turned off / denied on the phone
+//   nosignal    – permission is on but no fix arrived within 8 seconds
+//   unsupported – the browser has no location support at all
+// enableHighAccuracy stays off and a recent cached fix is accepted: waking the
+// GPS chip took longer than the old 3s race allowed.
+const LOC_TEXT = {
+  off:         'No location – location is turned off on this phone',
+  nosignal:    'No location – no GPS signal',
+  unsupported: "No location – this phone can't share location",
+  closed:      'Not captured – app closed before GPS finished',
+  pending:     'GPS recorded – street name pending'
+};
+async function gpsPermissionDenied() {
+  try {
+    if (!navigator.permissions || !navigator.permissions.query) return false;
+    const p = await Promise.race([
+      navigator.permissions.query({ name:'geolocation' }),
+      new Promise(r => setTimeout(() => r(null), 1500))
+    ]);
+    return !!(p && p.state === 'denied');
+  } catch (e) { return false; }
+}
 async function getGPS() {
+  if (!navigator.geolocation) return { err:'unsupported' };
+  if (await gpsPermissionDenied()) return { err:'off' };
   return new Promise(resolve=>{
-    if (!navigator.geolocation){ resolve(null); return; }
     let done=false;
     const finish=v=>{ if(!done){ done=true; resolve(v); } };
-    setTimeout(()=>finish(null), 8000);
+    setTimeout(()=>finish({ err:'nosignal' }), 8000);
     navigator.geolocation.getCurrentPosition(
-      pos=>finish({lat:pos.coords.latitude,lng:pos.coords.longitude}),
-      ()=>finish(null),
+      pos=>finish({ lat:pos.coords.latitude, lng:pos.coords.longitude, acc:pos.coords.accuracy }),
+      err=>finish({ err: (err && err.code === 1) ? 'off' : 'nosignal' }),
       {enableHighAccuracy:false,timeout:8000,maximumAge:60000}
     );
   });
 }
+// A phone with "precise location" switched off reports a deliberately blurred
+// position: a big accuracy radius and a latitude snapped to a 1/111° grid.
+function isRoughFix(fix) {
+  if (!fix || fix.lat == null) return false;
+  if (fix.acc && fix.acc > 1000) return true;
+  return Math.abs(fix.lat * 111 - Math.round(fix.lat * 111)) < 1e-6;
+}
+function locationLabel(fix, street) {
+  const base = street || LOC_TEXT.pending;
+  if (!isRoughFix(fix)) return base;
+  const km = Math.max(1, Math.round((fix.acc || 2000) / 1000));
+  return 'Rough location (±' + km + ' km) – ' + base;
+}
+// Street lookup with retries. Returns the street text, or null if the map
+// service couldn't be reached — the caller then saves the coordinates and
+// queues the lookup to try again later, instead of saving raw numbers.
 async function reverseGeocode(lat,lng) {
+  const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=17&accept-language=en`;
+  for (const wait of [0, 2000, 5000]) {
+    if (wait) await new Promise(r => setTimeout(r, wait));
+    try {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 6000);
+      const res = await fetch(url, { signal: ctl.signal });
+      clearTimeout(t);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const a = data.address || {};
+      const street = [a.road, a.suburb, a.city || a.town || a.village].filter(Boolean).join(', ');
+      if (street) return street;
+    } catch (e) {}
+  }
+  return null;
+}
+// Attach a location to today's clock-in or clock-out row WITHOUT re-sending the
+// punch itself (set_clock_address only touches address/lat/lng, so a late
+// retry can't reopen a finished shift or overwrite office edits).
+// Returns 'ok', 'missing' (server function not installed yet) or 'failed'.
+async function sendLocation(kind, day, fix, address) {
+  if (!currentUser || !currentPin) return 'failed';
+  const payload = { kind, date: day, address,
+    lat: fix && fix.lat != null ? fix.lat : null,
+    lng: fix && fix.lng != null ? fix.lng : null };
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
-    const data = await res.json();
-    const a = data.address||{};
-    return [a.road,a.suburb,a.city||a.town||a.village].filter(Boolean).join(', ')||`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-  } catch { return `${lat.toFixed(4)}, ${lng.toFixed(4)}`; }
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/set_clock_address', {
+      method:'POST', keepalive:true,
+      headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ p_name: currentUser, p_pin: currentPin, p_data: withOrg(payload) })
+    });
+    if (res.status === 404) return 'missing';
+    if (!res.ok) return 'failed';
+    // false = no row for that day yet (punch still queued) → try again later
+    return (await res.json()) === true ? 'ok' : 'failed';
+  } catch (e) { return 'failed'; }
+}
+// Locations still waiting to be saved or to get a street name. Survives the
+// app being closed; retried on open, on coming back online and every minute.
+function loadLocQueue(){ try { return JSON.parse(localStorage.getItem('cwts_locQueue')||'[]'); } catch(e){ return []; } }
+function saveLocQueue(q){ try { q.length ? localStorage.setItem('cwts_locQueue', JSON.stringify(q)) : localStorage.removeItem('cwts_locQueue'); } catch(e){} }
+let locQueueBusy = false;
+async function flushLocQueue() {
+  if (locQueueBusy || !currentUser || !currentPin) return;
+  locQueueBusy = true;
+  try {
+    const weekAgo = Date.now() - 7*864e5;
+    const remain = [];
+    for (const item of loadLocQueue()) {
+      if (item.user !== currentUser || item.at < weekAgo || (item.tries||0) >= 30) continue;
+      const fix = { lat:item.lat, lng:item.lng, acc:item.acc };
+      let address = item.address;
+      if (item.needStreet) {
+        const street = await reverseGeocode(item.lat, item.lng);
+        if (!street) { remain.push(item); continue; }
+        address = locationLabel(fix, street);
+      }
+      const r = await sendLocation(item.kind, item.date, fix, address);
+      if (r === 'failed') remain.push(Object.assign({}, item, { address, needStreet:false, tries:(item.tries||0)+1 }));
+      // 'missing' → server function not installed; nothing more we can do
+    }
+    saveLocQueue(remain);
+  } finally { locQueueBusy = false; }
+}
+// Shared by clock-in and clock-out: get GPS, work out the label, show it,
+// and save it to the server (or queue it).
+async function captureLocation(kind, day, addrEl, punchSaved) {
+  const isIn = kind === 'in';
+  addrEl.textContent='📍 Getting location…';
+  const fix = await getGPS();
+  let address;
+  let needStreet = false;
+  if (fix.err) {
+    address = LOC_TEXT[fix.err];
+    if (fix.err === 'off') toast('Location is turned off on your phone — please turn it on for Knockoff','warn');
+  } else {
+    addrEl.textContent='📍 Getting address…';
+    const street = await reverseGeocode(fix.lat, fix.lng);
+    needStreet = !street;
+    address = locationLabel(fix, street);
+  }
+  if (isIn) { gpsData.clockInLat=fix.lat ?? null; gpsData.clockInLng=fix.lng ?? null; gpsData.clockInAddress=address; }
+  else      { gpsData.clockOutLat=fix.lat ?? null; gpsData.clockOutLng=fix.lng ?? null; gpsData.clockOutAddress=address; }
+  addrEl.textContent = address;
+  localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
+
+  // If the punch itself is still queued offline there's no row to attach to
+  // yet, so go straight to the queue (it's flushed after the punch queue).
+  const r = punchSaved ? await sendLocation(kind, day, fix, address) : 'failed';
+  if (r === 'missing') {
+    // Server not updated yet — fall back to the old behaviour (re-send the
+    // punch with the location), which is safe this soon after tapping.
+    serverClock(kind);
+  } else if (r === 'failed' || needStreet) {
+    const q = loadLocQueue();
+    q.push({ user: currentUser, kind, date: day, at: Date.now(),
+      lat: fix.lat ?? null, lng: fix.lng ?? null, acc: fix.acc ?? null,
+      address, needStreet });
+    saveLocQueue(q);
+  }
 }
 async function mockClockIn() {
   // GPS wasn't available/granted in time — record the punch honestly instead of
@@ -1020,7 +1153,7 @@ async function recordSite(site){
   renderSiteLog();
   const payload = { date: getSelectedDay(), at, site_name: site };
   const fix = await getGPS();
-  if (fix) { payload.lat = fix.lat; payload.lng = fix.lng; }
+  if (fix && fix.lat != null) { payload.lat = fix.lat; payload.lng = fix.lng; }
   await serverCall('switch_site', payload);
 }
 async function doSwitchSite(){
@@ -1044,7 +1177,10 @@ async function doClockIn() {
   gpsData.clockInTime=now.toISOString();
   gpsData.clockInLat=null;
   gpsData.clockInLng=null;
-  gpsData.clockInAddress='Locating…';
+  // Saved to the server with the punch. If the app is closed before GPS
+  // answers, this is what stays — never a stuck "Locating…".
+  gpsData.clockInAddress=LOC_TEXT.closed;
+  const day = getSelectedDay();
   document.getElementById('startTime').value=nzTime(now);
   calcHours();
   document.getElementById('clockInBtn').classList.add('clocked');
@@ -1059,21 +1195,7 @@ async function doClockIn() {
   if (firstSite && firstSite.toLowerCase() !== 'other / multiple sites') recordSite(firstSite);
   renderSiteLog();
 
-  addrEl.textContent='📍 Getting location…';
-  const fix = await getGPS();
-  if (!fix) {
-    gpsData.clockInAddress='Location unavailable';
-    addrEl.textContent=gpsData.clockInAddress;
-    localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
-    return;
-  }
-  gpsData.clockInLat=fix.lat; gpsData.clockInLng=fix.lng;
-  addrEl.textContent='📍 Getting address…';
-  let addr='Location recorded';
-  try { addr = await reverseGeocode(fix.lat, fix.lng); } catch(e) {}
-  gpsData.clockInAddress=addr; addrEl.textContent=addr;
-  localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
-  serverClock('in');
+  await captureLocation('in', day, addrEl, saved);
 }
 async function doClockOut() {
   const timeEl=document.getElementById('clockOutTime');
@@ -1084,7 +1206,8 @@ async function doClockOut() {
   gpsData.clockOutTime=now.toISOString();
   gpsData.clockOutLat=null;
   gpsData.clockOutLng=null;
-  gpsData.clockOutAddress='Locating…';
+  gpsData.clockOutAddress=LOC_TEXT.closed;
+  const day = getSelectedDay();
   document.getElementById('endTime').value=nzTime(now);
   calcHours();
   document.getElementById('clockOutBtn').classList.add('clocked');
@@ -1098,21 +1221,7 @@ async function doClockOut() {
   if (loadSiteLog().length) serverCall('end_segments', { date: getSelectedDay(), at: gpsData.clockOutTime });
   renderSiteLog();
 
-  addrEl.textContent='📍 Getting location…';
-  const fix = await getGPS();
-  if (!fix) {
-    gpsData.clockOutAddress='Location unavailable';
-    addrEl.textContent=gpsData.clockOutAddress;
-    localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
-    return;
-  }
-  gpsData.clockOutLat=fix.lat; gpsData.clockOutLng=fix.lng;
-  addrEl.textContent='📍 Getting address…';
-  let addr='Location recorded';
-  try { addr = await reverseGeocode(fix.lat, fix.lng); } catch(e) {}
-  gpsData.clockOutAddress=addr; addrEl.textContent=addr;
-  localStorage.setItem('cwts_clockIn', JSON.stringify(gpsData));
-  serverClock('out');
+  await captureLocation('out', day, addrEl, saved);
 }
 function resetGPS() {
   gpsData={clockInTime:null,clockInLat:null,clockInLng:null,clockInAddress:'',clockOutTime:null,clockOutLat:null,clockOutLng:null,clockOutAddress:''};
@@ -1574,6 +1683,8 @@ function restoreState() {
         localStorage.removeItem('cwts_clockIn');
       } else {
         gpsData = d;
+        if (d.clockInAddress === 'Locating…') d.clockInAddress = LOC_TEXT.closed;
+        if (d.clockOutAddress === 'Locating…') d.clockOutAddress = LOC_TEXT.closed;
         if (d.clockInTime) {
           const t = new Date(d.clockInTime);
           document.getElementById('clockInTime').textContent = t.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
@@ -1670,15 +1781,15 @@ document.addEventListener('visibilitychange', () => {
     // The 60s interval doesn't run while the page is frozen in the background,
     // so coming back to the foreground is the only reliable chance to drain
     // anything stuck in the clock queue.
-    if (currentUser && navigator.onLine) flushClockQueue();
+    if (currentUser && navigator.onLine) { flushClockQueue().then(flushLocQueue); }
   }
 });
 
 // Retry any stuck offline submissions whenever connectivity comes back, and as
 // a periodic safety net every minute while the app is open — instead of only
 // ever trying once at the moment of a failed submit.
-window.addEventListener('online', () => { if (currentUser) flushClockQueue(); if (currentUser) flushQueue().then(()=>{ if(document.getElementById('page-history').classList.contains('active')) renderHistory(); }); });
-setInterval(() => { if (currentUser && navigator.onLine) { flushQueue(); flushClockQueue(); } }, 60000);
+window.addEventListener('online', () => { if (currentUser) flushClockQueue().then(flushLocQueue); if (currentUser) flushQueue().then(()=>{ if(document.getElementById('page-history').classList.contains('active')) renderHistory(); }); });
+setInterval(() => { if (currentUser && navigator.onLine) { flushQueue(); flushClockQueue().then(flushLocQueue); } }, 60000);
 
 window.onload=async ()=>{
   const savedUser = localStorage.getItem('cwts_user');
@@ -1698,7 +1809,7 @@ window.onload=async ()=>{
         bootApp();
         restoreState();
         requestWakeLock();
-        flushClockQueue();
+        flushClockQueue().then(flushLocQueue);
       } else {
         localStorage.removeItem('cwts_user');
         localStorage.removeItem('cwts_pin');
