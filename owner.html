@@ -821,7 +821,7 @@ It tells the Smartly file which of their rates to use. Nearly everyone stays on 
 <div class="modal">
 <h2>📍 Clock-in location</h2>
 <p class="subtle" id="gpsWho" style="margin-top:0;"></p>
-<div id="gpsBody" class="muted">Loading…</div>
+<div id="gpsBody" class="muted" style="max-height:65vh; overflow:auto;">Loading…</div>
 <div class="row" style="margin-top:18px;">
 <button class="secondary" id="gpsClose">Close</button>
 </div>
@@ -2015,7 +2015,26 @@ const breaks =
 $("gpsBody").innerHTML =
 gpsPunch("📍 Clocked in", g.clock_in_time, g.clock_in_address, g.clock_in_lat, g.clock_in_lng) +
 gpsPunch("🏁 Clocked out", g.clock_out_time, g.clock_out_address, g.clock_out_lat, g.clock_out_lng) +
-breaks;
+breaks +
+'<div id="actBox" style="margin-top:6px; border-top:1px solid var(--line); padding-top:12px;"><div class="gps-h" style="margin-bottom:4px;">📱 App activity</div><div class="subtle muted">Loading…</div></div>';
+loadActivity(staff, workDate);
+}
+// App activity register for one person on one day (opened app, clock in/out,
+// office changes), newest last.
+const ACT_LABEL = { opened:"Opened app", logged_in:"Logged in", resumed:"Came back to app", clock_in:"Clocked in", clock_out:"Clocked out", submitted:"Submitted timesheet", office_edit:"Office change" };
+async function loadActivity(staff, workDate) {
+const box = $("actBox");
+if (!box || !staff || !workDate) return;
+const { data, error } = await sb.rpc("owner_app_activity", { p_staff: staff, p_from: workDate, p_to: workDate });
+const body = error
+? '<div class="subtle" style="color:var(--danger)">' + escapeHtml(error.message) + '</div>'
+: (!data || !data.length)
+? '<div class="subtle muted">Nothing recorded for this day (the register started on 10 Nov 2026).</div>'
+: data.map((a) => '<div class="subtle" style="margin-bottom:6px;"><b>' + escapeHtml((a.at_nz || "").slice(6)) + '</b> · ' +
+escapeHtml(ACT_LABEL[a.event] || a.event) + (a.detail ? " — " + escapeHtml(a.detail) : "") +
+(a.device ? '<br><span class="muted">' + escapeHtml(a.device) + (a.ip ? " · " + escapeHtml(a.ip) : "") + '</span>' : "") +
+'</div>').join("");
+box.innerHTML = '<div class="gps-h" style="margin-bottom:4px;">📱 App activity</div>' + body;
 }
 $("gpsClose").addEventListener("click", () => $("gpsModal").classList.remove("show"));
 // ---- adjust timesheet modal ----

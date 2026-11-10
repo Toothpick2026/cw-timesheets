@@ -783,6 +783,7 @@ async function doLogin() {
   localStorage.setItem('cwts_pin', pin);
   bootApp();
   restoreState();
+  logActivity('logged_in');
 }
 function showLoginErr(msg) {
   const el=document.getElementById('loginErr'); el.textContent=msg; el.style.display='block';
@@ -1026,6 +1027,29 @@ async function flushLocQueue() {
     saveLocQueue(remain);
   } finally { locQueueBusy = false; }
 }
+// ── ACTIVITY REGISTER ──
+// Records when the app is opened, logged into, or come back to after 5+ min
+// away. Clock-ins, clock-outs and submits are recorded by the server itself.
+let activityHiddenAt = 0;
+function logActivity(event, detail) {
+  if (!currentUser || !currentPin) return;
+  try {
+    fetch(SUPABASE_URL + '/rest/v1/rpc/log_activity', {
+      method:'POST', keepalive:true,
+      headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer ' + SUPABASE_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ p_name: currentUser, p_pin: currentPin,
+        p_data: withOrg({ event, detail: detail || null, date: getSelectedDay(), device_at: new Date().toISOString() }) })
+    }).catch(()=>{});
+  } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { activityHiddenAt = Date.now(); return; }
+  if (activityHiddenAt && currentUser) {
+    const mins = Math.round((Date.now() - activityHiddenAt) / 60000);
+    if (mins >= 5) logActivity('resumed', 'away ' + mins + ' min');
+  }
+  activityHiddenAt = 0;
+});
 // Shared by clock-in and clock-out: get GPS, work out the label, show it,
 // and save it to the server (or queue it).
 async function captureLocation(kind, day, addrEl, punchSaved) {
@@ -1810,6 +1834,7 @@ window.onload=async ()=>{
         restoreState();
         requestWakeLock();
         flushClockQueue().then(flushLocQueue);
+        logActivity('opened');
       } else {
         localStorage.removeItem('cwts_user');
         localStorage.removeItem('cwts_pin');
